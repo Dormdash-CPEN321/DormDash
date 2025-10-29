@@ -7,37 +7,37 @@ const router = Router();
 const jobController = new JobController(jobService);
 
 // GET /api/jobs - Get all jobs
-router.get('/', jobController.getAllJobs.bind(jobController));
+router.get('/', (req, res, next) => jobController.getAllJobs(req, res, next));
 
 // GET /api/jobs/available - Get available jobs for movers to accept
-router.get('/available', jobController.getAllAvailableJobs.bind(jobController));
+router.get('/available', (req, res, next) => jobController.getAllAvailableJobs(req, res, next));
 
 // GET /api/jobs/mover - Get jobs ACCEPTED to the authenticated mover
-router.get('/mover', jobController.getMoverJobs.bind(jobController));
+router.get('/mover', (req, res, next) => jobController.getMoverJobs(req, res, next));
 
 // GET /api/jobs/student - Get jobs for the authenticated student
-router.get('/student', jobController.getStudentJobs.bind(jobController));
+router.get('/student', (req, res, next) => jobController.getStudentJobs(req, res, next));
 
 // GET /api/jobs/:id - Get specific job by ID
-router.get('/:id', jobController.getJobById.bind(jobController));
+router.get('/:id', (req, res, next) => jobController.getJobById(req, res, next));
 
 // POST /api/jobs - Create a new job
-router.post('/', jobController.createJob.bind(jobController));
+router.post('/', (req, res, next) => jobController.createJob(req, res, next));
 
 // PATCH /api/jobs/:id/status - Update job status (assign, start, complete)
-router.patch('/:id/status', jobController.updateJobStatus.bind(jobController));
+router.patch('/:id/status', (req, res, next) => jobController.updateJobStatus(req, res, next));
 
 // POST /api/jobs/:id/arrived - mover indicates arrival and requests student confirmation
-router.post('/:id/arrived', jobController.send_arrival_confirmation.bind(jobController));
+router.post('/:id/arrived', (req, res, next) => jobController.send_arrival_confirmation(req, res, next));
 
 // POST /api/jobs/:id/confirm-pickup - student confirms pickup
-router.post('/:id/confirm-pickup', jobController.confirmPickup.bind(jobController));
+router.post('/:id/confirm-pickup', (req, res, next) => jobController.confirmPickup(req, res, next));
 
 // POST /api/jobs/:id/delivered - mover indicates delivery completed and requests student confirmation (return jobs)
-router.post('/:id/delivered', jobController.delivered.bind(jobController));
+router.post('/:id/delivered', (req, res, next) => jobController.delivered(req, res, next));
 
 // POST /api/jobs/:id/confirm-delivery - student confirms delivery (return jobs)
-router.post('/:id/confirm-delivery', jobController.confirmDelivery.bind(jobController));
+router.post('/:id/confirm-delivery', (req, res, next) => jobController.confirmDelivery(req, res, next));
 
 // Apply auth middleware to routes that change state
 router.use(authenticateToken);
