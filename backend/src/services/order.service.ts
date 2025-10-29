@@ -23,6 +23,8 @@ export class OrderService {
         //added to avoid unused variable error- codacy
         const lat1 = lat;
         const lon1 = lon;
+
+        logger.info("Finding closest warehouse to:", { lat, lon });
         return { 
             closestWarehouse: WAREHOUSES[0],
             distanceToWarehouse: 5 //km

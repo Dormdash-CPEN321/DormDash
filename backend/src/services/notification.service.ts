@@ -2,7 +2,7 @@ import admin from '../config/firebase';
 import { NotificationPayload } from '../types/notification.types';
 import logger from "../utils/logger.util";
 import mongoose from 'mongoose';
-import { Job, JobStatus, JobType } from '../types/job.type';
+import { JobStatus, JobType } from '../types/job.type';
 import { jobModel } from "../models/job.model";import { userModel } from '../models/user.model';
 ``
 

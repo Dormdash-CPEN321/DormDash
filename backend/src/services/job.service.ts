@@ -14,7 +14,7 @@ import {
     GetMoverJobsResponse
 } from "../types/job.type";
 import { notificationService } from "./notification.service";
-import { Address, OrderStatus } from "../types/order.types";
+import { OrderStatus } from "../types/order.types";
 import logger from "../utils/logger.util";
 import { EventEmitter } from "../utils/eventEmitter.util";
 import { JobMapper } from "../mappers/job.mapper";
