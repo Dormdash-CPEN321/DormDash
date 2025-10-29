@@ -57,7 +57,7 @@ export interface CreateReturnJobResponse {
     message: string;
     lateFee?: number; // Optional late fee if return is past expected date
     refundAmount?: number; // Optional refund if return is before expected date
-};
+}
 
 export type GetActiveOrderResponse = Order | null;
 

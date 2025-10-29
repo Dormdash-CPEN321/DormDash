@@ -454,11 +454,7 @@ private fun JobInfoRow(
     }
 }
 
-/**
- * Determines the current destination location based on job type and status
- * STORAGE: ACCEPTED -> student location, PICKED_UP -> storage facility
- * RETURN: ACCEPTED -> storage facility, PICKED_UP -> student location
- */
+
 private fun getCurrentDestination(job: Job): Pair<Address, String> {
     return when (job.jobType) {
         JobType.STORAGE -> {

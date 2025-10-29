@@ -19,16 +19,12 @@ class OrderRepository @Inject constructor(
     private var lastStudentAddress: Address? = null
     private var isSubmitting: Boolean = false
     
-    /**
-     * Helper to get current user ID
-     */
-     private suspend fun getCurrentUserId(): String? {
+    
+    private suspend fun getCurrentUserId(): String? {
         return authRepository.getCurrentUser()?._id
     }
     
-    /**
-     * Transform frontend OrderRequest to backend CreateOrderRequest
-     */
+    
     private suspend fun transformToCreateOrderRequest(
         orderRequest: OrderRequest, 
         studentAddr: Address? = null, 

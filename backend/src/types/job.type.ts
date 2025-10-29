@@ -61,7 +61,7 @@ export interface Job {
     createdAt: Date;
     updatedAt: Date;
     verificationRequestedAt?: Date | null;
-};
+}
 
 export interface JobResponse{
     id: string;
@@ -78,7 +78,7 @@ export interface JobResponse{
     calendarEventLink?: string;
     createdAt: string;
     updatedAt: string;
-};
+}
 
 // For listing jobs, we might not want to expose all details
 export interface JobListItem extends Pick<JobResponse, "id" | "orderId" | "jobType" | "volume" | "price" | "pickupAddress" | "dropoffAddress" | "scheduledTime" | "status"> {}

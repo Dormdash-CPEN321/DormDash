@@ -190,7 +190,7 @@ export class RoutePlannerService {
   /**
    * Calculate value score for each job (earnings per minute)
    */
-  private calculateJobValues(jobs: JobResponse[]): Array<JobResponse & { valueScore: number; scheduledTime: Date }> {
+  private calculateJobValues(jobs: JobResponse[]): (JobResponse & { valueScore: number; scheduledTime: Date })[] {
     return jobs.map((job) => {
       const duration = this.estimateJobDuration(job.volume);
       const valueScore = job.price / duration; // Earnings per minute

@@ -79,7 +79,7 @@ export const verifyTokenString = async (token?: string) => {
     : token;
 
   try {
-    const decoded = jwt.verify(raw!, process.env.JWT_SECRET!) as any;
+    const decoded = jwt.verify(raw, process.env.JWT_SECRET!) as any;
     if (!decoded?.id) throw new Error('Invalid token payload');
 
     const user = await userModel.findById(decoded.id);

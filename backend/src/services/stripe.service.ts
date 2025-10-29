@@ -42,8 +42,8 @@ export class StripeService {
 
             return {
                 id: paymentIntent.id,
-                amount: amount, // Return original amount in dollars
-                currency: currency,
+                amount, // Return original amount in dollars
+                currency,
                 clientSecret: paymentIntent.client_secret!,
                 status: this.mapStripeStatusToOur(paymentIntent.status)
             };

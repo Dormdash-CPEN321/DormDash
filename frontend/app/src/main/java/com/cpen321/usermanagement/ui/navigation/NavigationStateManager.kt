@@ -71,9 +71,6 @@ class NavigationStateManager @Inject constructor() {
         }
     }
 
-    /**
-     * Handle navigation decisions based on authentication state
-     */
     private fun handleAuthenticationNavigation(
         currentRoute: String,
         isAuthenticated: Boolean,
@@ -110,10 +107,6 @@ class NavigationStateManager @Inject constructor() {
         }
     }
 
-    /**
-     * Navigate to role-based main screen based on current navigation state
-     * This is used when we know the user has a role but need to determine which screen to show
-     */
     private fun navigateToRoleBasedMainScreen() {
         val currentUserRole = _navigationState.value.userRole
         when (currentUserRole?.uppercase()) {

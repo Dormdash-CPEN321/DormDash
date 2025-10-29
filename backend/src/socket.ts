@@ -1,30 +1,38 @@
 // backend/src/socket.ts
-import { Server } from 'socket.io';
+import { Server, Socket, DefaultEventsMap } from 'socket.io';
 import http from 'http';
 import logger from './utils/logger.util';
 import { verifyTokenString } from './middleware/auth.middleware'; // optional helper
+import SocketData from './types/socket.types';
 
-let io: Server | null = null;
+let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData> | null = null;
 
 export function initSocket(server: http.Server) {
-  io = new Server(server, {
+  io = new Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>(server, {
     cors: { origin: '*' } // tighten in production
   });
 
   // middleware to check JWT sent in client auth: { token: 'Bearer <jwt>' } or query param
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token ?? socket.handshake.query?.token ?? socket.handshake.headers?.authorization;
-  verifyTokenString(token)
-    .then(user => { (socket as any).user = user; next(); })
-    .catch(err => {
-      logger.warn('Socket auth error:', err.message);
-      next(new Error('Authentication error')); // client receives connect_error
-    });
-});
+  io.use((socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>, next) => {
+    const token = socket.handshake.auth?.token ?? socket.handshake.query?.token ?? socket.handshake.headers?.authorization;
+    verifyTokenString(token)
+      .then(user => {
+        // store a minimal typed payload on socket.data to avoid using `any`
+        socket.data.user = {
+          id: String(user._id ?? user.id ?? ''),
+          userRole: user.userRole,
+        };
+        next();
+      })
+      .catch(err => {
+        logger.warn('Socket auth error:', String(err?.message ?? err));
+        next(new Error('Authentication error')); // client receives connect_error
+      });
+  });
 
 
-  io.on('connection', (socket) => {
-    const user = (socket as any).user;
+  io.on('connection', (socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>) => {
+    const user = socket.data.user;
     logger.info(`Socket connected: ${socket.id} user=${user?.id} role=${user?.userRole}`);
     // auto-join user room
     if (user?.id) socket.join(`user:${user.id}`);
@@ -36,7 +44,7 @@ io.use((socket, next) => {
     }
 
     socket.on('disconnect', (reason) => {
-      logger.info(`Socket disconnected: ${socket.id} reason=${reason}`);
+      logger.info(`Socket disconnected: ${socket.id} reason=${String(reason)}`);
     });
   });
 

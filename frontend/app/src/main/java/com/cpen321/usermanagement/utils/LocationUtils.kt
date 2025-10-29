@@ -122,9 +122,7 @@ object LocationUtils {
         }
     }
 
-    /**
-     * Check if coordinates are within Greater Vancouver area
-     */
+    
     private fun isInVancouverArea(lat: Double, lon: Double): Boolean {
         return lat in VANCOUVER_MIN_LAT..VANCOUVER_MAX_LAT &&
                lon >= VANCOUVER_MIN_LON && lon <= VANCOUVER_MAX_LON

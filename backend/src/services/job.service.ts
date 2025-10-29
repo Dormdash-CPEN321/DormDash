@@ -74,7 +74,7 @@ export class JobService {
             const foundJobs: Job[] = await jobModel.findByOrderId(new mongoose.Types.ObjectId(orderId));
             const toCancel = foundJobs.filter(j => j.status !== JobStatus.COMPLETED && j.status !== JobStatus.CANCELLED);
 
-            const results: Array<{ jobId: string; prevStatus: string; newStatus: string; moverId?: string }> = [];
+            const results: { jobId: string; prevStatus: string; newStatus: string; moverId?: string }[] = [];
 
             for (const jobDoc of toCancel) {
                 try {

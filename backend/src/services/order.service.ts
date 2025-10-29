@@ -286,7 +286,7 @@ export class OrderService {
             }
 
             // Update the order status to CANCELLED
-            const orderId = order._id as mongoose.Types.ObjectId;
+            const orderId = order._id;
             const updated = await orderModel.update(orderId, { status: OrderStatus.CANCELLED });
 
             // Process refund if paymentIntentId exists

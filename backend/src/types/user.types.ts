@@ -8,7 +8,7 @@ export type UserRole = 'STUDENT' | 'MOVER';
 
 // Mover-specific types
 export type TimeRange = [string, string]; // [startTime, endTime] in "HH:mm" format, e.g., ["08:30", "12:45"]
-export type DayAvailability = {
+export interface DayAvailability {
   [key: string]: TimeRange[]; // e.g., { "Mon": [["08:30", "12:00"], ["14:00", "18:30"]], "Tue": [["09:00", "17:00"]] }
 };
 
@@ -85,9 +85,9 @@ export interface GetProfileResponse {
   };
 }
 
-export interface UpdateProfileRequest extends z.infer<typeof updateProfileSchema> {}
+export type UpdateProfileRequest = z.infer<typeof updateProfileSchema>
 
-export interface SelectRoleRequest extends z.infer<typeof selectRoleSchema> {}
+export type SelectRoleRequest = z.infer<typeof selectRoleSchema>
 
 export interface GoogleUserInfo {
   googleId: string;

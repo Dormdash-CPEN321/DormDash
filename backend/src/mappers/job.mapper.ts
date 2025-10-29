@@ -9,10 +9,10 @@ export class JobMapper {
    * Convert a single Job document to JobResponse DTO
    */
   static toJobResponse(job: any): JobResponse {
-    const id = job?._id?.toString?.() ?? (job as any).id ?? "";
+    const id = job?._id?.toString?.() ?? (job).id ?? "";
 
-    const orderId = job.orderId && (job.orderId as any)._id
-      ? (job.orderId as any)._id.toString()
+    const orderId = job.orderId && (job.orderId)._id
+      ? (job.orderId)._id.toString()
       : job.orderId?.toString?.() ?? "";
 
     return {
