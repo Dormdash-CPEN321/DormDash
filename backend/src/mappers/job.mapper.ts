@@ -1,4 +1,4 @@
-import { JobResponse } from "../types/job.type";
+import { JobResponse, Job } from "../types/job.type";
 
 /**
  * JobMapper - Centralized data transformation for Job entities
@@ -8,11 +8,10 @@ export class JobMapper {
   /**
    * Convert a single Job document to JobResponse DTO
    */
-  static toJobResponse(job: any): JobResponse {
-    const id = job?._id?.toString?.() ?? (job).id ?? "";
+  static toJobResponse(job: Job): JobResponse {
+    const id = job?._id?.toString?.() ?? "";
 
-    const orderId = job.orderId?._id
-      ? (job.orderId)._id.toString() : "";
+    const orderId = job.orderId?._id ? (job.orderId)._id.toString() : "";
 
     return {
       id,

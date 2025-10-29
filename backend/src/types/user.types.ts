@@ -8,8 +8,18 @@ export type UserRole = 'STUDENT' | 'MOVER';
 
 // Mover-specific types
 export type TimeRange = [string, string]; // [startTime, endTime] in "HH:mm" format, e.g., ["08:30", "12:45"]
+
+export type WeekDay = 'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT';
+
+// Strongly-typed availability object with explicit weekday properties.
 export interface DayAvailability {
-  [key: string]: TimeRange[]; // e.g., { "Mon": [["08:30", "12:00"], ["14:00", "18:30"]], "Tue": [["09:00", "17:00"]] }
+  SUN?: TimeRange[];
+  MON?: TimeRange[];
+  TUE?: TimeRange[];
+  WED?: TimeRange[];
+  THU?: TimeRange[];
+  FRI?: TimeRange[];
+  SAT?: TimeRange[];
 }
 
 export interface IUser extends Document {
@@ -48,7 +58,15 @@ const timeRangeSchema = z.tuple([timeStringSchema, timeStringSchema])
     message: 'Start time must be before end time',
   });
 
-const availabilitySchema = z.record(z.string(), z.array(timeRangeSchema)).optional();
+const availabilitySchema = z.object({
+  SUN: z.array(timeRangeSchema).optional(),
+  MON: z.array(timeRangeSchema).optional(),
+  TUE: z.array(timeRangeSchema).optional(),
+  WED: z.array(timeRangeSchema).optional(),
+  THU: z.array(timeRangeSchema).optional(),
+  FRI: z.array(timeRangeSchema).optional(),
+  SAT: z.array(timeRangeSchema).optional(),
+}).optional();
 
 export const createUserSchema = z.object({
   email: z.string().email(),

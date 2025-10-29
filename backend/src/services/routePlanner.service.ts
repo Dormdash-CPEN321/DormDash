@@ -1,6 +1,6 @@
 import { userModel } from "../models/user.model";
 import { JobResponse } from "../types/job.type";
-import { DayAvailability, TimeRange } from "../types/user.types";
+import { DayAvailability, TimeRange, WeekDay } from "../types/user.types";
 import { JobInRoute, RouteMetrics } from "../types/route.types";
 import logger from "../utils/logger.util";
 import { ROUTE_CONFIG } from "../config/route.config";
@@ -136,7 +136,7 @@ export class RoutePlannerService {
   ): JobResponse[] {
     const filtered = jobs.filter((job) => {
       const scheduledTime = new Date(job.scheduledTime);
-      const dayOfWeek = this.convertToDayOfWeek(scheduledTime.getDay());
+  const dayOfWeek = this.convertToDayOfWeek(scheduledTime.getDay());
       const jobTimeString = `${scheduledTime.getHours()}:${scheduledTime.getMinutes().toString().padStart(2, '0')}`;
 
       // Safely obtain day slots for the given day
@@ -174,23 +174,24 @@ export class RoutePlannerService {
    * Safely extract day slots from availability (handles Map and plain object)
    * and ensures the lookup key is one of the expected day strings.
    */
-  private getDaySlotsForAvailability(availability: any, dayOfWeek: string) {
-    const allowed = new Set(['SUN','MON','TUE','WED','THU','FRI','SAT']);
-    if (!allowed.has(dayOfWeek)) return [];
-
+  private getDaySlotsForAvailability(availability: DayAvailability, dayOfWeek: 'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT') {
+    // Prefer Map access if caller passed a Map (Mongoose may store availability as a Map)
     if (availability instanceof Map) {
       const val = availability.get(dayOfWeek);
       return Array.isArray(val) ? val : [];
     }
 
-    // availability may be an object; only index it after verifying it has the key
-    if (typeof availability === 'object' && availability !== null && Object.prototype.hasOwnProperty.call(availability, dayOfWeek)) {
-      const obj = availability as Record<string, unknown>;
-      const val = obj[dayOfWeek];
-      return Array.isArray(val) ? val : [];
+    // Use explicit property access (dot access) to avoid dynamic indexing
+    switch (dayOfWeek) {
+      case 'SUN': return availability.SUN ?? [];
+      case 'MON': return availability.MON ?? [];
+      case 'TUE': return availability.TUE ?? [];
+      case 'WED': return availability.WED ?? [];
+      case 'THU': return availability.THU ?? [];
+      case 'FRI': return availability.FRI ?? [];
+      case 'SAT': return availability.SAT ?? [];
+      default: return [];
     }
-
-    return [];
   }
 
   /**
@@ -259,10 +260,10 @@ export class RoutePlannerService {
 
       const jobsWithDistances = remainingJobs.map((job) => {
         // Ensure we are dealing with plain objects (they were normalized earlier)
-        const j: any = job;
-        const location = j.pickupAddress || j._doc?.pickupAddress;
+        const j = job;
+        const location = j.pickupAddress;
         if (!location || location.lat == null || location.lon == null) {
-          const jobId = j._id ? String(j._id) : j?.id ?? 'unknown';
+          const jobId = j.id ? j.id : 'unknown';
           logger.warn(`Job ${jobId} missing location data: ${JSON.stringify(j)}`);
           return null;
         }
@@ -270,7 +271,7 @@ export class RoutePlannerService {
         const distance = this.calculateDistance(currentLocation, location);
         const travelTime = this.estimateTravelTime(distance); // in minutes
         const arrivalTime = new Date(currentTime.getTime() + travelTime * 60000);
-        const scheduledTime = new Date((job as any).scheduledTime);
+        const scheduledTime = new Date((job).scheduledTime);
 
         const isFeasibleByArrival = arrivalTime.getTime() <= scheduledTime.getTime();
 
@@ -309,12 +310,12 @@ export class RoutePlannerService {
           jobEndTime,
           withinAvailability,
         };
-      }).filter(Boolean as any);
+      }).filter(Boolean);
 
       // STEP 2: Filter to only feasible jobs (can arrive on time)
       // Filter jobs that are feasible by arrival, within mover availability,
       // and — if a maxDuration is provided — fit within the remaining time budget.
-      const feasibleJobs = (jobsWithDistances as any[]).filter((j) => {
+      const feasibleJobs = (jobsWithDistances).filter((j) => {
         if (!j) return false;
         if (!j.isFeasibleByArrival) return false;
         if (!j.withinAvailability) return false;
@@ -450,13 +451,17 @@ export class RoutePlannerService {
   /**
    * Helper: Convert numeric day (0-6) to three-letter day string
    */
-  private convertToDayOfWeek(day: number): string {
-    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-    if (typeof day !== 'number' || day < 0 || day > 6) {
-      // fallback to SUN for safety
-      return 'SUN';
+  private convertToDayOfWeek(day: number): WeekDay {
+    switch (day){
+      case 0: return 'SUN';
+      case 1: return 'MON';
+      case 2: return 'TUE';
+      case 3: return 'WED';
+      case 4: return 'THU';
+      case 5: return 'FRI';
+      case 6: return 'SAT';
+      default: return 'SUN';
     }
-    return days[day];
   }
 
   /**
