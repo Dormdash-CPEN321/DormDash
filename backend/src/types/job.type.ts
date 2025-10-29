@@ -27,7 +27,7 @@ export const jobSchema = z.object({
 
 // Request types
 // ------------------------------------------------------------
-export type CreateJobRequest = z.infer<typeof jobSchema>;
+export interface CreateJobRequest extends z.infer<typeof jobSchema> {}
 
 // Generic type
 // ------------------------------------------------------------
@@ -43,26 +43,27 @@ export enum JobStatus {
 }
 
 // Reuse Address type from order types
-export type Address = z.infer<typeof addressSchema>;
+export interface Address extends z.infer<typeof addressSchema> {}
 
-export type Job = {
+export interface Job {
+    _id: mongoose.Types.ObjectId; // Added _id to align with Mongoose documents
     orderId: mongoose.Types.ObjectId;
     studentId: mongoose.Types.ObjectId;
-    moverId?: mongoose.Types.ObjectId;
+    moverId?: mongoose.Types.ObjectId | null;
     jobType: JobType;
     status: JobStatus;
     volume: number;
     price: number;
     pickupAddress: Address;
     dropoffAddress: Address;
-    scheduledTime: string;
-    calendarEventLink?: string;
+    scheduledTime: Date;
+    calendarEventLink?: string | null;
     createdAt: Date;
     updatedAt: Date;
-    verificationRequestedAt?: Date;
+    verificationRequestedAt?: Date | null;
 };
 
-export type JobResponse = {
+export interface JobResponse{
     id: string;
     orderId: string;
     studentId: string;
@@ -75,41 +76,41 @@ export type JobResponse = {
     dropoffAddress: Address;
     scheduledTime: string;
     calendarEventLink?: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: string;
+    updatedAt: string;
 };
 
 // For listing jobs, we might not want to expose all details
-export type JobListItem = Pick<JobResponse, "id" | "orderId" | "jobType" | "volume" | "price" | "pickupAddress" | "dropoffAddress" | "scheduledTime" | "status">;
+export interface JobListItem extends Pick<JobResponse, "id" | "orderId" | "jobType" | "volume" | "price" | "pickupAddress" | "dropoffAddress" | "scheduledTime" | "status"> {}
 
-export type GetAllJobsResponse = {
+export interface GetAllJobsResponse {
     message: string;
     data?: {
-        jobs: JobListItem[];
+        jobs: JobResponse[];
     };
-};
+}
 
-export type GetMoverJobsResponse = {
+export interface GetMoverJobsResponse {
     message: string;
     data?: {
-        jobs: JobListItem[];
+        jobs: JobResponse[];
     };
-};
+}
 
-export type GetJobResponse = {
+export interface GetJobResponse {
     message: string;
     data?: {
         job: JobResponse;
     };
-};
+}
 
-export type UpdateJobStatusRequest = {
+export interface UpdateJobStatusRequest {
     status: JobStatus;
     moverId?: string; // When assigning job to mover
-};
+}
 
-export type CreateJobResponse = {
+export interface CreateJobResponse {
     success: boolean;
     id: string;
     message: string;
-};
+}

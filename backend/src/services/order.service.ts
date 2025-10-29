@@ -48,7 +48,7 @@ export class OrderService {
 
     async createOrder(reqData: CreateOrderRequest & { idempotencyKey?: string }): Promise<CreateOrderResponse> {
         try {
-            const idempotencyKey = (reqData as any).idempotencyKey as string | undefined;
+            const idempotencyKey = reqData.idempotencyKey;
 
             // If idempotency key provided, return existing order with that key
             if (idempotencyKey) {
@@ -69,13 +69,13 @@ export class OrderService {
                 returnTime,
                 returnAddress,
                 paymentIntentId,
-            } = reqData as any;
+            } = reqData;
 
             const studentObjectId = new mongoose.Types.ObjectId(studentId);
 
-            const newOrder: any = {
+            const newOrder: Order = {
                 _id: new mongoose.Types.ObjectId(),
-                studentId: studentObjectId,
+                studentId: studentObjectId.toString(), // Convert ObjectId to string
                 status: OrderStatus.PENDING,
                 volume,
                 price: totalPrice,
@@ -84,13 +84,10 @@ export class OrderService {
                 returnAddress: returnAddress || studentAddress, // Default to student address if not provided
                 pickupTime,
                 returnTime,
-                idempotencyKey: idempotencyKey,
-                paymentIntentId: paymentIntentId, // Store payment intent ID for refunds
+                idempotencyKey: idempotencyKey || undefined,
+                paymentIntentId: paymentIntentId || undefined,
             };
 
-            if (idempotencyKey) newOrder.idempotencyKey = idempotencyKey;
-
-           
             try {
                 const createdOrder = await orderModel.create(newOrder);
 
@@ -111,9 +108,9 @@ export class OrderService {
                 EventEmitter.emitOrderCreated(createdOrder, { by: reqData.studentId, ts: new Date().toISOString() });
             
                 return OrderMapper.toCreateOrderResponse(createdOrder);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 // If duplicate key error due to race/uniqueness, try to find existing by idempotencyKey or by student+status
-                const isDup = err && err.code === 11000;
+                const isDup = (err as any)?.code === 11000;
                 if (isDup) {
                     if (idempotencyKey) {
                         const byKey = await orderModel.findByIdempotencyKey(idempotencyKey);
@@ -283,14 +280,14 @@ export class OrderService {
             }
 
             // Update the order status to CANCELLED
-            const orderId = (order as any)._id as mongoose.Types.ObjectId;
+            const orderId = order._id as mongoose.Types.ObjectId;
             const updated = await orderModel.update(orderId, { status: OrderStatus.CANCELLED });
 
             // Process refund if paymentIntentId exists
-            if ((order as any).paymentIntentId) {
+            if (order.paymentIntentId) {
                 try {
-                    logger.info(`Processing refund for order ${orderId}, payment intent: ${(order as any).paymentIntentId}`);
-                    await paymentService.refundPayment((order as any).paymentIntentId);
+                    logger.info(`Processing refund for order ${orderId}, payment intent: ${order.paymentIntentId}`);
+                    await paymentService.refundPayment(order.paymentIntentId);
                     logger.info(`Refund processed successfully for order ${orderId}`);
                 } catch (refundError) {
                     logger.error('Failed to process refund:', refundError);

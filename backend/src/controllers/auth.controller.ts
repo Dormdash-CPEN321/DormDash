@@ -8,6 +8,7 @@ import {
 import logger from '../utils/logger.util';
 import { UserRole } from '../types/user.types';
 import { userModel } from '../models/user.model';
+import { IUser } from '../types/user.types';
 
 export class AuthController {
   async signUp(
@@ -102,7 +103,7 @@ export class AuthController {
       const { userRole } = req.body;
       
       // Initialize credits to 0 when selecting MOVER role
-      const updateData: any = { userRole };
+      const updateData: Partial<IUser> = { userRole };
       if (userRole === 'MOVER') {
         updateData.credits = 0;
       }

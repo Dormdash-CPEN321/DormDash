@@ -18,7 +18,6 @@ import { Address, OrderStatus } from "../types/order.types";
 import logger from "../utils/logger.util";
 import { EventEmitter } from "../utils/eventEmitter.util";
 import { JobMapper } from "../mappers/job.mapper";
-import { PRICING } from "../config/pricing.config";
 import { extractObjectId, extractObjectIdString } from "../utils/mongoose.util";
 import { 
     JobNotFoundError,
@@ -32,8 +31,8 @@ export class JobService {
         return require("./order.service").orderService;
     }
     // Helper to add credits to mover when job is completed
-    private async addCreditsToMover(job: any) {
-        if (!job.moverId) {
+    private async addCreditsToMover(job: Job | null) {
+        if (!job || !job.moverId) {
             logger.warn('No mover assigned to job, skipping credits');
             return;
         }
@@ -72,7 +71,7 @@ export class JobService {
         
         try {
             logger.info(`cancelJobsForOrder: orderId=${orderId}, actorId=${actorId || 'system'}`);
-            const foundJobs: any[] = await jobModel.findByOrderId(new mongoose.Types.ObjectId(orderId));
+            const foundJobs: Job[] = await jobModel.findByOrderId(new mongoose.Types.ObjectId(orderId));
             const toCancel = foundJobs.filter(j => j.status !== JobStatus.COMPLETED && j.status !== JobStatus.CANCELLED);
 
             const results: Array<{ jobId: string; prevStatus: string; newStatus: string; moverId?: string }> = [];
@@ -80,6 +79,10 @@ export class JobService {
             for (const jobDoc of toCancel) {
                 try {
                     const updatedJob = await jobModel.update(jobDoc._id, { status: JobStatus.CANCELLED, updatedAt: new Date() });
+                    if (!updatedJob) {
+                        logger.error(`Failed to update job ${jobDoc._id} for order ${orderId}`);
+                        continue;
+                    }
                     results.push({ jobId: updatedJob._id.toString(), prevStatus: jobDoc.status, newStatus: updatedJob.status, moverId: updatedJob.moverId?.toString() });
 
                     // Emit job.updated for each cancelled job
@@ -114,6 +117,7 @@ export class JobService {
         
         try {
             const newJob: Job = {
+                _id: new mongoose.Types.ObjectId(),
                 orderId: new mongoose.Types.ObjectId(reqData.orderId),
                 studentId: new mongoose.Types.ObjectId(reqData.studentId),
                 jobType: reqData.jobType,
@@ -122,7 +126,7 @@ export class JobService {
                 price: reqData.price,
                 pickupAddress: reqData.pickupAddress,
                 dropoffAddress: reqData.dropoffAddress,
-                scheduledTime: reqData.scheduledTime,
+                scheduledTime: new Date(reqData.scheduledTime),
                 createdAt: new Date(),
                 updatedAt: new Date(),
             };
@@ -148,7 +152,7 @@ export class JobService {
             const jobs = await jobModel.findAllJobs();
             return {
                 message: "All jobs retrieved successfully",
-                data: { jobs: JobMapper.toJobListItems(jobs) },
+                data: { jobs: jobs.map(job => JobMapper.toJobResponse(job)) },
             };
         } catch (error) {
             logger.error("Error in getAllJobs service:", error);
@@ -161,7 +165,7 @@ export class JobService {
             const jobs = await jobModel.findAvailableJobs();
             return {
                 message: "Available jobs retrieved successfully",
-                data: { jobs: JobMapper.toJobListItems(jobs) },
+                data: { jobs: jobs.map(job => JobMapper.toJobResponse(job)) },
             };
         } catch (error) {
             logger.error("Error in getAllAvailableJobs service:", error);
@@ -174,7 +178,7 @@ export class JobService {
             const jobs = await jobModel.findByMoverId(new mongoose.Types.ObjectId(moverId));
             return {
                 message: "Mover jobs retrieved successfully",
-                data: { jobs: JobMapper.toJobListItems(jobs) },
+                data: { jobs: jobs.map(job => JobMapper.toJobResponse(job)) },
             };
         } catch (error) {
             logger.error("Error in getMoverJobs service:", error);
@@ -187,7 +191,7 @@ export class JobService {
             const jobs = await jobModel.findByStudentId(new mongoose.Types.ObjectId(studentId));
             return {
                 message: "Student jobs retrieved successfully",
-                data: { jobs: JobMapper.toJobListItems(jobs) },
+                data: { jobs: jobs.map(job => JobMapper.toJobResponse(job)) },
             };
         } catch (error) {
             logger.error("Error in getStudentJobs service:", error);
@@ -239,7 +243,7 @@ export class JobService {
             }
 
             // If attempting to ACCEPT the job, perform an atomic accept to avoid races
-            let updatedJob;
+            let updatedJob: Job | null = null;
             const job = await jobModel.findById(new mongoose.Types.ObjectId(jobId));
             if (!job) {
                 throw new JobNotFoundError(jobId);
@@ -386,6 +390,16 @@ export class JobService {
                 }
             }
 
+            if (!updatedJob) {
+                throw new Error('Updated job is null');
+            }
+
+            const orderObjectId = extractObjectId(updatedJob.orderId);
+
+            if (!orderObjectId) {
+                throw new Error('Order ID is invalid');
+            }
+
             return {
                 id: updatedJob._id.toString(),
                 orderId: updatedJob.orderId.toString(),
@@ -397,9 +411,10 @@ export class JobService {
                 price: updatedJob.price,
                 pickupAddress: updatedJob.pickupAddress,
                 dropoffAddress: updatedJob.dropoffAddress,
-                scheduledTime: updatedJob.scheduledTime,
-                createdAt: updatedJob.createdAt,
-                updatedAt: updatedJob.updatedAt,
+                scheduledTime: updatedJob.scheduledTime.toISOString(),
+                calendarEventLink: updatedJob.calendarEventLink ? updatedJob.calendarEventLink : undefined,
+                createdAt: updatedJob.createdAt.toString(),
+                updatedAt: updatedJob.updatedAt.toString(),
             };
         } catch (error) {
             logger.error("Error in updateJobStatus service:", error);
@@ -440,7 +455,7 @@ export class JobService {
                 logger.warn('Failed to emit job.updated after requestPickupConfirmation:', emitErr);
             }
 
-            return { id: updatedJob._id.toString(), status: updatedJob.status };
+            return { id: updatedJob?._id.toString(), status: updatedJob?.status };
         } catch (err) {
             logger.error('Error in requestPickupConfirmation:', err);
             throw err;
@@ -475,7 +490,7 @@ export class JobService {
 
             // Update order status to PICKED_UP
             try {
-                const orderObjectId = extractObjectId(updatedJob.orderId);
+                const orderObjectId = extractObjectId(updatedJob?.orderId);
                 if (!orderObjectId) {
                     throw new Error('Invalid orderId in job');
                 }
@@ -494,7 +509,8 @@ export class JobService {
                 logger.warn('Failed to emit job.updated after confirmPickup:', emitErr);
             }
 
-            return { id: updatedJob._id.toString(), status: updatedJob.status };
+            const nonNullUpdatedJob = updatedJob!; // Explicit non-null assertion
+            return { id: nonNullUpdatedJob._id.toString(), status: nonNullUpdatedJob.status };
         } catch (err) {
             logger.error('Error in confirmPickup:', err);
             throw err;
@@ -534,7 +550,7 @@ export class JobService {
                 logger.warn('Failed to emit job.updated after requestDeliveryConfirmation:', emitErr);
             }
 
-            return { id: updatedJob._id.toString(), status: updatedJob.status };
+            return { id: updatedJob?._id.toString(), status: updatedJob?.status };
         } catch (err) {
             logger.error('Error in requestDeliveryConfirmation:', err);
             throw err;
@@ -572,7 +588,7 @@ export class JobService {
 
             // Update order status to COMPLETED
             try {
-                const orderObjectId = extractObjectId(updatedJob.orderId);
+                const orderObjectId = extractObjectId(updatedJob?.orderId);
                 if (!orderObjectId) {
                     throw new Error('Invalid orderId in job');
                 }
@@ -591,7 +607,8 @@ export class JobService {
                 logger.warn('Failed to emit job.updated after confirmDelivery:', emitErr);
             }
 
-            return { id: updatedJob._id.toString(), status: updatedJob.status };
+            const nonNullUpdatedJob = updatedJob!; // Explicit non-null assertion
+            return { id: nonNullUpdatedJob._id.toString(), status: nonNullUpdatedJob.status };
         } catch (err) {
             logger.error('Error in confirmDelivery:', err);
             throw err;
@@ -600,3 +617,7 @@ export class JobService {
 }
 
 export const jobService = new JobService();
+
+function isNotNull<T>(value: T | null): value is T {
+    return value !== null;
+}

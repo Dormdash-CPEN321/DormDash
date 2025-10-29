@@ -8,19 +8,9 @@ data class Address(
     val formattedAddress: String
 )
 
-data class JobDto(
-    val id: String,
-    val orderId: String,
-    val jobType: String,
-    val volume: Double,
-    val price: Double,
-    val pickupAddress: Address,
-    val dropoffAddress: Address,
-    val scheduledTime: String,
-    val status: String
-)
 
-data class JobDetailDto(
+
+data class JobDto(
     val id: String,
     val orderId: String,
     val studentId: String,
@@ -31,6 +21,7 @@ data class JobDetailDto(
     val price: Double,
     val pickupAddress: Address,
     val dropoffAddress: Address,
+    val calendarEventLink: String? = null,
     val scheduledTime: String,
     val createdAt: String,
     val updatedAt: String
@@ -41,7 +32,7 @@ data class JobListResponse(
 )
 
 data class JobResponse(
-    val job: JobDetailDto
+    val job: JobDto
 )
 
 data class UpdateJobStatusRequest(

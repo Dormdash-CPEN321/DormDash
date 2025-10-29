@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
-import { jobModel } from "../models/job.model";
+import { JobMapper } from "../mappers/job.mapper";
 import { userModel } from "../models/user.model";
-import { Job, JobStatus } from "../types/job.type";
+import { Job, JobResponse, JobStatus } from "../types/job.type";
 import { DayAvailability, TimeRange } from "../types/user.types";
 import { JobInRoute, RouteMetrics } from "../types/route.types";
 import logger from "../utils/logger.util";
 import { ROUTE_CONFIG } from "../config/route.config";
+import { jobService } from "./job.service";
+import { extractObjectId } from "../utils/mongoose.util";
 
 /**
  * RoutePlannerService - Provides smart route optimization for movers
@@ -37,24 +39,56 @@ export class RoutePlannerService {
   ): Promise<{ route: JobInRoute[]; metrics: RouteMetrics; startLocation: { lat: number; lon: number } }> {
     try {
       // Fetch mover's availability
-      const mover = await userModel.findById(new mongoose.Types.ObjectId(moverId));
+      // Resolve moverId safely to an ObjectId (handles string, ObjectId, populated doc)
+      const moverObjectId = extractObjectId(moverId);
+      if (!moverObjectId) {
+        logger.warn(`Invalid moverId provided to route planner: ${String(moverId)}`);
+        return this.emptyRoute(currentLocation);
+      }
+
+      const mover = await userModel.findById(moverObjectId);
       if (!mover || !mover.availability) {
         logger.warn(`Mover ${moverId} not found or has no availability`);
         return this.emptyRoute(currentLocation);
       }
 
       // Fetch all available jobs
-      const availableJobs = await jobModel.findAvailableJobs();
+      const resp = await jobService.getAllAvailableJobs();
+      const availableJobs = resp.data?.jobs;
+      //map job responses to Job objects
       if (!availableJobs || availableJobs.length === 0) {
         logger.info("No available jobs found");
         return this.emptyRoute(currentLocation);
       }
 
+      // Validate job location data
+      const validJobs = availableJobs.filter((job) => this.validateJobLocationData(job));
+      const invalidLocationJobs = availableJobs.filter((job) => !this.validateJobLocationData(job));
+      try {
+        if (invalidLocationJobs.length > 0) {
+          logger.debug(`Jobs excluded for missing/invalid location: ${JSON.stringify(invalidLocationJobs.map(j => ({ id: j.id ?? 'unknown', pickup: j.pickupAddress, dropoff: j.dropoffAddress })) )}`);
+        }
+      } catch (e) {
+        logger.debug(`Invalid-location jobs count: ${invalidLocationJobs.length}`);
+      }
+      if (validJobs.length === 0) {
+        logger.info("No jobs with valid location data found");
+        return this.emptyRoute(currentLocation);
+      }
+
       // Step 1: Filter jobs by availability windows
       const eligibleJobs = this.filterJobsByAvailability(
-        availableJobs,
+        validJobs,
         mover.availability
       );
+      try {
+        const excludedByAvailability = validJobs.filter(j => !eligibleJobs.includes(j));
+        if (excludedByAvailability.length > 0) {
+          logger.debug(`Jobs excluded by availability filter: ${JSON.stringify(excludedByAvailability.map(j => ({ id: j.id ?? 'unknown', scheduledTime: j.scheduledTime })))}`);
+        }
+      } catch (e) {
+        logger.debug(`Eligible jobs count: ${eligibleJobs.length}`);
+      }
 
       if (eligibleJobs.length === 0) {
         logger.info("No jobs match mover's availability");
@@ -65,6 +99,13 @@ export class RoutePlannerService {
       const jobsWithValues = this.calculateJobValues(eligibleJobs);
 
       // Step 3: Build optimal route using greedy algorithm
+      // Debug: show candidate jobs after availability filter
+      try {
+        logger.debug(`Building route from ${jobsWithValues.length} candidate jobs (eligible: ${eligibleJobs.length})`);
+      } catch (e) {
+        // ignore
+      }
+
       const route = this.buildOptimalRoute(
         jobsWithValues,
         currentLocation,
@@ -92,9 +133,9 @@ export class RoutePlannerService {
    * Filter jobs that fall within mover's availability windows
    */
   private filterJobsByAvailability(
-    jobs: any[],
+    jobs: JobResponse[],
     availability: DayAvailability
-  ): any[] {
+  ): JobResponse[] {
     const filtered = jobs.filter((job) => {
       const scheduledTime = new Date(job.scheduledTime);
       const dayOfWeek = this.convertToDayOfWeek(scheduledTime.getDay());
@@ -138,14 +179,22 @@ export class RoutePlannerService {
   /**
    * Calculate value score for each job (earnings per minute)
    */
-  private calculateJobValues(jobs: any[]): Array<any & { valueScore: number }> {
+  private calculateJobValues(jobs: JobResponse[]): Array<JobResponse & { valueScore: number; scheduledTime: Date }> {
     return jobs.map((job) => {
-      // Convert Mongoose document to plain object
-      const jobObj = job.toObject ? job.toObject() : job;
-      
-      const duration = this.estimateJobDuration(jobObj.volume);
-      const valueScore = jobObj.price / duration; // Earnings per minute
-      return { ...jobObj, valueScore };
+      const duration = this.estimateJobDuration(job.volume);
+      const valueScore = job.price / duration; // Earnings per minute
+
+      // Convert scheduledTime to Date for internal routing calculations.
+      const scheduledTimeDate = job.scheduledTime ? new Date(job.scheduledTime) : new Date();
+
+      // Keep string IDs as-is (the frontend DTO provides string IDs). Do NOT
+      // attempt to re-create ObjectId instances from those strings here — that
+      // is brittle and will throw BSONErrors for non-24-char values.
+      return {
+        ...job,
+        valueScore,
+        scheduledTime: scheduledTimeDate,
+      } as JobResponse & { valueScore: number; scheduledTime: Date };
     });
   }
 
@@ -170,7 +219,7 @@ export class RoutePlannerService {
    * the fixed scheduled times that students have set.
    */
   private buildOptimalRoute(
-    jobs: Array<any & { valueScore: number }>,
+    jobs: Array<JobResponse & { valueScore: number }>,
     startLocation: { lat: number; lon: number },
     availability: DayAvailability,
     maxDuration?: number
@@ -189,43 +238,76 @@ export class RoutePlannerService {
       return timeA - timeB;
     });
 
-    // Normalize value scores for fair comparison
-    const maxValue = Math.max(...jobs.map((j) => j.valueScore));
-    const minValue = Math.min(...jobs.map((j) => j.valueScore));
-    const valueRange = maxValue - minValue || 1;
-
     while (remainingJobs.length > 0) {
-      // Calculate distances and feasibility for remaining jobs
+
       const jobsWithDistances = remainingJobs.map((job) => {
-        const location = job.pickupLocation || job.pickupAddress;
-        if (!location || !location.lat || !location.lon) {
-          logger.warn(`Job ${job._id} missing location data`);
+        // Ensure we are dealing with plain objects (they were normalized earlier)
+        const j: any = job;
+        const location = j.pickupAddress || j._doc?.pickupAddress;
+        if (!location || location.lat == null || location.lon == null) {
+          const jobId = j._id ? String(j._id) : j?.id ?? 'unknown';
+          logger.warn(`Job ${jobId} missing location data: ${JSON.stringify(j)}`);
           return null;
         }
-        
+
         const distance = this.calculateDistance(currentLocation, location);
-        const travelTime = this.estimateTravelTime(distance);
+        const travelTime = this.estimateTravelTime(distance); // in minutes
         const arrivalTime = new Date(currentTime.getTime() + travelTime * 60000);
-        const scheduledTime = new Date(job.scheduledTime);
-        
-        // FEASIBILITY CHECK: Can we arrive before the scheduled time?
-        const isFeasible = arrivalTime.getTime() <= scheduledTime.getTime();
-        
+        const scheduledTime = new Date((job as any).scheduledTime);
+
+        const isFeasibleByArrival = arrivalTime.getTime() <= scheduledTime.getTime();
+
+        // Calculate waiting time if arriving early
+        const waitingTime = isFeasibleByArrival ? Math.max(0, (scheduledTime.getTime() - arrivalTime.getTime()) / 60000) : 0;
+
+        const jobDuration = this.estimateJobDuration(job.volume);
+        const jobEndTime = new Date(scheduledTime.getTime() + jobDuration * 60000);
+
+        // Check mover availability for this job time window
+        const dayOfWeek = this.convertToDayOfWeek(scheduledTime.getDay());
+        const daySlots = availability instanceof Map ? availability.get(dayOfWeek) : availability[dayOfWeek];
+        let withinAvailability = false;
+        if (daySlots && daySlots.length > 0) {
+          withinAvailability = daySlots.some((slot: TimeRange) => {
+            const [startTime, endTime] = slot;
+            const [startHour, startMin] = startTime.split(':').map(Number);
+            const [endHour, endMin] = endTime.split(':').map(Number);
+            const startMinutes = startHour * 60 + startMin;
+            const endMinutes = endHour * 60 + endMin;
+            const jobStartMinutes = scheduledTime.getHours() * 60 + scheduledTime.getMinutes();
+            const jobEndMinutes = jobStartMinutes + jobDuration;
+            return jobStartMinutes >= startMinutes && jobEndMinutes <= endMinutes;
+          });
+        }
+
         return {
           ...job,
           distance,
           travelTime,
           arrivalTime,
           scheduledTime,
-          isFeasible,
-          // Calculate waiting time if we arrive early
-          waitingTime: isFeasible ? Math.max(0, (scheduledTime.getTime() - arrivalTime.getTime()) / 60000) : 0
+          isFeasibleByArrival,
+          waitingTime,
+          jobDuration,
+          jobEndTime,
+          withinAvailability,
         };
-      }).filter(Boolean);
+      }).filter(Boolean as any);
 
       // STEP 2: Filter to only feasible jobs (can arrive on time)
-      const feasibleJobs = jobsWithDistances.filter(j => j.isFeasible);
-      
+      // Filter jobs that are feasible by arrival, within mover availability,
+      // and — if a maxDuration is provided — fit within the remaining time budget.
+      const feasibleJobs = (jobsWithDistances as any[]).filter((j) => {
+        if (!j) return false;
+        if (!j.isFeasibleByArrival) return false;
+        if (!j.withinAvailability) return false;
+        if (typeof maxDuration === 'number') {
+          const extraTime = (j.travelTime || 0) + (j.waitingTime || 0) + (j.jobDuration || 0);
+          if (totalElapsedTime + extraTime > maxDuration) return false;
+        }
+        return true;
+      });
+
       if (feasibleJobs.length === 0) {
         logger.info(`No more feasible jobs (${jobsWithDistances.length} jobs remaining but can't reach any in time)`);
         break;
@@ -233,91 +315,56 @@ export class RoutePlannerService {
 
       // STEP 3: Select the earliest feasible job
       // Since jobs are already sorted by scheduledTime, feasibleJobs[0] is the earliest
+      // Pick the earliest scheduled feasible job
+      feasibleJobs.sort((a: any, b: any) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
       const selectedJob = feasibleJobs[0];
 
-      // Check if this job fits within maxDuration
-      // Note: We only count active time (travel + job), not waiting time
-      const jobDuration = this.estimateJobDuration(selectedJob.volume);
-      const activeTimeForJob = selectedJob.travelTime + jobDuration;
-      
-      if (maxDuration && totalElapsedTime + activeTimeForJob > maxDuration) {
-        logger.info(`Job ${selectedJob._id} would exceed maxDuration (${totalElapsedTime + activeTimeForJob}min > ${maxDuration}min)`);
-        break;
+      if (!selectedJob) {
+        throw new Error('Selected job is null or undefined');
       }
 
-      // Add job to route
-      const pickupLoc = selectedJob.pickupLocation || selectedJob.pickupAddress;
-      const dropoffLoc = selectedJob.dropoffLocation || selectedJob.dropoffAddress;
-      
-      logger.info(`Adding job: scheduled=${selectedJob.scheduledTime.toISOString()}, travel=${selectedJob.travelTime.toFixed(1)}min, wait=${selectedJob.waitingTime.toFixed(1)}min, duration=${jobDuration}min`);
-      
+      const jobDuration = selectedJob.jobDuration ?? this.estimateJobDuration(selectedJob.volume);
+
+      const pickupLoc = selectedJob.pickupAddress;
+      const dropoffLoc = selectedJob.dropoffAddress;
+
+      if (!pickupLoc || !dropoffLoc) {
+        throw new Error('Pickup or dropoff location is missing');
+      }
+
+      const travelTime = selectedJob.travelTime ?? 0;
+      const waitingTime = selectedJob.waitingTime ?? 0;
+
       route.push({
-        jobId: selectedJob._id?.toString() || '',
-        orderId: selectedJob.orderId?.toString() || '',
-        studentId: selectedJob.studentId?.toString() || '',
-        jobType: selectedJob.jobType,
+        jobId: String(selectedJob.id),
+        orderId: String(selectedJob.orderId),
+        studentId: String(selectedJob.studentId),
+        jobType: selectedJob.jobType as "STORAGE" | "RETURN",
         volume: selectedJob.volume,
         price: selectedJob.price,
         pickupAddress: pickupLoc,
         dropoffAddress: dropoffLoc,
-        scheduledTime: selectedJob.scheduledTime,
-        estimatedStartTime: selectedJob.scheduledTime.toISOString(), // Use actual scheduled time
+        scheduledTime: (selectedJob.scheduledTime as Date).toISOString(),
+        estimatedStartTime: (selectedJob.scheduledTime as Date).toISOString(),
         estimatedDuration: Math.round(jobDuration),
-        distanceFromPrevious: Math.round(selectedJob.distance * 10) / 10,
-        travelTimeFromPrevious: Math.round(selectedJob.travelTime),
+        distanceFromPrevious: Math.round((selectedJob.distance || 0) * 10) / 10,
+        travelTimeFromPrevious: Math.round(travelTime || 0),
       });
 
-      // Update current location and time
-      // Current time = scheduled time + job duration (mover finishes the job)
-      currentLocation = dropoffLoc;
-      currentTime = new Date(selectedJob.scheduledTime.getTime() + jobDuration * 60000);
-      totalElapsedTime += activeTimeForJob; // Only count active work time
+      // Advance current time to end of job (start at scheduledTime)
+      currentTime = new Date((selectedJob.scheduledTime as Date).getTime() + jobDuration * 60000);
+
+      // Increase total elapsed time by travel + waiting + job duration
+      totalElapsedTime += (travelTime || 0) + (waitingTime || 0) + jobDuration;
 
       // Remove selected job from remaining jobs
-      const jobIndex = remainingJobs.findIndex((j) => j._id.equals(selectedJob._id));
-      remainingJobs.splice(jobIndex, 1);
+      const jobIndex = remainingJobs.findIndex((j) => String(j.id) === String(selectedJob.id));
+      if (jobIndex >= 0) remainingJobs.splice(jobIndex, 1);
     }
 
     return route;
   }
 
-  /**
-   * Sort jobs by composite score (best first)
-   * 
-   * Score = (normalizedValue × PROXIMITY_WEIGHT) - (normalizedDistance × (1 - PROXIMITY_WEIGHT))
-   * 
-   * This balances:
-   * - Job value (higher earnings per minute = better)
-   * - Proximity (shorter distance = better)
-   */
-  private sortJobsByScore(
-    jobs: Array<any & { valueScore: number; distance: number }>,
-    valueRange: number,
-    minValue: number,
-    distanceRange: number,
-    minDistance: number
-  ): Array<any & { valueScore: number; distance: number }> {
-    if (jobs.length === 0) return [];
-
-    // Calculate score for each job
-    const jobsWithScores = jobs.map(job => {
-      // Normalize value (0-1)
-      const normalizedValue = (job.valueScore - minValue) / valueRange;
-
-      // Normalize distance (0-1)
-      const normalizedDistance = (job.distance - minDistance) / distanceRange;
-
-      // Composite score: prioritize value, penalize distance
-      const score = 
-        normalizedValue * ROUTE_CONFIG.PROXIMITY_WEIGHT - 
-        normalizedDistance * (1 - ROUTE_CONFIG.PROXIMITY_WEIGHT);
-
-      return { ...job, compositeScore: score };
-    });
-
-    // Sort by score descending (best first)
-    return jobsWithScores.sort((a, b) => b.compositeScore - a.compositeScore);
-  }
 
   /**
    * Calculate distance between two points using Haversine formula
@@ -414,6 +461,27 @@ export class RoutePlannerService {
       startLocation: location,
     };
   }
+
+  /**
+   * Validate job location data
+   * Ensures that both pickupAddress and dropoffAddress are present and valid
+   */
+  private validateJobLocationData(job: JobResponse): boolean {
+    const { pickupAddress, dropoffAddress } = job;
+
+    if (!pickupAddress || !pickupAddress.lat || !pickupAddress.lon) {
+      logger.warn(`Job ${job.id} has invalid or missing pickupAddress: ${JSON.stringify(pickupAddress)}`);
+      return false;
+    }
+
+    if (!dropoffAddress || !dropoffAddress.lat || !dropoffAddress.lon) {
+      logger.warn(`Job ${job.id} has invalid or missing dropoffAddress: ${JSON.stringify(dropoffAddress)}`);
+      return false;
+    }
+
+    return true;
+  }
+
 }
 
 export const routePlannerService = new RoutePlannerService();

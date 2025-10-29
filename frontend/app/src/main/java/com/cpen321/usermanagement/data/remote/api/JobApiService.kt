@@ -16,10 +16,7 @@ interface JobApiService {
     
     @GET("jobs/student")
     suspend fun getStudentJobs(): Response<ApiResponse<JobListResponse>>
-    
-    @GET("jobs/{id}")
-    suspend fun getJobById(@Path("id") jobId: String): Response<ApiResponse<JobResponse>>
-    
+
     @PATCH("jobs/{id}/status")
     suspend fun updateJobStatus(
         @Path("id") jobId: String,

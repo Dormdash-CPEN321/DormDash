@@ -78,21 +78,20 @@ export const selectRoleSchema = z.object({
 
 // Request types
 // ------------------------------------------------------------
-export type GetProfileResponse = {
+export interface GetProfileResponse {
   message: string;
   data?: {
     user: IUser;
   };
-};
+}
 
-export type UpdateProfileRequest = z.infer<typeof updateProfileSchema>;
-export type SelectRoleRequest = z.infer<typeof selectRoleSchema>;
+export interface UpdateProfileRequest extends z.infer<typeof updateProfileSchema> {}
 
-// Generic types
-// ------------------------------------------------------------
-export type GoogleUserInfo = {
+export interface SelectRoleRequest extends z.infer<typeof selectRoleSchema> {}
+
+export interface GoogleUserInfo {
   googleId: string;
   email: string;
   name: string;
   profilePicture?: string;
-};
+}

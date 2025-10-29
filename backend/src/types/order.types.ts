@@ -1,4 +1,4 @@
-import { success, z } from "zod";
+import { int, success, z } from "zod";
 import mongoose from "mongoose";
 
 export const addressSchema = z.object({
@@ -36,25 +36,23 @@ export const createReturnJobSchema = z.object({
 
 // Request types
 // ------------------------------------------------------------
-export type QuoteRequest = z.infer<typeof quoteSchema>;
+export interface QuoteRequest extends z.infer<typeof quoteSchema> {}
 
-export type CreateReturnJobRequest = z.infer<typeof createReturnJobSchema>;
+export interface CreateReturnJobRequest extends z.infer<typeof createReturnJobSchema> {}
 
-// ToDo: maybe we dont need to send the full address? the user dosnt need to see lat lon
-export type GetQuoteResponse = {
-  distancePrice: number,
-  warehouseAddress: Address,
-  dailyStorageRate: number // Daily storage rate for late return fee calculation
-};
+export interface GetQuoteResponse {
+  distancePrice: number;
+  warehouseAddress: Address;
+  dailyStorageRate: number; // Daily storage rate for late return fee calculation
+}
 
+export interface CreateOrderRequest extends z.infer<typeof createOrderSchema> {}
 
-export type CreateOrderRequest = z.infer<typeof createOrderSchema>;
-
-export type CreateOrderResponse = Order & {
+export interface CreateOrderResponse extends Order {
   id: string;
 }
 
-export type CreateReturnJobResponse = {
+export interface CreateReturnJobResponse {
     success: boolean;
     message: string;
     lateFee?: number; // Optional late fee if return is past expected date
@@ -63,21 +61,10 @@ export type CreateReturnJobResponse = {
 
 export type GetActiveOrderResponse = Order | null;
 
-export type GetAllOrdersResponse = {
-    success: boolean;
-    orders: CreateOrderRequest[];
-    message: string;
-}
-
-export type CancelOrderResponse = {
-    success: boolean;
-    message: string;
-}
+export interface Address extends z.infer<typeof addressSchema> {}
 
 // Generic type
 // ------------------------------------------------------------
-export type Address = z.infer<typeof addressSchema>;
-
 export enum OrderStatus {
   PENDING = "PENDING",
   ACCEPTED = "ACCEPTED",
@@ -96,10 +83,10 @@ export const ACTIVE_ORDER_STATUSES = [
   OrderStatus.RETURNED, // Include RETURNED as active status
 ];
 
-export type Order = {
+export interface Order {
     _id: mongoose.Types.ObjectId;
-    studentId: mongoose.Types.ObjectId;
-    moverId?: mongoose.Types.ObjectId;
+    studentId: String;
+    moverId?: String;
     status: OrderStatus;
     volume: number;
     price: number;
@@ -109,4 +96,16 @@ export type Order = {
     pickupTime: string; // ISO date string
     returnTime: string;  // ISO date string
     paymentIntentId?: string; // Stripe payment intent ID for refunds
+    idempotencyKey?: string; // Added idempotencyKey for idempotent operations
 };
+
+export interface CancelOrderResponse {
+    success: boolean;
+    message: string;
+}
+
+export interface GetAllOrdersResponse {
+    success: boolean;
+    orders: Order[];
+    message: string;
+}
