@@ -138,23 +138,27 @@ fun CreateReturnJobBottomSheet(
             when (currentStep) {
                 ReturnJobStep.SELECT_DATE -> {
                     DateSelectionStep(
-                        expectedReturnDate = TimeUtils.formatDatePickerDate(expectedReturnDate),
-                        selectedDate = TimeUtils.formatDatePickerDate(selectedDateMillis),
-                        onDateClick = { showDatePicker = true },
-                        returnHour = returnHour,
-                        returnMinute = returnMinute,
-                        onTimeClick = { showTimeDialog = true },
-                        daysDifference = daysDifference,
-                        adjustmentAmount = adjustmentAmount,
-                        isEarlyReturn = isEarlyReturn,
-                        isLateReturn = isLateReturn,
-                        onNext = {
-                            if (isLateReturn) {
-                                currentStep = ReturnJobStep.PAYMENT
-                            } else {
-                                currentStep = ReturnJobStep.ADDRESS
+                        DateSelectionState(
+                            expectedReturnDate = TimeUtils.formatDatePickerDate(expectedReturnDate),
+                            selectedDate = TimeUtils.formatDatePickerDate(selectedDateMillis),
+                            returnHour = returnHour,
+                            returnMinute = returnMinute,
+                            daysDifference = daysDifference,
+                            adjustmentAmount = adjustmentAmount,
+                            isEarlyReturn = isEarlyReturn,
+                            isLateReturn = isLateReturn
+                        ),
+                        DateSelectionActions(
+                            onDateClick = { showDatePicker = true },
+                            onTimeClick = { showTimeDialog = true },
+                            onNext = {
+                                if (isLateReturn) {
+                                    currentStep = ReturnJobStep.PAYMENT
+                                } else {
+                                    currentStep = ReturnJobStep.ADDRESS
+                                }
                             }
-                        }
+                        )
                     )
                 }
                 
@@ -377,19 +381,27 @@ private fun submitReturnJob(
     onSubmit(request, paymentIntentId)
 }
 
+data class DateSelectionState(
+    val expectedReturnDate: String,
+    val selectedDate: String,
+    val returnHour: Int,
+    val returnMinute: Int,
+    val daysDifference: Int,
+    val adjustmentAmount: Double,
+    val isEarlyReturn: Boolean,
+    val isLateReturn: Boolean
+)
+
+data class DateSelectionActions(
+    val onDateClick: () -> Unit,
+    val onTimeClick: () -> Unit,
+    val onNext: () -> Unit
+)
+
 @Composable
 private fun DateSelectionStep(
-    expectedReturnDate: String,
-    selectedDate: String,
-    onDateClick: () -> Unit,
-    returnHour: Int,
-    returnMinute: Int,
-    onTimeClick: () -> Unit,
-    daysDifference: Int,
-    adjustmentAmount: Double,
-    isEarlyReturn: Boolean,
-    isLateReturn: Boolean,
-    onNext: () -> Unit
+    state: DateSelectionState,
+    actions: DateSelectionActions
 ) {
     Column {
         Text(
@@ -401,7 +413,7 @@ private fun DateSelectionStep(
         Spacer(modifier = Modifier.height(8.dp))
         
         Text(
-            text = "Expected return date: $expectedReturnDate",
+            text = "Expected return date: ${state.expectedReturnDate}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -415,7 +427,7 @@ private fun DateSelectionStep(
             // Date Card
             OutlinedCard(
                 modifier = Modifier.weight(1f),
-                onClick = onDateClick
+                onClick = actions.onDateClick
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -434,7 +446,7 @@ private fun DateSelectionStep(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = selectedDate,
+                            text = state.selectedDate,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -444,7 +456,7 @@ private fun DateSelectionStep(
             // Time Card
             OutlinedCard(
                 modifier = Modifier.weight(1f),
-                onClick = onTimeClick
+                onClick = actions.onTimeClick
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -463,7 +475,7 @@ private fun DateSelectionStep(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = String.format("%02d:%02d", returnHour, returnMinute),
+                            text = String.format("%02d:%02d", state.returnHour, state.returnMinute),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -474,11 +486,11 @@ private fun DateSelectionStep(
         Spacer(modifier = Modifier.height(24.dp))
         
         // Fee preview
-        if (isEarlyReturn || isLateReturn) {
+        if (state.isEarlyReturn || state.isLateReturn) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isEarlyReturn) 
+                    containerColor = if (state.isEarlyReturn) 
                         MaterialTheme.colorScheme.primaryContainer 
                     else 
                         MaterialTheme.colorScheme.errorContainer
@@ -488,7 +500,7 @@ private fun DateSelectionStep(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = if (isEarlyReturn) "Early Return Refund" else "Late Return Fee",
+                        text = if (state.isEarlyReturn) "Early Return Refund" else "Late Return Fee",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -496,10 +508,10 @@ private fun DateSelectionStep(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Text(
-                        text = if (isEarlyReturn) {
-                            "You're returning ${Math.abs(daysDifference)} days early"
+                        text = if (state.isEarlyReturn) {
+                            "You're returning ${Math.abs(state.daysDifference)} days early"
                         } else {
-                            "You're returning $daysDifference days late"
+                            "You're returning ${state.daysDifference} days late"
                         },
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -507,10 +519,10 @@ private fun DateSelectionStep(
                     Spacer(modifier = Modifier.height(4.dp))
                     
                     Text(
-                        text = if (isEarlyReturn) {
-                            "You'll receive a refund of $${String.format("%.2f", adjustmentAmount)}"
+                        text = if (state.isEarlyReturn) {
+                            "You'll receive a refund of $${String.format("%.2f", state.adjustmentAmount)}"
                         } else {
-                            "Additional charge: $${String.format("%.2f", adjustmentAmount)} (${Math.abs(daysDifference)} days × $5/day)"
+                            "Additional charge: $${String.format("%.2f", state.adjustmentAmount)} (${Math.abs(state.daysDifference)} days × $5/day)"
                         },
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold
@@ -522,10 +534,10 @@ private fun DateSelectionStep(
         }
         
         Button(
-            onClick = onNext,
+            onClick = actions.onNext,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (isLateReturn) "Proceed to Payment" else "Continue")
+            Text(if (state.isLateReturn) "Proceed to Payment" else "Continue")
         }
     }
 }

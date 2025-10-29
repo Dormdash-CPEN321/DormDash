@@ -58,33 +58,45 @@ fun MoverMainScreen(
     }
 
     MainContent(
-        mainUiState = mainUiState,
-        currentJobs = currentJobs,
-        isLoading = jobUiState.isLoading,
-        error = jobUiState.error,
-        snackBarHostState = snackBarHostState,
-        onProfileClick = onProfileClick,
-        onSuccessMessageShown = mainViewModel::clearSuccessMessage,
-        onJobDetails = { job -> onJobDetails(job.id) },
-        onRefresh = {
-            jobViewModel.loadMoverJobs()
-            jobViewModel.loadAvailableJobs()
-        }
+        MainContentState(
+            mainUiState = mainUiState,
+            currentJobs = currentJobs,
+            isLoading = jobUiState.isLoading,
+            error = jobUiState.error,
+            snackBarHostState = snackBarHostState
+        ),
+        MainContentActions(
+            onProfileClick = onProfileClick,
+            onSuccessMessageShown = mainViewModel::clearSuccessMessage,
+            onJobDetails = { job -> onJobDetails(job.id) },
+            onRefresh = {
+                jobViewModel.loadMoverJobs()
+                jobViewModel.loadAvailableJobs()
+            }
+        )
     )
 }
+
+data class MainContentState(
+    val mainUiState: MainUiState,
+    val currentJobs: List<com.cpen321.usermanagement.data.local.models.Job>,
+    val isLoading: Boolean,
+    val error: String?,
+    val snackBarHostState: SnackbarHostState
+)
+
+data class MainContentActions(
+    val onProfileClick: () -> Unit,
+    val onSuccessMessageShown: () -> Unit,
+    val onJobDetails: (com.cpen321.usermanagement.data.local.models.Job) -> Unit,
+    val onRefresh: () -> Unit
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainContent(
-    mainUiState: MainUiState,
-    currentJobs: List<com.cpen321.usermanagement.data.local.models.Job>,
-    isLoading: Boolean,
-    error: String?,
-    snackBarHostState: SnackbarHostState,
-    onProfileClick: () -> Unit,
-    onSuccessMessageShown: () -> Unit,
-    onJobDetails: (com.cpen321.usermanagement.data.local.models.Job) -> Unit,
-    onRefresh: () -> Unit,
+    state: MainContentState,
+    actions: MainContentActions,
     modifier: Modifier = Modifier
 ) {
     var currentScreen by remember { mutableStateOf(MoverScreen.CURRENT_JOBS) }
@@ -92,7 +104,7 @@ private fun MainContent(
     Scaffold(
         modifier = modifier,
         topBar = {
-            MainTopBar(onProfileClick = onProfileClick)
+            MainTopBar(onProfileClick = actions.onProfileClick)
         },
         bottomBar = {
             NavigationBar {
@@ -118,9 +130,9 @@ private fun MainContent(
         },
         snackbarHost = {
             MainSnackbarHost(
-                hostState = snackBarHostState,
-                successMessage = mainUiState.successMessage,
-                onSuccessMessageShown = onSuccessMessageShown
+                hostState = state.snackBarHostState,
+                successMessage = state.mainUiState.successMessage,
+                onSuccessMessageShown = actions.onSuccessMessageShown
             )
         }
     ) { paddingValues ->
@@ -131,11 +143,11 @@ private fun MainContent(
         ) {
             when (currentScreen) {
                 MoverScreen.CURRENT_JOBS -> CurrentJobsScreen(
-                    jobs = currentJobs,
-                    isLoading = isLoading,
-                    error = error,
-                    onJobDetails = onJobDetails,
-                    onRefresh = onRefresh
+                    jobs = state.currentJobs,
+                    isLoading = state.isLoading,
+                    error = state.error,
+                    onJobDetails = actions.onJobDetails,
+                    onRefresh = actions.onRefresh
                 )
                 MoverScreen.AVAILABLE_JOBS -> AvailableJobsScreen(
                     modifier = Modifier.fillMaxSize()

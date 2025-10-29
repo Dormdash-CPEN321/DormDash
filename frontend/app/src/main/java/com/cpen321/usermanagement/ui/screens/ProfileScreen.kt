@@ -256,7 +256,6 @@ private fun ProfileBody(
 
             else -> {
                 ProfileMenuItems(
-                    userRole = userRole,
                     user = user,
                     isInteractive = isInteractive,
                     onManageProfileClick = onManageProfileClick,
@@ -272,7 +271,6 @@ private fun ProfileBody(
 
 @Composable
 private fun ProfileMenuItems(
-    userRole: String?,
     user: User?,
     isInteractive: Boolean = true,
     onManageProfileClick: () -> Unit,
@@ -284,6 +282,7 @@ private fun ProfileMenuItems(
 ) {
     val spacing = LocalSpacing.current
     val scrollState = rememberScrollState()
+    val userRole = user?.userRole
 
     Column(
         modifier = modifier
