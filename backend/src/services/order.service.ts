@@ -24,7 +24,7 @@ export class OrderService {
         const lat1 = lat;
         const lon1 = lon;
 
-        logger.info("Finding closest warehouse to:", { lat, lon });
+        logger.info("Finding closest warehouse to:", { lat1, lon1 });
         return { 
             closestWarehouse: WAREHOUSES[0],
             distanceToWarehouse: 5 //km
