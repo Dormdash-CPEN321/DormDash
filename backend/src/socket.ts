@@ -1,7 +1,6 @@
 // backend/src/socket.ts
 import { Server } from 'socket.io';
 import http from 'http';
-import jwt from 'jsonwebtoken';
 import logger from './utils/logger.util';
 import { verifyTokenString } from './middleware/auth.middleware'; // optional helper
 

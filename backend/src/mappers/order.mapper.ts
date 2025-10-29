@@ -1,5 +1,4 @@
 import { Order, CreateOrderResponse } from "../types/order.types";
-import mongoose from "mongoose";
 
 /**
  * OrderMapper - Centralized data transformation for Order entities

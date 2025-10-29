@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { OrderController } from '../controllers/order.controller';
 import { orderService } from '../services/order.service';
-import { CreateOrderRequest, createOrderSchema, QuoteRequest, quoteSchema } from '../types/order.types';
+import { QuoteRequest, quoteSchema } from '../types/order.types';
 import { validateBody } from '../middleware/validation.middleware';
 
 

@@ -1,7 +1,5 @@
-import mongoose from "mongoose";
-import { JobMapper } from "../mappers/job.mapper";
 import { userModel } from "../models/user.model";
-import { Job, JobResponse, JobStatus } from "../types/job.type";
+import { JobResponse } from "../types/job.type";
 import { DayAvailability, TimeRange } from "../types/user.types";
 import { JobInRoute, RouteMetrics } from "../types/route.types";
 import logger from "../utils/logger.util";

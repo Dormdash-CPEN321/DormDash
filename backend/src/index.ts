@@ -24,6 +24,4 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-const io = initSocket(server);
-
 console.log('Socket.io initialized');

@@ -618,6 +618,3 @@ export class JobService {
 
 export const jobService = new JobService();
 
-function isNotNull<T>(value: T | null): value is T {
-    return value !== null;
-}

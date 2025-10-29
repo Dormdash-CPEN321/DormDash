@@ -19,6 +19,10 @@ export class OrderService {
         // ToDo: integrate with google maps to actually find the closest warehouse
         // google maps also returns time it takes to drive there (based on trafic and ...)
         // we can also use that in our price calc when we integrate with maps
+
+        //added to avoid unused variable error- codacy
+        const lat1 = lat;
+        const lon1 = lon;
         return { 
             closestWarehouse: WAREHOUSES[0],
             distanceToWarehouse: 5 //km

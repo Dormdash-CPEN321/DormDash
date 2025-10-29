@@ -1,6 +1,6 @@
 import mongoose, { ObjectId, Schema } from "mongoose";
 
-import { ACTIVE_ORDER_STATUSES, createOrderSchema, Order, OrderStatus } from "../types/order.types";
+import { Order, OrderStatus } from "../types/order.types";
 import logger from "../utils/logger.util";
 
 // Address subdocument schema to be used inside order schema

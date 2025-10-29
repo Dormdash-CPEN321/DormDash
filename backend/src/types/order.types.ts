@@ -1,4 +1,4 @@
-import { int, success, z } from "zod";
+import { z } from "zod";
 import mongoose from "mongoose";
 
 export const addressSchema = z.object({
