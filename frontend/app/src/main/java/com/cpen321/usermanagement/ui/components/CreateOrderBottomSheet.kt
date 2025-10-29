@@ -334,9 +334,6 @@ private fun AddressCaptureStep(
                 selectedAddress = address
                 addressInput = address.formattedAddress
             },
-            label = "Enter Address",
-            placeholder = "e.g. 123 Main St, Vancouver, BC",
-            enabled = !isValidating,
             modifier = Modifier.fillMaxWidth()
         )
         

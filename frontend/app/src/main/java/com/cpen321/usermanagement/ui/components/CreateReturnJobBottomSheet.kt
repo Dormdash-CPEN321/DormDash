@@ -619,9 +619,6 @@ private fun AddressSelectionStep(
                 value = streetAddress,
                 onValueChange = onStreetAddressChange,
                 onAddressSelected = onAddressSelected,
-                label = "Enter Address",
-                placeholder = "e.g. 123 Main St, Vancouver, BC",
-                enabled = !isValidating,
                 modifier = Modifier.fillMaxWidth()
             )
         }

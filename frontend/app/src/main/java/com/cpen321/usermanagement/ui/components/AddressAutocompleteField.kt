@@ -56,12 +56,7 @@ fun AddressAutocompleteField(
 
     val placesClient = rememberPlacesClient(context)
 
-    DebouncedAddressSearch(
-        query = value,
-        placesClient = placesClient,
-        context = context,
-        minLength = 3,
-        debounceMs = 500,
+    val searchCallbacks = AddressSearchCallbacks(
         onStart = { isLoading = true },
         onResult = { preds ->
             suggestions = preds
@@ -74,35 +69,56 @@ fun AddressAutocompleteField(
         onFinished = { isLoading = false }
     )
 
-    AddressAutocompleteContent(
-        value = value,
+    DebouncedAddressSearch(
+        query = value,
+        placesClient = placesClient,
+        context = context,
+        callbacks = searchCallbacks,
+        minLength = 3,
+        debounceMs = 500
+    )
+
+    val controller = AutocompleteController(
+        coroutineScope = coroutineScope,
+        placesClient = placesClient,
         onValueChange = onValueChange,
         onAddressSelected = onAddressSelected,
+        setShowSuggestions = { showSuggestions = it },
+        setSuggestions = { suggestions = it }
+    )
+
+    AddressAutocompleteContent(
+        value = value,
         isLoading = isLoading,
         suggestions = suggestions,
         showSuggestions = showSuggestions,
-        coroutineScope = coroutineScope,
-        placesClient = placesClient,
+        controller = controller,
         modifier = modifier
     )
 }
 
+private data class AutocompleteController(
+    val coroutineScope: CoroutineScope,
+    val placesClient: PlacesClient,
+    val onValueChange: (String) -> Unit,
+    val onAddressSelected: (SelectedAddress) -> Unit,
+    val setShowSuggestions: (Boolean) -> Unit,
+    val setSuggestions: (List<AddressSuggestion>) -> Unit
+)
+
 @Composable
 private fun AddressAutocompleteContent(
     value: String,
-    onValueChange: (String) -> Unit,
-    onAddressSelected: (SelectedAddress) -> Unit,
     isLoading: Boolean,
     suggestions: List<AddressSuggestion>,
     showSuggestions: Boolean,
-    coroutineScope: CoroutineScope,
-    placesClient: PlacesClient,
+    controller: AutocompleteController,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
         AddressTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = controller.onValueChange,
             isLoading = isLoading,
             modifier = Modifier.fillMaxWidth()
         )
@@ -111,15 +127,8 @@ private fun AddressAutocompleteContent(
             SuggestionsDropdown(
                 suggestions = suggestions,
                 onSuggestionClick = { suggestion ->
-                    coroutineScope.launch {
-                        handleSuggestionClick(
-                            suggestion = suggestion,
-                            placesClient = placesClient,
-                            onValueChange = onValueChange,
-                            onAddressSelected = onAddressSelected,
-                            setShowSuggestions = { /* no-op: state captured in parent */ },
-                            setSuggestions = { /* no-op: state captured in parent */ }
-                        )
+                    controller.coroutineScope.launch {
+                        handleSuggestionClick(suggestion, controller)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -139,21 +148,25 @@ private fun rememberPlacesClient(context: Context): PlacesClient {
     }
 }
 
+private data class AddressSearchCallbacks(
+    val onStart: () -> Unit,
+    val onResult: (List<AddressSuggestion>) -> Unit,
+    val onError: () -> Unit,
+    val onFinished: () -> Unit
+)
+
 @Composable
 private fun DebouncedAddressSearch(
     query: String,
     placesClient: PlacesClient,
     context: Context,
+    callbacks: AddressSearchCallbacks,
     minLength: Int = 3,
-    debounceMs: Long = 500,
-    onStart: () -> Unit,
-    onResult: (List<AddressSuggestion>) -> Unit,
-    onError: () -> Unit,
-    onFinished: () -> Unit
+    debounceMs: Long = 500
 ) {
     LaunchedEffect(query) {
         if (query.length >= minLength) {
-            onStart()
+            callbacks.onStart()
             delay(debounceMs)
             try {
                 val preds = fetchAddressPredictions(
@@ -161,38 +174,34 @@ private fun DebouncedAddressSearch(
                     query = query,
                     context = context
                 )
-                onResult(preds)
+                callbacks.onResult(preds)
             } catch (e: Exception) {
                 e.printStackTrace()
-                onError()
+                callbacks.onError()
             } finally {
-                onFinished()
+                callbacks.onFinished()
             }
         } else {
-            onResult(emptyList())
-            onError()
+            callbacks.onResult(emptyList())
+            callbacks.onError()
         }
     }
 }
 
 private suspend fun handleSuggestionClick(
     suggestion: AddressSuggestion,
-    placesClient: PlacesClient,
-    onValueChange: (String) -> Unit,
-    onAddressSelected: (SelectedAddress) -> Unit,
-    setShowSuggestions: (Boolean) -> Unit,
-    setSuggestions: (List<AddressSuggestion>) -> Unit
+    controller: AutocompleteController
 ) {
     try {
         val address = fetchPlaceDetails(
-            placesClient = placesClient,
+            placesClient = controller.placesClient,
             placeId = suggestion.placeId
         )
         if (address != null) {
-            onValueChange(address.formattedAddress)
-            onAddressSelected(address)
-            setShowSuggestions(false)
-            setSuggestions(emptyList())
+            controller.onValueChange(address.formattedAddress)
+            controller.onAddressSelected(address)
+            controller.setShowSuggestions(false)
+            controller.setSuggestions(emptyList())
         }
     } catch (e: Exception) {
         e.printStackTrace()
