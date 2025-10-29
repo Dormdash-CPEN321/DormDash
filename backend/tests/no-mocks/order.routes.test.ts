@@ -1,25 +1,38 @@
 import { describe, expect, test, beforeAll, afterAll, jest } from '@jest/globals';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import app from '../../src/app';
 import { connectDB, disconnectDB } from '../../src/config/database';
-
-// Mock the auth middleware to set a fake user
-jest.mock('../../src/middleware/auth.middleware', () => ({
-  authenticateToken: (req: any, res: any, next: any) => {
-    req.user = { _id: '507f1f77bcf86cd799439011' }; // Fake ObjectId
-    next();
-  },
-}));
+import { userModel } from '../../src/models/user.model';
 
 // Suppress socket-related warnings
 const originalWarn = console.warn;
+let authToken: string;
+const testUserId = new mongoose.Types.ObjectId('507f1f77bcf86cd799439011');
+
 beforeAll(async () => {
   console.warn = jest.fn(); // Suppress warnings
   // Connect to test database
   await connectDB();
+
+  // Create a test user in DB with specific _id
+  await (userModel as any).user.create({
+    _id: testUserId,
+    googleId: 'test-google-id',
+    email: 'test@example.com',
+    name: 'Test User',
+    userRole: 'STUDENT'
+  });
+
+  // Generate a real JWT token for testing
+  const payload = { id: testUserId };
+  authToken = jwt.sign(payload, process.env.JWT_SECRET || 'default-secret');
 });
 
 afterAll(async () => {
+  // Clean up test user
+  await userModel.delete(testUserId);
   // Disconnect from test database
   await disconnectDB();
   console.warn = originalWarn; // Restore warnings
@@ -29,6 +42,7 @@ describe('POST /api/order/quote - No Mocks', () => {
   test('should return a quote for valid input', async () => {
     const response = await request(app)
       .post('/api/order/quote')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         studentId: '507f1f77bcf86cd799439011',
         studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Test Address' }
@@ -47,6 +61,7 @@ describe('POST /api/order - No Mocks', () => {
   test('should create an order for valid input', async () => {
     const response = await request(app)
       .post('/api/order')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         studentId: '507f1f77bcf86cd799439011',
         volume: 10,
@@ -68,6 +83,7 @@ describe('POST /api/order/create-return-Job - No Mocks', () => {
   test('should create a return job for authenticated user', async () => {
     const response = await request(app)
       .post('/api/order/create-return-Job')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         returnAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Return Address' },
         actualReturnDate: new Date().toISOString()
@@ -85,6 +101,7 @@ describe('GET /api/order/all-orders - No Mocks', () => {
   test('should return all orders for authenticated user', async () => {
     const response = await request(app)
       .get('/api/order/all-orders')
+      .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
 
     expect(response.body).toHaveProperty('success');
@@ -97,6 +114,7 @@ describe('GET /api/order/active-order - No Mocks', () => {
   test('should return active order for authenticated user', async () => {
     const response = await request(app)
       .get('/api/order/active-order')
+      .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
 
     // Could be null or an order object
@@ -108,6 +126,7 @@ describe('DELETE /api/order/cancel-order - No Mocks', () => {
   test('should cancel the active order for authenticated user', async () => {
     const response = await request(app)
       .delete('/api/order/cancel-order')
+      .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
 
     expect(response.body).toHaveProperty('success');
