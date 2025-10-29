@@ -10,7 +10,7 @@ export type UserRole = 'STUDENT' | 'MOVER';
 export type TimeRange = [string, string]; // [startTime, endTime] in "HH:mm" format, e.g., ["08:30", "12:45"]
 export interface DayAvailability {
   [key: string]: TimeRange[]; // e.g., { "Mon": [["08:30", "12:00"], ["14:00", "18:30"]], "Tue": [["09:00", "17:00"]] }
-};
+}
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;

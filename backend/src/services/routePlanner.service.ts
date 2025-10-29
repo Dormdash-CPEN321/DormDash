@@ -236,7 +236,7 @@ export class RoutePlannerService {
    * the fixed scheduled times that students have set.
    */
   private buildOptimalRoute(
-    jobs: Array<JobResponse & { valueScore: number }>,
+    jobs: (JobResponse & { valueScore: number })[],
     startLocation: { lat: number; lon: number },
     availability: DayAvailability,
     maxDuration?: number

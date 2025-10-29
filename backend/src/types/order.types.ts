@@ -97,7 +97,7 @@ export interface Order {
     returnTime: string;  // ISO date string
     paymentIntentId?: string; // Stripe payment intent ID for refunds
     idempotencyKey?: string; // Added idempotencyKey for idempotent operations
-};
+}
 
 export interface CancelOrderResponse {
     success: boolean;
