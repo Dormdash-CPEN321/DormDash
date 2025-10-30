@@ -33,7 +33,9 @@ router.post(
   authenticateToken, // Require authentication
   validateBody<SelectRoleRequest>(selectRoleSchema),
   (req, res, next) => {
-    authController.selectRole(req, res, next).catch((err: unknown) => next(err));
+    authController
+      .selectRole(req, res, next)
+      .catch((err: unknown) => next(err));
   }
 );
 

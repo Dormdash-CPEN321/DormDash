@@ -147,13 +147,11 @@ export class JobController {
         req.params.id,
         moverId
       );
-      res
-        .status(200)
-        .json({
-          success: true,
-          message: 'Confirmation requested',
-          data: result,
-        });
+      res.status(200).json({
+        success: true,
+        message: 'Confirmation requested',
+        data: result,
+      });
     } catch (error) {
       next(error);
     }
@@ -193,13 +191,11 @@ export class JobController {
         req.params.id,
         moverId
       );
-      res
-        .status(200)
-        .json({
-          success: true,
-          message: 'Delivery confirmation requested',
-          data: result,
-        });
+      res.status(200).json({
+        success: true,
+        message: 'Delivery confirmation requested',
+        data: result,
+      });
     } catch (error) {
       next(error);
     }

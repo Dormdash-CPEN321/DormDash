@@ -16,7 +16,9 @@ router.post(
   '/create-intent',
   validateBody<CreatePaymentIntentRequest>(createPaymentIntentSchema),
   (req, res, next) => {
-  paymentController.createPaymentIntent(req, res, next).catch((err: unknown) => next(err));
+    paymentController
+      .createPaymentIntent(req, res, next)
+      .catch((err: unknown) => next(err));
   }
 );
 
@@ -24,12 +26,16 @@ router.post(
   '/process',
   validateBody<ProcessPaymentRequest>(processPaymentSchema),
   (req, res, next) => {
-  paymentController.processPayment(req, res, next).catch((err: unknown) => next(err));
+    paymentController
+      .processPayment(req, res, next)
+      .catch((err: unknown) => next(err));
   }
 );
 
 router.get('/status/:paymentIntentId', (req: any, res, next) => {
-  paymentController.getPaymentStatus(req, res, next).catch((err: unknown) => next(err));
+  paymentController
+    .getPaymentStatus(req, res, next)
+    .catch((err: unknown) => next(err));
 });
 
 export default router;
