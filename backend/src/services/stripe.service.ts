@@ -47,9 +47,9 @@ export class StripeService {
                 clientSecret: paymentIntent.client_secret!,
                 status: this.mapStripeStatusToOur(paymentIntent.status)
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error('Error creating payment intent:', error);
-            throw new Error(`Failed to create payment intent: ${error.message || error}`);
+            throw new Error(`Failed to create payment intent: ${(error as Error).message || error}`);
         }
     }
 
@@ -71,7 +71,7 @@ export class StripeService {
                 currency: paymentIntent.currency.toUpperCase(),
                 failureReason: paymentIntent.last_payment_error?.message
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error('Error confirming payment:', error);
             
             return {
@@ -79,7 +79,7 @@ export class StripeService {
                 status: PaymentStatus.FAILED,
                 amount: 0,
                 currency: 'CAD',
-                failureReason: error.message || 'Payment confirmation failed'
+                failureReason: (error as Error).message || 'Payment confirmation failed'
             };
         }
     }
@@ -126,9 +126,9 @@ export class StripeService {
                 amount: refund.amount / 100,
                 currency: refund.currency.toUpperCase(),
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error('Error creating refund:', error);
-            throw new Error(`Failed to refund payment: ${error.message || error}`);
+            throw new Error(`Failed to refund payment: ${(error as Error).message || error}`);
         }
     }
 

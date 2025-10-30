@@ -46,7 +46,7 @@ export interface GetQuoteResponse {
   dailyStorageRate: number; // Daily storage rate for late return fee calculation
 }
 
-export interface CreateOrderRequest extends z.infer<typeof createOrderSchema> {}
+export type CreateOrderRequest = z.infer<typeof createOrderSchema>
 
 export interface CreateOrderResponse extends Order {
   id: string;

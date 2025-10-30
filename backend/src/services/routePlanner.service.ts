@@ -82,7 +82,7 @@ export class RoutePlannerService {
       try {
         const excludedByAvailability = validJobs.filter(j => !eligibleJobs.includes(j));
         if (excludedByAvailability.length > 0) {
-          logger.debug(`Jobs excluded by availability filter: ${JSON.stringify(excludedByAvailability.map(j => ({ id: j.id ?? 'unknown', scheduledTime: j.scheduledTime })))}`);
+          logger.debug(`Jobs excluded by availability filter: ${JSON.stringify(excludedByAvailability.map(j => ({ id: j.id, scheduledTime: j.scheduledTime })))}`);
         }
       } catch (e) {
         logger.debug(`Eligible jobs count: ${eligibleJobs.length}`);

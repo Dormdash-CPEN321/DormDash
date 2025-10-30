@@ -57,7 +57,7 @@ export function getIo(): Server {
 }
 
 // Centralized emit helper. rooms can be a string or array of strings.
-export function emitToRooms(rooms: string | string[], event: string, payload: any, meta?: any) {
+export function emitToRooms(rooms: string | string[], event: string, payload: unknown, meta?: unknown) {
   try {
     if (!io) {
       logger.warn('emitToRooms called before socket initialized', { event, rooms });

@@ -22,9 +22,7 @@ export function extractObjectId(field: any): mongoose.Types.ObjectId | null {
   
   // If it's a populated document with _id
   if (field._id) {
-    return field._id instanceof mongoose.Types.ObjectId 
-      ? field._id 
-      : new mongoose.Types.ObjectId(field._id);
+    return field._id;
   }
   
   // Try to create ObjectId from string

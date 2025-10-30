@@ -20,7 +20,7 @@ export class RouteController {
   async getSmartRoute(req: Request, res: Response): Promise<void> {
     try {
       // Extract mover ID from authenticated user
-      const moverId = (req as any).user?._id;
+      const moverId = (req as unknown as { user?: { _id: unknown } }).user?._id;
       if (!moverId) {
         res.status(401).json({
           message: "Unauthorized: Mover ID not found",

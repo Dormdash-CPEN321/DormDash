@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CallToAction
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -663,33 +664,40 @@ private fun DurationSelector(
         
         Spacer(modifier = Modifier.height(spacing.large))
         
-        // Duration options
-        durationOptions.forEach { (duration, label) ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = spacing.extraSmall),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = selectedDuration == duration,
-                    onClick = { onDurationSelected(duration) }
-                )
-                Spacer(modifier = Modifier.width(spacing.small))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f)
-                )
-                if (duration != null) {
-                    Text(
-                        text = "$duration min",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
+        // Duration selector as a discrete (snapping) slider.
+        // We map slider positions to the durationOptions list indices so
+        // the selected value is always one of the provided options (including Unlimited).
+        val optionCount = durationOptions.size
+        // Find the initial index matching the current selection, default to 0
+        val initialIndex = durationOptions.indexOfFirst { it.first == selectedDuration }.let { if (it >= 0) it else 0 }
+        var sliderPosition by remember { mutableStateOf(initialIndex.toFloat()) }
+
+        Spacer(modifier = Modifier.height(spacing.small))
+
+        Slider(
+            value = sliderPosition,
+            onValueChange = { sliderPosition = it },
+            valueRange = 0f..(optionCount - 1).toFloat(),
+            onValueChangeFinished = {
+                // Snap to nearest index and notify parent of the selected duration
+                val snapped = sliderPosition.roundToInt().coerceIn(0, optionCount - 1)
+                sliderPosition = snapped.toFloat()
+                val (duration, _) = durationOptions[snapped]
+                onDurationSelected(duration)
             }
-        }
+        )
+
+        Spacer(modifier = Modifier.height(spacing.small))
+
+        // Show currently selected value
+        val currentIndex = sliderPosition.roundToInt().coerceIn(0, optionCount - 1)
+        val (curDuration, curLabel) = durationOptions[currentIndex]
+        Text(
+            text = if (curDuration == null) curLabel else "$curLabel • ${curDuration} min",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = spacing.small)
+        )
         
         Spacer(modifier = Modifier.height(spacing.large))
         

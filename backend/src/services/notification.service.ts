@@ -94,7 +94,7 @@ class NotificationService {
       };
 
       await this.sendNotificationToDevice(notification);
-      logger.info(`Notification sent to student ${student._id} for job ${job._id} with status ${status}`);
+      logger.info(`Notification sent to student ${student._id.toString()} for job ${job._id.toString()} with status ${status}`);
     } catch (error: any) {
       logger.error("Failed to send job status notification:", error);
     }

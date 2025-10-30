@@ -69,13 +69,13 @@ orderSchema.index(
 // OrderModel class
 // ------------------------------------------------------------
 export class OrderModel {
-  private order: mongoose.Model<any>;
+  private order: mongoose.Model<Order>;
 
   constructor() {
-    this.order = mongoose.model("Order", orderSchema);
+    this.order = mongoose.model<Order>("Order", orderSchema);
   }
 
-  async create(newOrder: Order) {
+  async create(newOrder: Order): Promise<Order> {
     try {
       const createdOrder = await this.order.create(newOrder);
       return createdOrder;
@@ -85,7 +85,7 @@ export class OrderModel {
     }
   }
 
-  async getAllOrders(studentId: ObjectId | undefined) {
+  async getAllOrders(studentId: ObjectId | undefined): Promise<Order[]> {
     try {
       return await this.order.find({ studentId });
     } catch (error) {
@@ -94,7 +94,7 @@ export class OrderModel {
     }
   }
 
-  async findById(orderId: mongoose.Types.ObjectId) {
+  async findById(orderId: mongoose.Types.ObjectId): Promise<Order | null> {
     try {
       return await this.order.findById(orderId);
     } catch (error) {
@@ -116,7 +116,7 @@ export class OrderModel {
     }
   }
 
-  async findByIdempotencyKey(key: string) {
+  async findByIdempotencyKey(key: string): Promise<Order | null> {
     try {
       return await this.order.findOne({ idempotencyKey: key });
     } catch (error) {
@@ -125,7 +125,7 @@ export class OrderModel {
     }
   }
 
-  async update(orderId: mongoose.Types.ObjectId, updatedOrder: Partial<Order>) {
+  async update(orderId: mongoose.Types.ObjectId, updatedOrder: Partial<Order>): Promise<Order | null> {
     try {
       return await this.order.findByIdAndUpdate(orderId, updatedOrder, { new: true });
     } catch (error) {
@@ -134,7 +134,7 @@ export class OrderModel {
     }
   }
 
-  async delete(orderId: mongoose.Types.ObjectId) {
+  async delete(orderId: mongoose.Types.ObjectId): Promise<void> {
     try {
       await this.order.findByIdAndDelete(orderId);
     } catch (error) {

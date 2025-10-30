@@ -12,7 +12,7 @@ export class PaymentService {
             logger.info(`Creating payment intent for amount: ${request.amount} ${request.currency}`);
             
             const paymentIntent = await stripeService.createPaymentIntent(
-                request.amount, 
+                request.amount as number, 
                 request.currency
             );
             

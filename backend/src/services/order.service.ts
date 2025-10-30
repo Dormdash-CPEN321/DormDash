@@ -116,7 +116,7 @@ export class OrderService {
                 return OrderMapper.toCreateOrderResponse(createdOrder);
             } catch (err: unknown) {
                 // If duplicate key error due to race/uniqueness, try to find existing by idempotencyKey or by student+status
-                const isDup = (err as any)?.code === 11000;
+                const isDup = (err as { code?: number })?.code === 11000;
                 if (isDup) {
                     if (idempotencyKey) {
                         const byKey = await orderModel.findByIdempotencyKey(idempotencyKey);
@@ -301,7 +301,7 @@ export class OrderService {
                     // You may want to update order with a "refund_pending" flag here
                 }
             } else {
-                logger.warn(`No payment intent ID found for order ${orderId} - skipping refund`);
+                logger.warn(`No payment intent ID found for order ${orderId.toString()} - skipping refund`);
             }
 
             // Cancel linked jobs for this order (best-effort). Do this before emitting order.updated
@@ -332,17 +332,17 @@ export class OrderService {
             const updatedOrder = await orderModel.update(orderObjectId, { status });
             
             if (!updatedOrder) {
-                throw new Error(`Order ${orderId} not found`);
+                throw new Error(`Order ${orderId.toString()} not found`);
             }
 
             // Emit order.updated event
             EventEmitter.emitOrderUpdated(updatedOrder, { by: actorId ?? null, ts: new Date().toISOString() });
 
-            logger.info(`Order ${orderId} status updated to ${status} by ${actorId ?? 'system'}`);
+            logger.info(`Order ${orderId.toString()} status updated to ${status} by ${actorId ?? 'system'}`);
             
             return updatedOrder;
         } catch (error) {
-            logger.error(`Error updating order status for ${orderId}:`, error);
+            logger.error(`Error updating order status for ${orderId.toString()}:`, error);
             throw error;
         }
     }

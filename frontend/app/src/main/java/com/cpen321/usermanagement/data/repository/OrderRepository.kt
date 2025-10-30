@@ -244,7 +244,7 @@ class OrderRepository @Inject constructor(
     suspend fun createReturnJob(request: CreateReturnJobRequest): CreateReturnJobResponse {
         val response = orderApi.createReturnJob(request)
         if (!response.isSuccessful) {
-            throw Exception("Failed to create return job: ${response.code()} ${response.message()}")
+            throw RuntimeException("Failed to create return job: ${response.code()} ${response.message()}")
         }
         return response.body() ?: throw Exception("Empty response from server")
     }

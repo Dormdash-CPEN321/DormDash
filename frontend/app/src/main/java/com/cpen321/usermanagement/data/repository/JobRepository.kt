@@ -79,8 +79,8 @@ class JobRepository @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to load mover jobs"))
             }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.message ?: "Unknown error occurred"))
+        } catch (e: java.io.IOException) {
+            emit(Resource.Error(e.message ?: "Network error occurred"))
         }
     }
     
@@ -108,8 +108,8 @@ class JobRepository @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to load student jobs"))
             }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.message ?: "Unknown error occurred"))
+        } catch (e: java.io.IOException) {
+            emit(Resource.Error(e.message ?: "Network error occurred"))
         }
     }
     
@@ -125,8 +125,8 @@ class JobRepository @Inject constructor(
             } else {
                 Resource.Error("Failed to accept job")
             }
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error occurred")
+        } catch (e: java.io.IOException) {
+            Resource.Error(e.message ?: "Network error occurred")
         }
     }
     
@@ -152,8 +152,8 @@ class JobRepository @Inject constructor(
             } else {
                 Resource.Error("Failed to update job status")
             }
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error occurred")
+        } catch (e: java.io.IOException) {
+            Resource.Error(e.message ?: "Network error occurred")
         }
     }
 
@@ -161,8 +161,8 @@ class JobRepository @Inject constructor(
         return try {
             val response = jobApiService.requestPickupConfirmation(jobId)
             if (response.isSuccessful) Resource.Success(Unit) else Resource.Error("Failed to request pickup confirmation")
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error occurred")
+        } catch (e: java.io.IOException) {
+            Resource.Error(e.message ?: "Network error occurred")
         }
     }
 
@@ -170,8 +170,8 @@ class JobRepository @Inject constructor(
         return try {
             val response = jobApiService.confirmPickup(jobId)
             if (response.isSuccessful) Resource.Success(Unit) else Resource.Error("Failed to confirm pickup")
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error occurred")
+        } catch (e: java.io.IOException) {
+            Resource.Error(e.message ?: "Network error occurred")
         }
     }
 
@@ -179,8 +179,8 @@ class JobRepository @Inject constructor(
         return try {
             val response = jobApiService.requestDeliveryConfirmation(jobId)
             if (response.isSuccessful) Resource.Success(Unit) else Resource.Error("Failed to request delivery confirmation")
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error occurred")
+        } catch (e: java.io.IOException) {
+            Resource.Error(e.message ?: "Network error occurred")
         }
     }
 
@@ -188,8 +188,8 @@ class JobRepository @Inject constructor(
         return try {
             val response = jobApiService.confirmDelivery(jobId)
             if (response.isSuccessful) Resource.Success(Unit) else Resource.Error("Failed to confirm delivery")
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error occurred")
+        } catch (e: java.io.IOException) {
+            Resource.Error(e.message ?: "Network error occurred")
         }
     }
 }

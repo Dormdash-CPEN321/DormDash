@@ -32,7 +32,7 @@ export class MediaService {
           } catch (e: unknown) {
             // Ignore if file doesn't exist; log unexpected errors
             const error = e as { code?: string };
-            if (error && error.code && error.code !== 'ENOENT') {
+            if (error?.code && error.code !== 'ENOENT') {
               logger.warn('Failed to unlink temp file after failed save:', String(e));
             }
           }
@@ -60,7 +60,7 @@ export class MediaService {
         await fs.promises.unlink(resolved);
       } catch (err: unknown) {
         const error = err as { code?: string };
-        if (error && error.code && error.code !== 'ENOENT') {
+        if (error?.code && error.code !== 'ENOENT') {
           logger.error('Failed to delete old profile picture:', String(err));
         }
       }

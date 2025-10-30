@@ -145,7 +145,7 @@ export class RefundFailedError extends PaymentError {
  * 500 - Internal server errors
  */
 export class InternalServerError extends AppError {
-  constructor(message: 'Internal server error', originalError?: Error) {
+  constructor(message: string = 'Internal server error', originalError?: Error) {
     super(message, 500, 'INTERNAL_ERROR');
     if (originalError) {
       this.stack = originalError.stack;
