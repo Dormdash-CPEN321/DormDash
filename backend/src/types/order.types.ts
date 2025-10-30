@@ -97,7 +97,7 @@ export const ACTIVE_ORDER_STATUSES = [
 ];
 
 export type Order = {
-    _id: mongoose.Types.ObjectId;
+    _id?: mongoose.Types.ObjectId;
     studentId: mongoose.Types.ObjectId;
     moverId?: mongoose.Types.ObjectId;
     status: OrderStatus;

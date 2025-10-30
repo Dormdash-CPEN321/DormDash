@@ -148,6 +148,9 @@ export class OrderService {
             }
 
             // Idempotency guard: check if a return job already exists for this order
+            if (!activeOrder._id) {
+                throw new Error("Order unexpectedly has no _id");
+            }
             const existingJobs = await jobModel.findByOrderId(activeOrder._id);
             const hasReturnJob = existingJobs.some(job => 
                 job.jobType === JobType.RETURN && 

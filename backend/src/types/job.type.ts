@@ -62,6 +62,7 @@ export type Job = {
     verificationRequestedAt?: Date;
 };
 
+// TODO: this should follow the pattern of other response types (include success/message/data)
 export type JobResponse = {
     id: string;
     orderId: string;
