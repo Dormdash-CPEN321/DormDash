@@ -1,7 +1,10 @@
 import { Router } from 'express';
 
 import { AuthController } from '../controllers/auth.controller';
-import { AuthenticateUserRequest, authenticateUserSchema } from '../types/auth.types';
+import {
+  AuthenticateUserRequest,
+  authenticateUserSchema,
+} from '../types/auth.types';
 import { SelectRoleRequest, selectRoleSchema } from '../types/user.types';
 import { validateBody } from '../middleware/validation.middleware';
 import { authenticateToken } from '../middleware/auth.middleware';
@@ -12,20 +15,26 @@ const authController = new AuthController();
 router.post(
   '/signup',
   validateBody<AuthenticateUserRequest>(authenticateUserSchema),
-  async (req, res, next) => {await authController.signUp(req, res, next)}
+  (req, res, next) => {
+    authController.signUp(req, res, next).catch(next);
+  }
 );
 
 router.post(
   '/signin',
   validateBody(authenticateUserSchema),
-  async (req, res, next) => {await authController.signIn(req, res, next)}
+  (req, res, next) => {
+    authController.signIn(req, res, next).catch(next);
+  }
 );
 
 router.post(
   '/select-role',
-  authenticateToken,  // Require authentication
+  authenticateToken, // Require authentication
   validateBody<SelectRoleRequest>(selectRoleSchema),
-  async (req, res, next) => {await authController.selectRole(req, res, next)}
+  (req, res, next) => {
+    authController.selectRole(req, res, next).catch(next);
+  }
 );
 
 export default router;

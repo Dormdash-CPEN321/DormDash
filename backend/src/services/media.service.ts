@@ -14,7 +14,10 @@ export class MediaService {
       // Resolve and ensure paths are inside the designated images directory
       const resolvedNewPath = path.resolve(newPath);
       const resolvedImagesDir = path.resolve(IMAGES_DIR);
-      if (!resolvedNewPath.startsWith(resolvedImagesDir + path.sep) && resolvedNewPath !== resolvedImagesDir) {
+      if (
+        !resolvedNewPath.startsWith(resolvedImagesDir + path.sep) &&
+        resolvedNewPath !== resolvedImagesDir
+      ) {
         throw new Error('Invalid destination path for image');
       }
 
@@ -33,15 +36,23 @@ export class MediaService {
             // Ignore if file doesn't exist; log unexpected errors
             const error = e as { code?: string };
             if (error?.code && error.code !== 'ENOENT') {
-              logger.warn('Failed to unlink temp file after failed save:', String(e));
+              logger.warn(
+                'Failed to unlink temp file after failed save:',
+                String(e)
+              );
             }
           }
         } else {
           // If basename contains suspicious characters, do not attempt unlink for safety
-          logger.warn(`Skipped unlink of suspicious filename after failed save: ${String(base)}`);
+          logger.warn(
+            `Skipped unlink of suspicious filename after failed save: ${String(base)}`
+          );
         }
       } catch (unlinkErr) {
-        logger.warn('Failed to unlink temp file after failed save:', String(unlinkErr));
+        logger.warn(
+          'Failed to unlink temp file after failed save:',
+          String(unlinkErr)
+        );
       }
       throw new Error(`Failed to save profile picture: ${error}`);
     }
@@ -52,7 +63,9 @@ export class MediaService {
       // Accept either a filename or a full path; but always delete only by basename inside IMAGES_DIR
       const base = path.basename(url);
       if (!/^[a-zA-Z0-9._-]+$/.test(base)) {
-        logger.warn(`Refusing to delete file with suspicious name: ${String(base)}`);
+        logger.warn(
+          `Refusing to delete file with suspicious name: ${String(base)}`
+        );
         return;
       }
       const resolved = path.join(IMAGES_DIR, base);

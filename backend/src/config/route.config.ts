@@ -12,13 +12,13 @@ export const ROUTE_CONFIG = {
   /**
    * Job duration estimation
    */
-  JOB_DURATION_PER_M3: 15,  // Minutes per cubic meter
-  BASE_JOB_TIME: 30,         // Minimum job duration in minutes
+  JOB_DURATION_PER_M3: 15, // Minutes per cubic meter
+  BASE_JOB_TIME: 30, // Minimum job duration in minutes
 
   /**
    * Algorithm weights
    */
-  PROXIMITY_WEIGHT: 0.7,  // Weight for distance in scoring (0-1)
-                          // Higher = prioritize nearby jobs
-                          // Lower = prioritize high-value jobs
+  PROXIMITY_WEIGHT: 0.7, // Weight for distance in scoring (0-1)
+  // Higher = prioritize nearby jobs
+  // Lower = prioritize high-value jobs
 } as const;

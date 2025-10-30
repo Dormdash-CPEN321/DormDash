@@ -1,6 +1,6 @@
-import mongoose, { Schema } from "mongoose";
-import { Job, JobStatus, JobType } from "../types/job.type";
-import logger from "../utils/logger.util";
+import mongoose, { Schema } from 'mongoose';
+import { Job, JobStatus, JobType } from '../types/job.type';
+import logger from '../utils/logger.util';
 
 // Address subdocument schema (reuse from order model pattern)
 const addressSubSchema = new Schema(
@@ -18,17 +18,17 @@ const jobSchema = new Schema<Job>(
     _id: { type: Schema.Types.ObjectId, required: true },
     orderId: {
       type: Schema.Types.ObjectId,
-      ref: "Order",
+      ref: 'Order',
       required: true,
     },
     studentId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     moverId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: false,
     },
     jobType: {
@@ -66,7 +66,7 @@ export class JobModel {
   private job: mongoose.Model<Job>;
 
   constructor() {
-    this.job = mongoose.model<Job>("Job", jobSchema);
+    this.job = mongoose.model<Job>('Job', jobSchema);
   }
 
   async create(newJob: Job): Promise<Job> {
@@ -74,77 +74,89 @@ export class JobModel {
       const createdJob = await this.job.create(newJob);
       return createdJob;
     } catch (error) {
-      logger.error("Error creating job:", error);
-      throw new Error("Failed to create job");
+      logger.error('Error creating job:', error);
+      throw new Error('Failed to create job');
     }
   }
 
   async findById(jobId: mongoose.Types.ObjectId): Promise<Job | null> {
     try {
-      return await this.job.findById(jobId).populate("orderId studentId moverId");
+      return await this.job
+        .findById(jobId)
+        .populate('orderId studentId moverId');
     } catch (error) {
-      logger.error("Error finding job:", error);
-      throw new Error("Failed to find job");
+      logger.error('Error finding job:', error);
+      throw new Error('Failed to find job');
     }
   }
 
   async findByOrderId(orderId: mongoose.Types.ObjectId): Promise<Job[]> {
     try {
-      return await this.job.find({ orderId }).populate("orderId studentId moverId");
+      return await this.job
+        .find({ orderId })
+        .populate('orderId studentId moverId');
     } catch (error) {
-      logger.error("Error finding jobs by order:", error);
-      throw new Error("Failed to find jobs");
+      logger.error('Error finding jobs by order:', error);
+      throw new Error('Failed to find jobs');
     }
   }
 
   async findAvailableJobs(): Promise<Job[]> {
     try {
-      const jobs = await this.job.find({ status: JobStatus.AVAILABLE }).populate("orderId studentId");
+      const jobs = await this.job
+        .find({ status: JobStatus.AVAILABLE })
+        .populate('orderId studentId');
       return jobs;
     } catch (error) {
-      logger.error("Error finding available jobs:", error);
-      throw new Error("Failed to find available jobs");
+      logger.error('Error finding available jobs:', error);
+      throw new Error('Failed to find available jobs');
     }
   }
 
   async findAllJobs(): Promise<Job[]> {
     try {
-      return await this.job.find({}).populate("orderId studentId moverId");
+      return await this.job.find({}).populate('orderId studentId moverId');
     } catch (error) {
-      logger.error("Error finding all jobs:", error);
-      throw new Error("Failed to find all jobs");
+      logger.error('Error finding all jobs:', error);
+      throw new Error('Failed to find all jobs');
     }
   }
 
   async findByMoverId(moverId: mongoose.Types.ObjectId): Promise<Job[]> {
     try {
-      return await this.job.find({ moverId }).populate("orderId studentId");
+      return await this.job.find({ moverId }).populate('orderId studentId');
     } catch (error) {
-      logger.error("Error finding mover jobs:", error);
-      throw new Error("Failed to find mover jobs");
+      logger.error('Error finding mover jobs:', error);
+      throw new Error('Failed to find mover jobs');
     }
   }
 
   async findByStudentId(studentId: mongoose.Types.ObjectId): Promise<Job[]> {
     try {
-      return await this.job.find({ studentId }).populate("orderId moverId");
+      return await this.job.find({ studentId }).populate('orderId moverId');
     } catch (error) {
-      logger.error("Error finding student jobs:", error);
-      throw new Error("Failed to find student jobs");
+      logger.error('Error finding student jobs:', error);
+      throw new Error('Failed to find student jobs');
     }
   }
 
-  async update(jobId: mongoose.Types.ObjectId, updatedJob: Partial<Job>): Promise<Job | null> {
+  async update(
+    jobId: mongoose.Types.ObjectId,
+    updatedJob: Partial<Job>
+  ): Promise<Job | null> {
     try {
       return await this.job.findByIdAndUpdate(jobId, updatedJob, { new: true });
     } catch (error) {
-      logger.error("Error updating job:", error);
-      throw new Error("Failed to update job");
+      logger.error('Error updating job:', error);
+      throw new Error('Failed to update job');
     }
   }
 
   // Atomically accept a job: only set status to ACCEPTED when current status is AVAILABLE
-  async tryAcceptJob(jobId: mongoose.Types.ObjectId, moverId?: mongoose.Types.ObjectId): Promise<Job | null> {
+  async tryAcceptJob(
+    jobId: mongoose.Types.ObjectId,
+    moverId?: mongoose.Types.ObjectId
+  ): Promise<Job | null> {
     try {
       const update: Partial<Job> = {
         status: JobStatus.ACCEPTED,
@@ -159,11 +171,10 @@ export class JobModel {
         { new: true }
       );
     } catch (error) {
-      logger.error("Error in tryAcceptJob:", error);
-      throw new Error("Failed to accept job");
+      logger.error('Error in tryAcceptJob:', error);
+      throw new Error('Failed to accept job');
     }
   }
 }
 
 export const jobModel = new JobModel();
-

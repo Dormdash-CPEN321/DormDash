@@ -5,9 +5,9 @@ export const connectDB = async (): Promise<void> => {
   try {
     const uri = process.env.MONGODB_URI!;
 
-  await mongoose.connect(uri);
+    await mongoose.connect(uri);
 
-  logger.info('✅ MongoDB connected successfully');
+    logger.info('✅ MongoDB connected successfully');
 
     mongoose.connection.on('error', () => {
       // Log a sanitized string to avoid passing raw error objects to logger sinks
@@ -18,10 +18,20 @@ export const connectDB = async (): Promise<void> => {
       logger.warn('⚠️ MongoDB disconnected');
     });
 
-    process.on('SIGINT', async () => {
-      await mongoose.connection.close();
-      logger.info('MongoDB connection closed through app termination');
-      process.exitCode = 0;
+    process.on('SIGINT', () => {
+      mongoose.connection
+        .close()
+        .then(() => {
+          logger.info('MongoDB connection closed through app termination');
+          process.exitCode = 0;
+        })
+        .catch(err => {
+          logger.error(
+            'Error closing MongoDB connection on SIGINT:',
+            String(err)
+          );
+          process.exitCode = 1;
+        });
     });
   } catch (error) {
     logger.error('❌ Failed to connect to MongoDB:', String(error));

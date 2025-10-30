@@ -24,7 +24,7 @@ export interface DayAvailability {
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
-  userRole?: UserRole;  // Optional - set after signup
+  userRole?: UserRole; // Optional - set after signup
   googleId: string;
   email: string;
   fcmToken?: string;
@@ -47,26 +47,30 @@ const timeStringSchema = z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
   message: 'Time must be in HH:mm format',
 });
 
-const timeRangeSchema = z.tuple([timeStringSchema, timeStringSchema])
-  .refine(([start, end]) => {
+const timeRangeSchema = z.tuple([timeStringSchema, timeStringSchema]).refine(
+  ([start, end]) => {
     const [startHour, startMin] = start.split(':').map(Number);
     const [endHour, endMin] = end.split(':').map(Number);
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
     return startMinutes < endMinutes;
-  }, {
+  },
+  {
     message: 'Start time must be before end time',
-  });
+  }
+);
 
-const availabilitySchema = z.object({
-  SUN: z.array(timeRangeSchema).optional(),
-  MON: z.array(timeRangeSchema).optional(),
-  TUE: z.array(timeRangeSchema).optional(),
-  WED: z.array(timeRangeSchema).optional(),
-  THU: z.array(timeRangeSchema).optional(),
-  FRI: z.array(timeRangeSchema).optional(),
-  SAT: z.array(timeRangeSchema).optional(),
-}).optional();
+const availabilitySchema = z
+  .object({
+    SUN: z.array(timeRangeSchema).optional(),
+    MON: z.array(timeRangeSchema).optional(),
+    TUE: z.array(timeRangeSchema).optional(),
+    WED: z.array(timeRangeSchema).optional(),
+    THU: z.array(timeRangeSchema).optional(),
+    FRI: z.array(timeRangeSchema).optional(),
+    SAT: z.array(timeRangeSchema).optional(),
+  })
+  .optional();
 
 export const createUserSchema = z.object({
   email: z.string().email(),
@@ -79,7 +83,7 @@ export const createUserSchema = z.object({
 export const updateProfileSchema = z.object({
   name: z.string().min(1).optional(),
   bio: z.string().max(500).optional(),
-  fcmToken: z.string().optional(),  
+  fcmToken: z.string().optional(),
   profilePicture: z.string().min(1).optional(),
   userRole: z.enum(['STUDENT', 'MOVER']).optional(),
   // Mover-specific fields
@@ -103,9 +107,9 @@ export interface GetProfileResponse {
   };
 }
 
-export type UpdateProfileRequest = z.infer<typeof updateProfileSchema>
+export type UpdateProfileRequest = z.infer<typeof updateProfileSchema>;
 
-export type SelectRoleRequest = z.infer<typeof selectRoleSchema>
+export type SelectRoleRequest = z.infer<typeof selectRoleSchema>;
 
 export interface GoogleUserInfo {
   googleId: string;

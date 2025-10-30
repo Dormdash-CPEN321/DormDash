@@ -1,9 +1,9 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Request types
 // ------------------------------------------------------------
 export const smartRouteRequestSchema = z.object({
-  moverId: z.string().min(1, "Mover ID is required"),
+  moverId: z.string().min(1, 'Mover ID is required'),
   currentLocation: z.object({
     lat: z.number().min(-90).max(90),
     lon: z.number().min(-180).max(180),
@@ -22,7 +22,7 @@ export interface JobInRoute {
   jobId: string;
   orderId: string;
   studentId: string;
-  jobType: "STORAGE" | "RETURN";
+  jobType: 'STORAGE' | 'RETURN';
   volume: number;
   price: number;
   pickupAddress: {

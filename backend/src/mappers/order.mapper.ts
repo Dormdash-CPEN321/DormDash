@@ -1,4 +1,4 @@
-import { Order, CreateOrderResponse } from "../types/order.types";
+import { Order, CreateOrderResponse } from '../types/order.types';
 
 /**
  * OrderMapper - Centralized data transformation for Order entities
@@ -40,5 +40,5 @@ export const OrderMapper = {
 
   toOrderListItems(orders: Order[]) {
     return orders.map(order => this.toOrderListItem(order));
-  }
+  },
 };

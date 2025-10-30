@@ -1,12 +1,11 @@
-import { z } from "zod";
-import mongoose from "mongoose";
+import { z } from 'zod';
+import mongoose from 'mongoose';
 
 export const addressSchema = z.object({
   lat: z.number(),
   lon: z.number(),
   formattedAddress: z.string(),
 });
-
 
 // Order zod Schema
 // ------------------------------------------------------------
@@ -17,7 +16,7 @@ export const quoteSchema = z.object({
 
 export const createOrderSchema = z.object({
   studentId: z.string().refine(val => mongoose.isValidObjectId(val), {
-    message: "Invalid student ID",
+    message: 'Invalid student ID',
   }),
   volume: z.number().positive(),
   totalPrice: z.number().positive(),
@@ -38,7 +37,8 @@ export const createReturnJobSchema = z.object({
 // ------------------------------------------------------------
 export interface QuoteRequest extends z.infer<typeof quoteSchema> {}
 
-export interface CreateReturnJobRequest extends z.infer<typeof createReturnJobSchema> {}
+export interface CreateReturnJobRequest
+  extends z.infer<typeof createReturnJobSchema> {}
 
 export interface GetQuoteResponse {
   distancePrice: number;
@@ -46,17 +46,17 @@ export interface GetQuoteResponse {
   dailyStorageRate: number; // Daily storage rate for late return fee calculation
 }
 
-export type CreateOrderRequest = z.infer<typeof createOrderSchema>
+export type CreateOrderRequest = z.infer<typeof createOrderSchema>;
 
 export interface CreateOrderResponse extends Order {
   id: string;
 }
 
 export interface CreateReturnJobResponse {
-    success: boolean;
-    message: string;
-    lateFee?: number; // Optional late fee if return is past expected date
-    refundAmount?: number; // Optional refund if return is before expected date
+  success: boolean;
+  message: string;
+  lateFee?: number; // Optional late fee if return is past expected date
+  refundAmount?: number; // Optional refund if return is before expected date
 }
 
 export type GetActiveOrderResponse = Order | null;
@@ -66,13 +66,13 @@ export interface Address extends z.infer<typeof addressSchema> {}
 // Generic type
 // ------------------------------------------------------------
 export enum OrderStatus {
-  PENDING = "PENDING",
-  ACCEPTED = "ACCEPTED",
-  PICKED_UP = "PICKED_UP",
-  IN_STORAGE = "IN_STORAGE",
-  RETURNED = "RETURNED", // Mover delivered items, awaiting student confirmation
-  COMPLETED = "COMPLETED", 
-  CANCELLED = "CANCELLED",
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  PICKED_UP = 'PICKED_UP',
+  IN_STORAGE = 'IN_STORAGE',
+  RETURNED = 'RETURNED', // Mover delivered items, awaiting student confirmation
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
 }
 
 export const ACTIVE_ORDER_STATUSES = [
@@ -84,28 +84,28 @@ export const ACTIVE_ORDER_STATUSES = [
 ];
 
 export interface Order {
-    _id: mongoose.Types.ObjectId;
-    studentId: string;
-    moverId?: string;
-    status: OrderStatus;
-    volume: number;
-    price: number;
-    studentAddress: Address;
-    warehouseAddress: Address;  
-    returnAddress?: Address; // Make it optional in type as well
-    pickupTime: string; // ISO date string
-    returnTime: string;  // ISO date string
-    paymentIntentId?: string; // Stripe payment intent ID for refunds
-    idempotencyKey?: string; // Added idempotencyKey for idempotent operations
+  _id: mongoose.Types.ObjectId;
+  studentId: string;
+  moverId?: string;
+  status: OrderStatus;
+  volume: number;
+  price: number;
+  studentAddress: Address;
+  warehouseAddress: Address;
+  returnAddress?: Address; // Make it optional in type as well
+  pickupTime: string; // ISO date string
+  returnTime: string; // ISO date string
+  paymentIntentId?: string; // Stripe payment intent ID for refunds
+  idempotencyKey?: string; // Added idempotencyKey for idempotent operations
 }
 
 export interface CancelOrderResponse {
-    success: boolean;
-    message: string;
+  success: boolean;
+  message: string;
 }
 
 export interface GetAllOrdersResponse {
-    success: boolean;
-    orders: Order[];
-    message: string;
+  success: boolean;
+  orders: Order[];
+  message: string;
 }

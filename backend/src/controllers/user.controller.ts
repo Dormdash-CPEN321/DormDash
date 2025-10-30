@@ -14,7 +14,7 @@ export class UserController {
       data: { user },
     });
   }
-  // TODO: logic should be in service layer, for now I update the fcm token through this to avoid potential risk but 
+  // TODO: logic should be in service layer, for now I update the fcm token through this to avoid potential risk but
   // eventually fcm should have its own endpoint and controller
   async updateProfile(
     req: Request<unknown, unknown, UpdateProfileRequest>,

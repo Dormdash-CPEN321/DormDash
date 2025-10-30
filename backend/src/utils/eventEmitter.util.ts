@@ -1,5 +1,5 @@
-import { emitToRooms } from "../socket";
-import logger from "./logger.util";
+import { emitToRooms } from '../socket';
+import logger from './logger.util';
 
 /**
  * EventMeta - Metadata for all events
@@ -33,7 +33,7 @@ export class EventEmitter {
           scheduledTime: job.scheduledTime,
           createdAt: job.createdAt,
         },
-        meta: meta ?? { ts: new Date().toISOString() }
+        meta: meta ?? { ts: new Date().toISOString() },
       };
 
       // Newly created jobs are always unassigned (AVAILABLE status)
@@ -42,11 +42,13 @@ export class EventEmitter {
         `order:${payload.job.orderId}`,
         `job:${payload.job.id}`,
         `user:${job.studentId.toString()}`,
-        'role:mover'  // Broadcast to all movers
+        'role:mover', // Broadcast to all movers
       ];
 
       emitToRooms(rooms, 'job.created', payload, meta);
-      logger.info(`Emitted job.created for job ${payload.job.id} to student and all movers`);
+      logger.info(
+        `Emitted job.created for job ${payload.job.id} to student and all movers`
+      );
     } catch (err) {
       logger.warn('Failed to emit job.created event:', err);
     }
@@ -68,7 +70,7 @@ export class EventEmitter {
           jobType: job.jobType,
           updatedAt: job.updatedAt,
         },
-        meta: meta ?? { ts: new Date().toISOString() }
+        meta: meta ?? { ts: new Date().toISOString() },
       };
 
       // Base rooms: order, job, and student who owns the job
@@ -76,7 +78,7 @@ export class EventEmitter {
       const baseRooms = [
         `order:${payload.job.orderId}`,
         `job:${payload.job.id}`,
-        `user:${studentId}`
+        `user:${studentId}`,
       ];
 
       // Security: If job has no mover assigned (AVAILABLE status), broadcast to all movers
@@ -84,11 +86,20 @@ export class EventEmitter {
       if (!job.moverId) {
         // Job is available - emit to base rooms + all movers
         emitToRooms([...baseRooms, 'role:mover'], 'job.updated', payload, meta);
-        logger.info(`Emitted job.updated for unassigned job ${payload.job.id} to all movers`);
+        logger.info(
+          `Emitted job.updated for unassigned job ${payload.job.id} to all movers`
+        );
       } else {
         // Job is assigned to a mover - emit to base rooms + specific mover only
-        emitToRooms([...baseRooms, `user:${job.moverId.toString()}`], 'job.updated', payload, meta);
-        logger.info(`Emitted job.updated for assigned job ${payload.job.id} to mover ${job.moverId}`);
+        emitToRooms(
+          [...baseRooms, `user:${job.moverId.toString()}`],
+          'job.updated',
+          payload,
+          meta
+        );
+        logger.info(
+          `Emitted job.updated for assigned job ${payload.job.id} to mover ${job.moverId}`
+        );
       }
     } catch (err) {
       logger.warn('Failed to emit job.updated event:', err);
@@ -118,12 +129,12 @@ export class EventEmitter {
           createdAt: order.createdAt,
           updatedAt: order.updatedAt,
         },
-        meta: meta ?? { ts: new Date().toISOString() }
+        meta: meta ?? { ts: new Date().toISOString() },
       };
 
       const rooms = [
         `user:${order.studentId.toString()}`,
-        `order:${order._id.toString()}`
+        `order:${order._id.toString()}`,
       ];
 
       emitToRooms(rooms, 'order.created', payload, meta);
@@ -156,12 +167,12 @@ export class EventEmitter {
           createdAt: order.createdAt,
           updatedAt: order.updatedAt,
         },
-        meta: meta ?? { ts: new Date().toISOString() }
+        meta: meta ?? { ts: new Date().toISOString() },
       };
 
       const rooms = [
         `user:${order.studentId.toString()}`,
-        `order:${order._id.toString()}`
+        `order:${order._id.toString()}`,
       ];
 
       emitToRooms(rooms, 'order.updated', payload, meta);

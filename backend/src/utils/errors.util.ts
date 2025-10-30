@@ -23,7 +23,7 @@ export class AppError extends Error {
  */
 export class NotFoundError extends AppError {
   constructor(resource: string, id?: string) {
-    const message = id 
+    const message = id
       ? `${resource} with id ${id} not found`
       : `${resource} not found`;
     super(message, 404, 'NOT_FOUND');
@@ -125,18 +125,14 @@ export class PaymentError extends AppError {
 
 export class PaymentFailedError extends PaymentError {
   constructor(reason?: string) {
-    const message = reason 
-      ? `Payment failed: ${reason}`
-      : 'Payment failed';
+    const message = reason ? `Payment failed: ${reason}` : 'Payment failed';
     super(message, 'PAYMENT_FAILED');
   }
 }
 
 export class RefundFailedError extends PaymentError {
   constructor(reason?: string) {
-    const message = reason 
-      ? `Refund failed: ${reason}`
-      : 'Refund failed';
+    const message = reason ? `Refund failed: ${reason}` : 'Refund failed';
     super(message, 'REFUND_FAILED');
   }
 }
@@ -145,7 +141,7 @@ export class RefundFailedError extends PaymentError {
  * 500 - Internal server errors
  */
 export class InternalServerError extends AppError {
-  constructor(message : 'Internal server error', originalError?: Error) {
+  constructor(message: 'Internal server error', originalError?: Error) {
     super(message, 500, 'INTERNAL_ERROR');
     if (originalError) {
       this.stack = originalError.stack;

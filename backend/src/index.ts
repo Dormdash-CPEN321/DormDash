@@ -2,7 +2,10 @@ import dotenv from 'dotenv';
 import express from 'express';
 
 import { connectDB } from './config/database';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.middleware';
+import {
+  errorHandler,
+  notFoundHandler,
+} from './middleware/errorHandler.middleware';
 import router from './routes/routes';
 import path from 'path';
 import { initSocket } from './socket';

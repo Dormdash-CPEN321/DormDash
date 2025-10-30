@@ -12,11 +12,17 @@ router.get('/profile', (req, res) => userController.getProfile(req, res));
 router.post(
   '/profile',
   validateBody<UpdateProfileRequest>(updateProfileSchema),
-  async (req, res, next) => await userController.updateProfile(req, res, next)
+  (req, res, next) => {
+    userController.updateProfile(req, res, next).catch(next);
+  }
 );
 
-router.delete('/profile', async (req, res, next) => {await userController.deleteProfile(req, res, next)});
+router.delete('/profile', (req, res, next) => {
+  userController.deleteProfile(req, res, next).catch(next);
+});
 
-router.post('/cash-out', async (req, res, next) => {await userController.cashOut(req, res, next)});
+router.post('/cash-out', (req, res, next) => {
+  userController.cashOut(req, res, next).catch(next);
+});
 
 export default router;

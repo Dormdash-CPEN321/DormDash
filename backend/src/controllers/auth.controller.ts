@@ -93,41 +93,41 @@ export class AuthController {
   }
 
   async selectRole(
-    req: Request<unknown, unknown, {userRole: UserRole}>,
+    req: Request<unknown, unknown, { userRole: UserRole }>,
     res: Response,
     next: NextFunction
   ) {
     try {
       const user = req.user!; // From JWT middleware
       const { userRole } = req.body;
-      
+
       // Initialize credits to 0 when selecting MOVER role
       const updateData: Partial<IUser> = { userRole };
       if (userRole === 'MOVER') {
         updateData.credits = 0;
       }
-      
+
       const updatedUser = await userModel.update(user._id, updateData);
-      
+
       if (!updatedUser) {
         return res.status(404).json({
           message: 'User not found',
         });
       }
-      
+
       return res.status(200).json({
         message: 'Role selected successfully',
-        data: { user: updatedUser }
+        data: { user: updatedUser },
       });
     } catch (error) {
       logger.error('Role selection failed:', error);
-      
+
       if (error instanceof Error) {
         return res.status(500).json({
           message: error.message || 'Failed to select role',
         });
       }
-      
+
       next(error);
     }
   }
