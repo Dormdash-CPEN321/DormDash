@@ -51,7 +51,7 @@ export class RoutePlannerService {
       }
 
       const mover = await userModel.findById(moverObjectId);
-      if (!mover || !mover.availability) {
+      if (!mover?.availability) {
         logger.warn(`Mover ${moverId} not found or has no availability`);
         return this.emptyRoute(currentLocation);
       }
@@ -576,7 +576,7 @@ export class RoutePlannerService {
   private validateJobLocationData(job: JobResponse): boolean {
     const { pickupAddress, dropoffAddress } = job;
 
-    if (!pickupAddress || !pickupAddress.lat || !pickupAddress.lon) {
+    if (!pickupAddress?.lat || !pickupAddress?.lon) {
       logger.warn(
         `Job ${job.id} has invalid or missing pickupAddress: ${JSON.stringify(pickupAddress)}`
       );

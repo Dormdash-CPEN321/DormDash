@@ -17,8 +17,7 @@ export type CreatePaymentIntentRequest = z.infer<
   typeof createPaymentIntentSchema
 >;
 
-export interface ProcessPaymentRequest
-  extends z.infer<typeof processPaymentSchema> {}
+export type ProcessPaymentRequest = z.infer<typeof processPaymentSchema>;
 
 export interface PaymentIntent {
   id: string;

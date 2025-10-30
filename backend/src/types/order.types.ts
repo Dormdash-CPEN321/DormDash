@@ -35,10 +35,9 @@ export const createReturnJobSchema = z.object({
 
 // Request types
 // ------------------------------------------------------------
-export interface QuoteRequest extends z.infer<typeof quoteSchema> {}
+export type QuoteRequest = z.infer<typeof quoteSchema>;
 
-export interface CreateReturnJobRequest
-  extends z.infer<typeof createReturnJobSchema> {}
+export type CreateReturnJobRequest = z.infer<typeof createReturnJobSchema>;
 
 export interface GetQuoteResponse {
   distancePrice: number;
@@ -61,7 +60,7 @@ export interface CreateReturnJobResponse {
 
 export type GetActiveOrderResponse = Order | null;
 
-export interface Address extends z.infer<typeof addressSchema> {}
+export type Address = z.infer<typeof addressSchema>;
 
 // Generic type
 // ------------------------------------------------------------

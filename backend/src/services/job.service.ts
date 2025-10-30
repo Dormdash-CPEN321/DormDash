@@ -45,7 +45,7 @@ export class JobService {
       const mover = await userModel.findById(moverObjectId);
 
       if (mover && mover.userRole === 'MOVER') {
-        const currentCredits = mover.credits || 0;
+        const currentCredits = mover.credits ?? 0;
         const newCredits = currentCredits + job.price;
         await userModel.update(moverObjectId, { credits: newCredits });
         logger.info(
@@ -72,7 +72,7 @@ export class JobService {
 
     try {
       logger.info(
-        `cancelJobsForOrder: orderId=${orderId}, actorId=${actorId || 'system'}`
+        `cancelJobsForOrder: orderId=${orderId}, actorId=${actorId ?? 'system'}`
       );
       const foundJobs: Job[] = await jobModel.findByOrderId(
         new mongoose.Types.ObjectId(orderId)
@@ -274,7 +274,7 @@ export class JobService {
 
     try {
       logger.info(
-        `updateJobStatus: jobId=${jobId}, status=${updateData.status}, moverId=${updateData.moverId || 'none'}`
+        `updateJobStatus: jobId=${jobId}, status=${updateData.status}, moverId=${updateData.moverId ?? 'none'}`
       );
       const updateFields: Partial<Job> = {
         status: updateData.status,

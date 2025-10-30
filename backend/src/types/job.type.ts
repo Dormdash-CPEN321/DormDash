@@ -27,7 +27,7 @@ export const jobSchema = z.object({
 
 // Request types
 // ------------------------------------------------------------
-export interface CreateJobRequest extends z.infer<typeof jobSchema> {}
+export type CreateJobRequest = z.infer<typeof jobSchema>;
 
 // Generic type
 // ------------------------------------------------------------
@@ -43,7 +43,7 @@ export enum JobStatus {
 }
 
 // Reuse Address type from order types
-export interface Address extends z.infer<typeof addressSchema> {}
+export type Address = z.infer<typeof addressSchema>;
 
 export interface Job {
   _id: mongoose.Types.ObjectId; // Added _id to align with Mongoose documents
