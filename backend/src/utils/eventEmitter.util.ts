@@ -1,4 +1,6 @@
 import { emitToRooms } from '../socket';
+import { Job } from '../types/job.type';
+import { Order } from '../types/order.types';
 import logger from './logger.util';
 
 /**
@@ -18,7 +20,7 @@ export class EventEmitter {
    * Emit job.created event
    * Broadcasts to: student, all movers, order room, job room
    */
-  static emitJobCreated(job: any, meta?: EventMeta): void {
+  static emitJobCreated(job: Job, meta?: EventMeta): void {
     try {
       const payload = {
         event: 'job.created',
@@ -58,23 +60,23 @@ export class EventEmitter {
    * Emit job.updated event
    * Broadcasts to: student, assigned mover (or all movers if unassigned), order room, job room
    */
-  static emitJobUpdated(job: any, meta?: EventMeta): void {
+  static emitJobUpdated(job: Job | null, meta?: EventMeta): void {
     try {
       const payload = {
         event: 'job.updated',
         job: {
-          id: job._id.toString(),
-          orderId: this.extractId(job.orderId),
-          status: job.status,
-          moverId: job.moverId?.toString(),
-          jobType: job.jobType,
-          updatedAt: job.updatedAt,
+          id: job?._id.toString(),
+          orderId: this.extractId(job?.orderId),
+          status: job?.status,
+          moverId: job?.moverId?.toString(),
+          jobType: job?.jobType,
+          updatedAt: job?.updatedAt,
         },
         meta: meta ?? { ts: new Date().toISOString() },
       };
 
       // Base rooms: order, job, and student who owns the job
-      const studentId = this.extractId(job.studentId);
+      const studentId = this.extractId(job?.studentId);
       const baseRooms = [
         `order:${payload.job.orderId}`,
         `job:${payload.job.id}`,
@@ -83,7 +85,7 @@ export class EventEmitter {
 
       // Security: If job has no mover assigned (AVAILABLE status), broadcast to all movers
       // If job has a mover assigned, only emit to that specific mover
-      if (!job.moverId) {
+      if (!job?.moverId) {
         // Job is available - emit to base rooms + all movers
         emitToRooms([...baseRooms, 'role:mover'], 'job.updated', payload, meta);
         logger.info(
@@ -110,31 +112,29 @@ export class EventEmitter {
    * Emit order.created event
    * Broadcasts to: student, order room
    */
-  static emitOrderCreated(order: any, meta?: EventMeta): void {
+  static emitOrderCreated(order: Order | null, meta?: EventMeta): void {
     try {
       const payload = {
         event: 'order.created',
         order: {
-          id: order._id.toString(),
-          studentId: order.studentId.toString(),
-          moverId: order.moverId?.toString(),
-          status: order.status,
-          volume: order.volume,
-          price: order.price,
-          studentAddress: order.studentAddress,
-          warehouseAddress: order.warehouseAddress,
-          returnAddress: order.returnAddress,
-          pickupTime: order.pickupTime,
-          returnTime: order.returnTime,
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
+          id: order?._id.toString(),
+          studentId: order?.studentId.toString(),
+          moverId: order?.moverId?.toString(),
+          status: order?.status,
+          volume: order?.volume,
+          price: order?.price,
+          studentAddress: order?.studentAddress,
+          warehouseAddress: order?.warehouseAddress,
+          returnAddress: order?.returnAddress,
+          pickupTime: order?.pickupTime,
+          returnTime: order?.returnTime,
         },
         meta: meta ?? { ts: new Date().toISOString() },
       };
 
       const rooms = [
-        `user:${order.studentId.toString()}`,
-        `order:${order._id.toString()}`,
+        `user:${order?.studentId.toString()}`,
+        `order:${order?._id.toString()}`,
       ];
 
       emitToRooms(rooms, 'order.created', payload, meta);
@@ -148,31 +148,29 @@ export class EventEmitter {
    * Emit order.updated event
    * Broadcasts to: student, order room
    */
-  static emitOrderUpdated(order: any, meta?: EventMeta): void {
+  static emitOrderUpdated(order: Order | null, meta?: EventMeta): void {
     try {
       const payload = {
         event: 'order.updated',
         order: {
-          id: order._id.toString(),
-          studentId: order.studentId.toString(),
-          moverId: order.moverId?.toString(),
-          status: order.status,
-          volume: order.volume,
-          price: order.price,
-          studentAddress: order.studentAddress,
-          warehouseAddress: order.warehouseAddress,
-          returnAddress: order.returnAddress,
-          pickupTime: order.pickupTime,
-          returnTime: order.returnTime,
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
+          id: order?._id.toString(),
+          studentId: order?.studentId.toString(),
+          moverId: order?.moverId?.toString(),
+          status: order?.status,
+          volume: order?.volume,
+          price: order?.price,
+          studentAddress: order?.studentAddress,
+          warehouseAddress: order?.warehouseAddress,
+          returnAddress: order?.returnAddress,
+          pickupTime: order?.pickupTime,
+          returnTime: order?.returnTime,
         },
         meta: meta ?? { ts: new Date().toISOString() },
       };
 
       const rooms = [
-        `user:${order.studentId.toString()}`,
-        `order:${order._id.toString()}`,
+        `user:${order?.studentId.toString()}`,
+        `order:${order?._id.toString()}`,
       ];
 
       emitToRooms(rooms, 'order.updated', payload, meta);
@@ -185,8 +183,8 @@ export class EventEmitter {
   /**
    * Helper: Extract ID from potentially populated Mongoose field
    */
-  private static extractId(field: any): string {
+  private static extractId(field: unknown): string {
     if (!field) return '';
-    return field._id?.toString() ?? field.toString();
+    return (field as { _id?: unknown })._id?.toString() ?? field.toString();
   }
 }

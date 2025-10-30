@@ -13,16 +13,16 @@ router.post(
   '/profile',
   validateBody<UpdateProfileRequest>(updateProfileSchema),
   (req, res, next) => {
-    userController.updateProfile(req, res, next).catch(next);
+    userController.updateProfile(req, res, next).catch((err: unknown) => next(err));
   }
 );
 
 router.delete('/profile', (req, res, next) => {
-  userController.deleteProfile(req, res, next).catch(next);
+  userController.deleteProfile(req, res, next).catch((err: unknown) => next(err));
 });
 
 router.post('/cash-out', (req, res, next) => {
-  userController.cashOut(req, res, next).catch(next);
+  userController.cashOut(req, res, next).catch((err: unknown) => next(err));
 });
 
 export default router;

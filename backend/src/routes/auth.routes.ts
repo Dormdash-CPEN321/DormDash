@@ -16,7 +16,7 @@ router.post(
   '/signup',
   validateBody<AuthenticateUserRequest>(authenticateUserSchema),
   (req, res, next) => {
-    authController.signUp(req, res, next).catch(next);
+    authController.signUp(req, res, next).catch((err: unknown) => next(err));
   }
 );
 
@@ -24,7 +24,7 @@ router.post(
   '/signin',
   validateBody(authenticateUserSchema),
   (req, res, next) => {
-    authController.signIn(req, res, next).catch(next);
+    authController.signIn(req, res, next).catch((err: unknown) => next(err));
   }
 );
 
@@ -33,7 +33,7 @@ router.post(
   authenticateToken, // Require authentication
   validateBody<SelectRoleRequest>(selectRoleSchema),
   (req, res, next) => {
-    authController.selectRole(req, res, next).catch(next);
+    authController.selectRole(req, res, next).catch((err: unknown) => next(err));
   }
 );
 

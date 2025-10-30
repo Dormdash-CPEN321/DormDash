@@ -12,7 +12,7 @@ router.post(
   authenticateToken,
   upload.single('media'),
   (req, res, next) => {
-    mediaController.uploadImage(req, res, next).catch(next);
+    mediaController.uploadImage(req, res, next).catch((err: unknown) => next(err));
   }
 );
 

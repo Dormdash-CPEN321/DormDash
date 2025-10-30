@@ -25,7 +25,7 @@ export const connectDB = async (): Promise<void> => {
           logger.info('MongoDB connection closed through app termination');
           process.exitCode = 0;
         })
-        .catch(err => {
+        .catch((err: unknown) => {
           logger.error(
             'Error closing MongoDB connection on SIGINT:',
             String(err)
