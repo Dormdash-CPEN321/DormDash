@@ -14,6 +14,7 @@ import {
   GetMoverJobsResponse,
 } from '../types/job.type';
 import { notificationService } from './notification.service';
+import type { OrderService } from './order.service';
 import { OrderStatus } from '../types/order.types';
 import logger from '../utils/logger.util';
 import { EventEmitter } from '../utils/eventEmitter.util';
@@ -23,9 +24,12 @@ import { JobNotFoundError, InternalServerError } from '../utils/errors.util';
 
 export class JobService {
   // Lazy-load orderService to avoid circular dependency at module load time
-  private get orderService() {
-    // Import here instead of at the top to break circular dependency
-    return require('./order.service').orderService;
+  private get orderService(): OrderService {
+    // Import here instead of at the top to break circular dependency. Cast to the
+    // known runtime type using a type-only import so the cast is erased at runtime.
+    // This avoids returning an `any`-typed value from the getter.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('./order.service').orderService as OrderService;
   }
   // Helper to add credits to mover when job is completed
   private async addCreditsToMover(job: Job | null) {

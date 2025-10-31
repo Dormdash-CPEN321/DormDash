@@ -4,7 +4,6 @@ import http from 'http';
 import logger from './utils/logger.util';
 import { verifyTokenString } from './middleware/auth.middleware'; // optional helper
 import SocketData from './types/socket.types';
-import { unknown } from 'zod';
 
 let io:
   | Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>
@@ -85,7 +84,7 @@ export function initSocket(server: http.Server) {
   return io;
 }
 
-export function getIo(): Server {
+export function getIo(): Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData> {
   if (!io) throw new Error('Socket.io not initialized');
   return io;
 }

@@ -10,7 +10,11 @@ import logger from '../utils/logger.util';
 export class StripeService {
   private stripe?: Stripe;
 
-  private initializeStripe() {
+  /**
+   * Ensure Stripe client is initialized and return a non-optional Stripe instance.
+   * This avoids returning `Stripe | undefined` which callers would have to guard.
+   */
+  private initializeStripe(): Stripe {
     if (!this.stripe) {
       const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
       if (!stripeSecretKey) {
@@ -21,6 +25,8 @@ export class StripeService {
         apiVersion: '2025-09-30.clover',
       });
     }
+
+    // At this point `this.stripe` is guaranteed to be set.
     return this.stripe;
   }
 

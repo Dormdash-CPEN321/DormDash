@@ -202,8 +202,8 @@ export class RoutePlannerService {
   ) {
     // Prefer Map access if caller passed a Map (Mongoose may store availability as a Map)
     if (availability instanceof Map) {
-      const val = availability.get(dayOfWeek);
-      return Array.isArray(val) ? val : [];
+      const val = availability.get(dayOfWeek) as unknown;
+      return Array.isArray(val) ? (val as TimeRange[]) : [];
     }
 
     // Use explicit property access (dot access) to avoid dynamic indexing

@@ -20,17 +20,15 @@ export function extractObjectId(field: unknown): mongoose.Types.ObjectId | null 
     return field;
   }
 
-  // If it's a populated document with _id
-  if (typeof field === 'object') {
-    const maybe = field as { _id?: unknown };
-    if (maybe._id) {
-      if (maybe._id instanceof mongoose.Types.ObjectId) return maybe._id;
-      if (typeof maybe._id === 'string') {
-        try {
-          return new mongoose.Types.ObjectId(maybe._id);
-        } catch {
-          // fall through
-        }
+  // If it's a populated document with _id (narrow by shape rather than typeof)
+  const maybe = field as { _id?: unknown } | null;
+  if (maybe && maybe._id) {
+    if (maybe._id instanceof mongoose.Types.ObjectId) return maybe._id;
+    if (typeof maybe._id === 'string') {
+      try {
+        return new mongoose.Types.ObjectId(maybe._id);
+      } catch {
+        // fall through
       }
     }
   }
