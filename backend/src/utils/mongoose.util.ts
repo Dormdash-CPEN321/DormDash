@@ -21,7 +21,7 @@ export function extractObjectId(field: unknown): mongoose.Types.ObjectId | null 
   }
 
   // If it's a populated document with _id
-  if (typeof field === 'object' && field !== null) {
+  if (typeof field === 'object') {
     const maybe = field as { _id?: unknown };
     if (maybe._id) {
       if (maybe._id instanceof mongoose.Types.ObjectId) return maybe._id;

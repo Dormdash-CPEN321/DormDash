@@ -25,10 +25,15 @@ class NotificationService {
       logger.error(
         `Error sending notification to ${payload.fcmToken}: ${String(error)}`
       );
-      const err = error as FirebaseMessagingError | undefined;
+      // Safely extract a `code` property if present on the caught error. Avoid `any` and
+      // avoid casting to FirebaseMessagingError directly because caught values can be anything.
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? (error as { code?: string }).code
+          : undefined;
       if (
-        err?.code === 'messaging/registration-token-not-registered' ||
-        err?.code === 'messaging/invalid-argument'
+        code === 'messaging/registration-token-not-registered' ||
+        code === 'messaging/invalid-argument'
       ) {
         logger.warn(
           `Token ${payload.fcmToken} is invalid or expired, clearing from database`
@@ -61,26 +66,14 @@ class NotificationService {
         return;
       }
 
-      // job.studentId can be either an ObjectId reference or a populated user document.
-      // Safely obtain the student's FCM token by checking for a populated object first,
-      // otherwise fetch the user record.
-      let studentFcmToken: string | undefined;
-      let studentIdStr = '';
-
-      if (typeof job.studentId === 'object' && job.studentId !== null) {
-        const s = job.studentId as { fcmToken?: string; _id?: mongoose.Types.ObjectId };
-        studentFcmToken = s.fcmToken;
-        studentIdStr = s._id ? String(s._id) : '';
-      } else {
-        // Not populated: try to load the user to get the fcm token
-        try {
-          const fetched = await userModel.findById(job.studentId as mongoose.Types.ObjectId);
-          studentFcmToken = fetched?.fcmToken;
-          studentIdStr = fetched?._id ? String(fetched._id) : String(job.studentId);
-        } catch (fetchErr: unknown) {
-          logger.error('Failed to fetch student for notification:', fetchErr);
-        }
-      }
+      // Normalize: always load the user record to obtain the current FCM token.
+      // This avoids relying on whether the job document was populated or not and
+      // keeps runtime behavior deterministic.
+      const studentDoc = await userModel.findById(
+        job.studentId as mongoose.Types.ObjectId
+      );
+      const studentFcmToken = studentDoc?.fcmToken;
+      const studentIdStr = studentDoc?._id ? String(studentDoc._id) : String(job.studentId);
 
       if (!studentFcmToken) {
         logger.warn(`No FCM token found for student ${studentIdStr || 'unknown'}`);
@@ -114,7 +107,7 @@ class NotificationService {
       }
 
       const notification: NotificationPayload = {
-        fcmToken: studentFcmToken!,
+        fcmToken: studentFcmToken,
         title,
         body,
         data: {

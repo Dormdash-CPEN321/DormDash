@@ -398,7 +398,7 @@ export class RoutePlannerService {
       // feasibleJobs was produced by mapping and filtering earlier; it contains only objects
       // where scheduledTime has been converted to Date. Cast here to a simpler typed array
       // so we can sort without introducing `any` on the comparator parameters.
-      (feasibleJobs as Array<{ scheduledTime: Date }>).sort(
+      (feasibleJobs as { scheduledTime: Date }[]).sort(
         (a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime()
       );
       const selectedJob = feasibleJobs[0];
