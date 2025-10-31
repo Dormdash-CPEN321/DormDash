@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.cpen321.usermanagement.data.remote.dto.JobInRoute
 import com.cpen321.usermanagement.data.remote.dto.RouteMetrics
 import com.cpen321.usermanagement.ui.theme.LocalSpacing
+import com.cpen321.usermanagement.ui.theme.Spacing
 import com.cpen321.usermanagement.ui.viewmodels.SmartRouteUiState
 import com.cpen321.usermanagement.ui.viewmodels.SmartRouteViewModel
 import com.cpen321.usermanagement.utils.TimeUtils
@@ -55,6 +56,100 @@ fun SmartRouteBottomSheet(
     val snackbarHostState = remember { SnackbarHostState() }
     
     // Show snackbar when jobs are removed from route
+    HandleRemovedJobsSnackbar(
+        removedJobs = removedJobs,
+        snackbarHostState = snackbarHostState,
+        onClear = viewModel::clearRemovedJobs
+    )
+
+    val (hasLocationPermission, locationPermissionLauncher) = rememberLocationPermissionState(
+        context = context,
+        onPermissionGranted = {
+            if (!showDurationSelector) {
+                fetchCurrentLocationAndRoute(context, viewModel, selectedDuration)
+            }
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        if (hasLocationPermission && !showDurationSelector) {
+            fetchCurrentLocationAndRoute(context, viewModel, selectedDuration)
+        }
+    }
+
+    SmartRouteBottomSheetContent(
+        onDismiss = onDismiss,
+        snackbarHostState = snackbarHostState,
+        spacing = spacing,
+        showDurationSelector = showDurationSelector,
+        selectedDuration = selectedDuration,
+        onDurationSelected = { selectedDuration = it },
+        onDurationConfirm = {
+            if (!hasLocationPermission) {
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            } else {
+                fetchCurrentLocationAndRoute(context, viewModel, selectedDuration)
+            }
+            showDurationSelector = false
+        },
+        uiState = uiState,
+        hasLocationPermission = hasLocationPermission,
+        onRequestPermission = { locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+        onRetry = { fetchCurrentLocationAndRoute(context, viewModel, selectedDuration) },
+        onJobClick = onJobClick,
+        onAcceptAll = onAcceptAll
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SmartRouteBottomSheetContent(
+    onDismiss: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    spacing: Spacing,
+    showDurationSelector: Boolean,
+    selectedDuration: Int?,
+    onDurationSelected: (Int?) -> Unit,
+    onDurationConfirm: () -> Unit,
+    uiState: SmartRouteUiState,
+    hasLocationPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    onRetry: () -> Unit,
+    onJobClick: (String) -> Unit,
+    onAcceptAll: (List<String>) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { paddingValues ->
+            SmartRouteContent(
+                spacing = spacing,
+                paddingValues = paddingValues,
+                onDismiss = onDismiss,
+                showDurationSelector = showDurationSelector,
+                selectedDuration = selectedDuration,
+                onDurationSelected = onDurationSelected,
+                onDurationConfirm = onDurationConfirm,
+                uiState = uiState,
+                hasLocationPermission = hasLocationPermission,
+                onRequestPermission = onRequestPermission,
+                onRetry = onRetry,
+                onJobClick = onJobClick,
+                onAcceptAll = onAcceptAll
+            )
+        }
+    }
+}
+
+@Composable
+private fun HandleRemovedJobsSnackbar(
+    removedJobs: List<String>,
+    snackbarHostState: SnackbarHostState,
+    onClear: () -> Unit
+) {
     LaunchedEffect(removedJobs) {
         if (removedJobs.isNotEmpty()) {
             val message = if (removedJobs.size == 1) {
@@ -66,10 +161,16 @@ fun SmartRouteBottomSheet(
                 message = message,
                 duration = SnackbarDuration.Short
             )
-            viewModel.clearRemovedJobs()
+            onClear()
         }
     }
-    
+}
+
+@Composable
+private fun rememberLocationPermissionState(
+    context: android.content.Context,
+    onPermissionGranted: () -> Unit
+): Pair<Boolean, androidx.activity.compose.ManagedActivityResultLauncher<String, Boolean>> {
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -83,124 +184,138 @@ fun SmartRouteBottomSheet(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasLocationPermission = isGranted
-        if (isGranted && !showDurationSelector) {
-            fetchCurrentLocationAndRoute(context, viewModel, selectedDuration)
+        if (isGranted) {
+            onPermissionGranted()
         }
     }
     
-    LaunchedEffect(Unit) {
-        if (hasLocationPermission && !showDurationSelector) {
-            fetchCurrentLocationAndRoute(context, viewModel, selectedDuration)
-        }
-    }
-    
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    return Pair(hasLocationPermission, locationPermissionLauncher)
+}
+
+@Composable
+private fun SmartRouteContent(
+    spacing: Spacing,
+    paddingValues: PaddingValues,
+    onDismiss: () -> Unit,
+    showDurationSelector: Boolean,
+    selectedDuration: Int?,
+    onDurationSelected: (Int?) -> Unit,
+    onDurationConfirm: () -> Unit,
+    uiState: SmartRouteUiState,
+    hasLocationPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    onRetry: () -> Unit,
+    onJobClick: (String) -> Unit,
+    onAcceptAll: (List<String>) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(spacing.medium)
+            .padding(paddingValues)
     ) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) }
-        ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(spacing.medium)
-                .padding(paddingValues)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Smart Route Suggestion",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(spacing.medium))
-            
-            // Show duration selector first, then route
-            if (showDurationSelector) {
-                DurationSelector(
-                    selectedDuration = selectedDuration,
-                    onDurationSelected = { duration ->
-                        selectedDuration = duration
-                    },
-                    onConfirm = {
-                        if (!hasLocationPermission) {
-                            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                        } else {
-                            fetchCurrentLocationAndRoute(context, viewModel, selectedDuration)
-                        }
-                        showDurationSelector = false
-                    }
-                )
+        // Header
+        SmartRouteHeader(onDismiss = onDismiss)
+
+        Spacer(modifier = Modifier.height(spacing.medium))
+
+        // Show duration selector first, then route
+        if (showDurationSelector) {
+            DurationSelector(
+                selectedDuration = selectedDuration,
+                onDurationSelected = onDurationSelected,
+                onConfirm = onDurationConfirm
+            )
+        } else {
+            SmartRouteStateContent(
+                uiState = uiState,
+                hasLocationPermission = hasLocationPermission,
+                onRequestPermission = onRequestPermission,
+                onRetry = onRetry,
+                onJobClick = onJobClick,
+                onAcceptAll = onAcceptAll,
+                spacing = spacing
+            )
+        }
+    }
+}
+
+@Composable
+private fun SmartRouteHeader(onDismiss: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Smart Route Suggestion",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        IconButton(onClick = onDismiss) {
+            Icon(Icons.Default.Close, contentDescription = "Close")
+        }
+    }
+}
+
+@Composable
+private fun SmartRouteStateContent(
+    uiState: SmartRouteUiState,
+    hasLocationPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    onRetry: () -> Unit,
+    onJobClick: (String) -> Unit,
+    onAcceptAll: (List<String>) -> Unit,
+    spacing: Spacing
+) {
+    // Existing route display logic
+    when (uiState) {
+        is SmartRouteUiState.Idle -> {
+            if (!hasLocationPermission) {
+                LocationPermissionRequired(onRequestPermission = onRequestPermission)
             } else {
-                // Existing route display logic
-                when (uiState) {
-                is SmartRouteUiState.Idle -> {
-                    if (!hasLocationPermission) {
-                        LocationPermissionRequired(
-                            onRequestPermission = {
-                                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                            }
-                        )
-                    } else {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .padding(spacing.large)
-                        )
-                    }
-                }
-                
-                is SmartRouteUiState.Loading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(spacing.large)
-                    )
-                    Text(
-                        text = "Calculating optimal route...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                is SmartRouteUiState.Success -> {
-                    val data = (uiState as SmartRouteUiState.Success).data
-                    if (data.route.isEmpty()) {
-                        EmptyRouteState()
-                    } else {
-                        RouteContent(
-                            route = data.route,
-                            metrics = data.metrics,
-                            onJobClick = onJobClick,
-                            onAcceptAll = onAcceptAll
-                        )
-                    }
-                }
-                
-                is SmartRouteUiState.Error -> {
-                    ErrorState(
-                        message = (uiState as SmartRouteUiState.Error).message,
-                        onRetry = {
-                            if (hasLocationPermission) {
-                                fetchCurrentLocationAndRoute(context, viewModel, selectedDuration)
-                            }
-                        }
-                    )
-                }
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(Alignment.CenterHorizontally)
+                        .padding(spacing.large)
+                )
             }
         }
+
+        is SmartRouteUiState.Loading -> {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator(modifier = Modifier.padding(spacing.large))
+                Text(
+                    text = "Calculating optimal route...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
+
+        is SmartRouteUiState.Success -> {
+            val data = uiState.data
+            if (data.route.isEmpty()) {
+                EmptyRouteState()
+            } else {
+                RouteContent(
+                    route = data.route,
+                    metrics = data.metrics,
+                    onJobClick = onJobClick,
+                    onAcceptAll = onAcceptAll
+                )
+            }
+        }
+
+        is SmartRouteUiState.Error -> {
+            ErrorState(
+                message = uiState.message,
+                onRetry = { if (hasLocationPermission) onRetry() }
+            )
         }
     }
 }
@@ -638,79 +753,96 @@ private fun DurationSelector(
             .padding(spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            Icons.Default.Schedule,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.primary
+        DurationSelectorHeader(spacing)
+        DurationSlider(
+            spacing = spacing,
+            durationOptions = durationOptions,
+            selectedDuration = selectedDuration,
+            onDurationSelected = onDurationSelected
         )
-        
-        Spacer(modifier = Modifier.height(spacing.medium))
-        
-        Text(
-            text = "Maximum Shift Duration",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        
-        Spacer(modifier = Modifier.height(spacing.small))
-        
-        Text(
-            text = "How long do you want to work?",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.secondary,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(spacing.large))
-        
-        // Duration selector as a discrete (snapping) slider.
-        // We map slider positions to the durationOptions list indices so
-        // the selected value is always one of the provided options (including Unlimited).
-        val optionCount = durationOptions.size
-        // Find the initial index matching the current selection, default to 0
-        val initialIndex = durationOptions.indexOfFirst { it.first == selectedDuration }.let { if (it >= 0) it else 0 }
-        var sliderPosition by remember { mutableStateOf(initialIndex.toFloat()) }
-
-        Spacer(modifier = Modifier.height(spacing.small))
-
-        Slider(
-            value = sliderPosition,
-            onValueChange = { sliderPosition = it },
-            valueRange = 0f..(optionCount - 1).toFloat(),
-            onValueChangeFinished = {
-                // Snap to nearest index and notify parent of the selected duration
-                val snapped = sliderPosition.roundToInt().coerceIn(0, optionCount - 1)
-                sliderPosition = snapped.toFloat()
-                val (duration, _) = durationOptions[snapped]
-                onDurationSelected(duration)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(spacing.small))
-
-        // Show currently selected value
-        val currentIndex = sliderPosition.roundToInt().coerceIn(0, optionCount - 1)
-        val (curDuration, curLabel) = durationOptions[currentIndex]
-        Text(
-            text = if (curDuration == null) curLabel else "$curLabel • ${curDuration} min",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = spacing.small)
-        )
-        
-        Spacer(modifier = Modifier.height(spacing.large))
-        
-        Button(
-            onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = true
-        ) {
-            Text("Find Smart Route")
-        }
-        
-        Spacer(modifier = Modifier.height(spacing.medium))
+        DurationConfirmButton(spacing, onConfirm)
     }
+}
+
+@Composable
+private fun DurationSelectorHeader(spacing: Spacing) {
+    Icon(
+        Icons.Default.Schedule,
+        contentDescription = null,
+        modifier = Modifier.size(48.dp),
+        tint = MaterialTheme.colorScheme.primary
+    )
+
+    Spacer(modifier = Modifier.height(spacing.medium))
+
+    Text(
+        text = "Maximum Shift Duration",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold
+    )
+
+    Spacer(modifier = Modifier.height(spacing.small))
+
+    Text(
+        text = "How long do you want to work?",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.secondary,
+        textAlign = TextAlign.Center
+    )
+
+    Spacer(modifier = Modifier.height(spacing.large))
+}
+
+@Composable
+private fun DurationSlider(
+    spacing: Spacing,
+    durationOptions: List<Pair<Int?, String>>,
+    selectedDuration: Int?,
+    onDurationSelected: (Int?) -> Unit
+) {
+    val optionCount = durationOptions.size
+    val initialIndex = durationOptions.indexOfFirst { it.first == selectedDuration }.let { if (it >= 0) it else 0 }
+    var sliderPosition by remember { mutableStateOf(initialIndex.toFloat()) }
+
+    Spacer(modifier = Modifier.height(spacing.small))
+
+    Slider(
+        value = sliderPosition,
+        onValueChange = { sliderPosition = it },
+        valueRange = 0f..(optionCount - 1).toFloat(),
+        onValueChangeFinished = {
+            val snapped = sliderPosition.roundToInt().coerceIn(0, optionCount - 1)
+            sliderPosition = snapped.toFloat()
+            val (duration, _) = durationOptions[snapped]
+            onDurationSelected(duration)
+        }
+    )
+
+    Spacer(modifier = Modifier.height(spacing.small))
+
+    val currentIndex = sliderPosition.roundToInt().coerceIn(0, optionCount - 1)
+    val (curDuration, curLabel) = durationOptions[currentIndex]
+    Text(
+        text = if (curDuration == null) curLabel else "$curLabel • ${curDuration} min",
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(top = spacing.small)
+    )
+}
+
+@Composable
+private fun DurationConfirmButton(spacing: Spacing, onConfirm: () -> Unit) {
+    Spacer(modifier = Modifier.height(spacing.large))
+
+    Button(
+        onClick = onConfirm,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = true
+    ) {
+        Text("Find Smart Route")
+    }
+
+    Spacer(modifier = Modifier.height(spacing.medium))
 }
 
 private fun fetchCurrentLocationAndRoute(

@@ -48,18 +48,14 @@ fun RoleSelectionScreen(
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center
                 )
-                
                 Spacer(modifier = Modifier.height(LocalSpacing.current.medium))
-                
                 Text(
                     text = "Choose your role to get started",
                     fontSize = LocalFontSizes.current.medium,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center
                 )
-                
                 Spacer(modifier = Modifier.height(LocalSpacing.current.extraLarge))
-                
                 Button(
                     onClick = { onRoleSelected("STUDENT") },
                     modifier = Modifier
@@ -72,9 +68,7 @@ fun RoleSelectionScreen(
                         fontWeight = FontWeight.Medium
                     )
                 }
-                
                 Spacer(modifier = Modifier.height(LocalSpacing.current.medium))
-                
                 OutlinedButton(
                     onClick = { onRoleSelected("MOVER") },
                     modifier = Modifier
@@ -87,7 +81,6 @@ fun RoleSelectionScreen(
                         fontWeight = FontWeight.Medium
                     )
                 }
-                
                 Spacer(modifier = Modifier.height(LocalSpacing.current.large))
             }
         }

@@ -34,91 +34,26 @@ fun SetAvailabilityScreen(
     }
 
     // Show snackbar for success/error messages and immediately clear them
-    LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let { message ->
-            snackbarHostState.showSnackbar(
-                message = message,
-                duration = SnackbarDuration.Short
-            )
-            viewModel.clearSuccessMessage()
-        }
-    }
-
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { message ->
-            snackbarHostState.showSnackbar(
-                message = message,
-                duration = SnackbarDuration.Short
-            )
-            viewModel.clearError()
-        }
-    }
+    HandleSnackbarMessages(
+        successMessage = uiState.successMessage,
+        errorMessage = uiState.errorMessage,
+        snackbarHostState = snackbarHostState,
+        onClearSuccess = viewModel::clearSuccessMessage,
+        onClearError = viewModel::clearError
+    )
 
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Set Availability",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(DayOfWeek.values()) { day ->
-                        DayAvailabilityItem(
-                            day = day,
-                            timeSlots = uiState.availability[day] ?: emptyList(),
-                            onAddTimeSlot = { showTimePickerDialog = day },
-                            onRemoveTimeSlot = { slot ->
-                                viewModel.removeTimeSlot(day, slot)
-                            }
-                        )
-                    }
-                }
-
-                if (showTimePickerDialog != null) {
-                    val day = showTimePickerDialog!!
-                    TimeSlotPickerDialog(
-                        onDismiss = { showTimePickerDialog = null },
-                        onConfirm = { startTime, endTime ->
-                            viewModel.addTimeSlot(day, startTime, endTime)
-                            showTimePickerDialog = null
-                        }
-                    )
-                }
-
-                Button(
-                    onClick = { viewModel.saveAvailability() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    enabled = !uiState.isSaving
-                ) {
-                    if (uiState.isSaving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text("Save Availability")
-                    }
-                }
-            }
-        }
+        SetAvailabilityContent(
+            uiState = uiState,
+            showTimePickerDialog = showTimePickerDialog,
+            onShowTimePickerDialog = { showTimePickerDialog = it },
+            onAddTimeSlot = { day, start, end ->
+                viewModel.addTimeSlot(day, start, end)
+                showTimePickerDialog = null
+            },
+            onRemoveTimeSlot = viewModel::removeTimeSlot,
+            onSaveAvailability = viewModel::saveAvailability
+        )
 
         // Snackbar at the bottom
         SnackbarHost(
@@ -127,6 +62,133 @@ fun SetAvailabilityScreen(
                 .align(Alignment.BottomCenter)
                 .padding(16.dp)
         )
+    }
+}
+
+@Composable
+private fun HandleSnackbarMessages(
+    successMessage: String?,
+    errorMessage: String?,
+    snackbarHostState: SnackbarHostState,
+    onClearSuccess: () -> Unit,
+    onClearError: () -> Unit
+) {
+    LaunchedEffect(successMessage) {
+        successMessage?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            onClearSuccess()
+        }
+    }
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            onClearError()
+        }
+    }
+}
+
+@Composable
+private fun SetAvailabilityContent(
+    uiState: com.cpen321.usermanagement.ui.viewmodels.MoverAvailabilityUiState,
+    showTimePickerDialog: DayOfWeek?,
+    onShowTimePickerDialog: (DayOfWeek?) -> Unit,
+    onAddTimeSlot: (DayOfWeek, LocalTime, LocalTime) -> Unit,
+    onRemoveTimeSlot: (DayOfWeek, Pair<LocalTime, LocalTime>) -> Unit,
+    onSaveAvailability: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Set Availability",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            AvailabilityList(
+                availability = uiState.availability,
+                onAddTimeSlot = onShowTimePickerDialog,
+                onRemoveTimeSlot = onRemoveTimeSlot,
+                modifier = Modifier.weight(1f)
+            )
+
+            if (showTimePickerDialog != null) {
+                val day = showTimePickerDialog
+                TimeSlotPickerDialog(
+                    onDismiss = { onShowTimePickerDialog(null) },
+                    onConfirm = { startTime, endTime ->
+                        onAddTimeSlot(day, startTime, endTime)
+                    }
+                )
+            }
+
+            SaveAvailabilityButton(
+                isSaving = uiState.isSaving,
+                onSave = onSaveAvailability
+            )
+        }
+    }
+}
+
+@Composable
+private fun AvailabilityList(
+    availability: Map<DayOfWeek, List<Pair<LocalTime, LocalTime>>>,
+    onAddTimeSlot: (DayOfWeek) -> Unit,
+    onRemoveTimeSlot: (DayOfWeek, Pair<LocalTime, LocalTime>) -> Unit,
+    modifier: Modifier
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(DayOfWeek.values()) { day ->
+            DayAvailabilityItem(
+                day = day,
+                timeSlots = availability[day] ?: emptyList(),
+                onAddTimeSlot = { onAddTimeSlot(day) },
+                onRemoveTimeSlot = { slot -> onRemoveTimeSlot(day, slot) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SaveAvailabilityButton(
+    isSaving: Boolean,
+    onSave: () -> Unit
+) {
+    Button(
+        onClick = onSave,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        enabled = !isSaving
+    ) {
+        if (isSaving) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        } else {
+            Text("Save Availability")
+        }
     }
 }
 

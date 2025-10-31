@@ -74,123 +74,169 @@ fun AvailableJobsScreen(
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 12.dp)
         )
-        
+
         // Controls row with Smart Route button and filter switch
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        AvailableJobsControls(
+            showOnlyAvailable = showOnlyAvailable,
+            onFilterChange = { showOnlyAvailable = it },
+            onSmartRouteClick = { showSmartRoute = true }
+        )
+
+        // Main content area with loading, error, and job list states
+        AvailableJobsContent(
+            jobUiState = jobUiState,
+            moverAvailabilityUiState = moverAvailabilityUiState,
+            showOnlyAvailable = showOnlyAvailable,
+            onRetry = { jobViewModel.loadAvailableJobs() },
+            onAcceptJob = { jobId -> jobViewModel.acceptJob(jobId) }
+        )
+    }
+}
+
+@Composable
+private fun AvailableJobsControls(
+    showOnlyAvailable: Boolean,
+    onFilterChange: (Boolean) -> Unit,
+    onSmartRouteClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Smart Route Button
+        FilledTonalButton(
+            onClick = onSmartRouteClick,
+            modifier = Modifier.height(40.dp)
         ) {
-            // Smart Route Button
-            FilledTonalButton(
-                onClick = { showSmartRoute = true },
-                modifier = Modifier.height(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.Route,
-                    contentDescription = "Smart Route",
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Get Optimal Route")
-            }
-            
-            // Filter switch
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = if (!showOnlyAvailable) "Show All" else "Within Availability",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Switch(
-                    checked = showOnlyAvailable,
-                    onCheckedChange = { showOnlyAvailable = it }
-                )
-            }
+            Icon(
+                Icons.Default.Route,
+                contentDescription = "Smart Route",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Get Optimal Route")
         }
 
-        when {
-            jobUiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+        // Filter switch
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = if (!showOnlyAvailable) "Show All" else "Within Availability",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Switch(
+                checked = showOnlyAvailable,
+                onCheckedChange = onFilterChange
+            )
+        }
+    }
+}
+
+@Composable
+private fun AvailableJobsContent(
+    jobUiState: com.cpen321.usermanagement.ui.viewmodels.JobUiState,
+    moverAvailabilityUiState: com.cpen321.usermanagement.ui.viewmodels.MoverAvailabilityUiState,
+    showOnlyAvailable: Boolean,
+    onRetry: () -> Unit,
+    onAcceptJob: (String) -> Unit
+) {
+    when {
+        jobUiState.isLoading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+        jobUiState.error != null -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Error: ${jobUiState.error}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = onRetry) {
+                        Text("Retry")
+                    }
                 }
             }
-            jobUiState.error != null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Error: ${jobUiState.error}",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { jobViewModel.loadAvailableJobs() }) {
-                            Text("Retry")
-                        }
-                    }
+        }
+        else -> {
+            AvailableJobsList(
+                jobUiState = jobUiState,
+                moverAvailabilityUiState = moverAvailabilityUiState,
+                showOnlyAvailable = showOnlyAvailable,
+                onAcceptJob = onAcceptJob
+            )
+        }
+    }
+}
+
+@Composable
+private fun AvailableJobsList(
+    jobUiState: com.cpen321.usermanagement.ui.viewmodels.JobUiState,
+    moverAvailabilityUiState: com.cpen321.usermanagement.ui.viewmodels.MoverAvailabilityUiState,
+    showOnlyAvailable: Boolean,
+    onAcceptJob: (String) -> Unit
+) {
+    val jobsToShow = remember(jobUiState.availableJobs, showOnlyAvailable, moverAvailabilityUiState.availability) {
+        if (showOnlyAvailable) {
+            jobUiState.availableJobs.filter { job ->
+                val dt = job.scheduledTime           // LocalDateTime
+                val day = dt.dayOfWeek
+                val t   = dt.toLocalTime()
+
+                val slots: List<Pair<LocalTime, LocalTime>> = moverAvailabilityUiState.availability[day].orEmpty()
+
+                slots.any { slot: Pair<LocalTime, LocalTime> ->
+                    val (start: LocalTime, end: LocalTime) = slot
+                    TimeUtils.isTimeInRange(t, start, end)
                 }
             }
-            else -> {
-                val jobsToShow = remember(jobUiState.availableJobs, showOnlyAvailable, moverAvailabilityUiState.availability) {
-                    if (showOnlyAvailable) {
-                        jobUiState.availableJobs.filter { job ->
-                            val dt = job.scheduledTime           // LocalDateTime
-                            val day = dt.dayOfWeek
-                            val t   = dt.toLocalTime()
+        } else {
+            jobUiState.availableJobs
+        }
+    }
 
-                            val slots: List<Pair<LocalTime, LocalTime>> = moverAvailabilityUiState.availability[day].orEmpty()
-
-                            slots.any { slot: Pair<LocalTime, LocalTime> ->
-                                val (start: LocalTime, end: LocalTime) = slot
-                                TimeUtils.isTimeInRange(t, start, end)
-                            }
-                        }
-                    } else {
-                        jobUiState.availableJobs
-                    }
-                }
-
-                if (jobsToShow.isEmpty() && showOnlyAvailable) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No available jobs within your availability. Try broadening your availability.",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                } else if (jobsToShow.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No available jobs",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(jobsToShow) { job ->
-                            AvailableJobCard(
-                                job = job,
-                                onAcceptClick = { jobViewModel.acceptJob(job.id) }
-                            )
-                        }
-                    }
-                }
+    if (jobsToShow.isEmpty() && showOnlyAvailable) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No available jobs within your availability. Try broadening your availability.",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    } else if (jobsToShow.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No available jobs",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    } else {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(jobsToShow) { job ->
+                AvailableJobCard(
+                    job = job,
+                    onAcceptClick = { onAcceptJob(job.id) }
+                )
             }
         }
     }

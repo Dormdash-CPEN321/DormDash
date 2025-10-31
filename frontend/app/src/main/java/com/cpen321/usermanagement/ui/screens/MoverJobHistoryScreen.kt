@@ -245,70 +245,73 @@ fun JobDetailsSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Job ID
                 DetailRow(label = "Job ID", value = job.id ?: "N/A")
-
-                // Status with color indicator
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Status:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = job.status.value,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
+                JobStatusRow(status = job.status)
                 HorizontalDivider()
-
-                // Job details
-                DetailRow(label = "Job Type", value = job.jobType.value)
-                DetailRow(label = "Volume", value = "${job.volume} m³")
-                DetailRow(label = "Earnings", value = "$${String.format("%.2f", job.price)}")
-
+                JobInfoSection(job = job)
                 HorizontalDivider()
-
-                // Addresses
-                Text(
-                    text = "Pickup Address",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = job.pickupAddress.formattedAddress,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text(
-                    text = "Dropoff Address",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-                Text(
-                    text = job.dropoffAddress.formattedAddress,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
+                JobAddressesSection(job = job)
                 HorizontalDivider()
-
-                // Dates
                 DetailRow(label = "Scheduled Time", value = TimeUtils.formatDateTime(job.scheduledTime))
             }
         },
         confirmButton = {
             TextButton(onClick = onClose) { Text("Close") }
         }
+    )
+}
+
+@Composable
+private fun JobStatusRow(status: JobStatus) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Status:",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = status.value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun JobInfoSection(job: Job) {
+    DetailRow(label = "Job Type", value = job.jobType.value)
+    DetailRow(label = "Volume", value = "${job.volume} m³")
+    DetailRow(label = "Earnings", value = "$${String.format("%.2f", job.price)}")
+}
+
+@Composable
+private fun JobAddressesSection(job: Job) {
+    Text(
+        text = "Pickup Address",
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.Medium
+    )
+    Text(
+        text = job.pickupAddress.formattedAddress,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
+    Text(
+        text = "Dropoff Address",
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(top = 8.dp)
+    )
+    Text(
+        text = job.dropoffAddress.formattedAddress,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }
 

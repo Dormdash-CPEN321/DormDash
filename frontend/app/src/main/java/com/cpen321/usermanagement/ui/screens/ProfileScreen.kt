@@ -79,13 +79,8 @@ fun ProfileScreen(
 
     // Prevent ghost clicks by disabling interaction during navigation
     var isNavigating by remember { mutableStateOf(false) }
+    var dialogState by remember { mutableStateOf(ProfileDialogState()) }
 
-    // Dialog state
-    var dialogState by remember {
-        mutableStateOf(ProfileDialogState())
-    }
-
-    // Side effects
     LaunchedEffect(Unit) {
         profileViewModel.clearSuccessMessage()
         profileViewModel.clearError()
@@ -98,56 +93,77 @@ fun ProfileScreen(
         snackBarHostState = snackBarHostState,
         userRole = userRole,
         isInteractive = !isNavigating,
-        callbacks = ProfileScreenCallbacks(
-            onBackClick = {
-                if (!isNavigating) {
-                    isNavigating = true
-                    actions.onBackClick()
-                }
-            },
-            onManageProfileClick = {
-                if (!isNavigating) {
-                    isNavigating = true
-                    actions.onManageProfileClick()
-                }
-            },
-            onManageOrdersClick = {
-                if (!isNavigating) {
-                    isNavigating = true
-                    actions.onManageOrdersClick()
-                }
-            },
-            onDeleteAccountClick = {
-                dialogState = dialogState.copy(showDeleteDialog = true)
-            },
-            onSignOutClick= {
-                if (!isNavigating) {
-                    isNavigating = true
-                    authViewModel.handleSignout()
-                    actions.onSignOut()
-                }
-            },
-            onDeleteDialogDismiss = {
-                dialogState = dialogState.copy(showDeleteDialog = false)
-            },
-            onDeleteDialogConfirm = {
-                dialogState = dialogState.copy(showDeleteDialog = false)
-                profileViewModel.deleteAccount(
-                    onSuccess = {
-                        authViewModel.handleAccountDeletion()
-                        if (!isNavigating) {
-                            isNavigating = true
-                            actions.onAccountDeleted()
-                        }
-                    }
-                )
-            },
-            onSuccessMessageShown = profileViewModel::clearSuccessMessage,
-            onErrorMessageShown = profileViewModel::clearError,
-            onCashOutClick = {
-                profileViewModel.cashOut()
-            }
+        callbacks = createProfileCallbacks(
+            isNavigating = isNavigating,
+            onNavigatingChange = { isNavigating = it },
+            dialogState = dialogState,
+            onDialogStateChange = { dialogState = it },
+            authViewModel = authViewModel,
+            profileViewModel = profileViewModel,
+            actions = actions
         )
+    )
+}
+
+@Composable
+private fun createProfileCallbacks(
+    isNavigating: Boolean,
+    onNavigatingChange: (Boolean) -> Unit,
+    dialogState: ProfileDialogState,
+    onDialogStateChange: (ProfileDialogState) -> Unit,
+    authViewModel: AuthViewModel,
+    profileViewModel: ProfileViewModel,
+    actions: ProfileScreenActions
+): ProfileScreenCallbacks {
+    return ProfileScreenCallbacks(
+        onBackClick = {
+            if (!isNavigating) {
+                onNavigatingChange(true)
+                actions.onBackClick()
+            }
+        },
+        onManageProfileClick = {
+            if (!isNavigating) {
+                onNavigatingChange(true)
+                actions.onManageProfileClick()
+            }
+        },
+        onManageOrdersClick = {
+            if (!isNavigating) {
+                onNavigatingChange(true)
+                actions.onManageOrdersClick()
+            }
+        },
+        onDeleteAccountClick = {
+            onDialogStateChange(dialogState.copy(showDeleteDialog = true))
+        },
+        onSignOutClick = {
+            if (!isNavigating) {
+                onNavigatingChange(true)
+                authViewModel.handleSignout()
+                actions.onSignOut()
+            }
+        },
+        onDeleteDialogDismiss = {
+            onDialogStateChange(dialogState.copy(showDeleteDialog = false))
+        },
+        onDeleteDialogConfirm = {
+            onDialogStateChange(dialogState.copy(showDeleteDialog = false))
+            profileViewModel.deleteAccount(
+                onSuccess = {
+                    authViewModel.handleAccountDeletion()
+                    if (!isNavigating) {
+                        onNavigatingChange(true)
+                        actions.onAccountDeleted()
+                    }
+                }
+            )
+        },
+        onSuccessMessageShown = profileViewModel::clearSuccessMessage,
+        onErrorMessageShown = profileViewModel::clearError,
+        onCashOutClick = {
+            profileViewModel.cashOut()
+        }
     )
 }
 
