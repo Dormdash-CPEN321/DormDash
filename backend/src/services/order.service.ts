@@ -42,6 +42,10 @@ export class OrderService {
     };
   }
 
+  public static getInstance(): OrderService {
+    return new OrderService();
+  }
+
   async getQuote(reqData: QuoteRequest): Promise<GetQuoteResponse> {
     try {
       const { studentAddress } = reqData;

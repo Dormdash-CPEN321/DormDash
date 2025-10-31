@@ -20,13 +20,15 @@ import { EventEmitter } from '../utils/eventEmitter.util';
 import { JobMapper } from '../mappers/job.mapper';
 import { extractObjectId, extractObjectIdString } from '../utils/mongoose.util';
 import { JobNotFoundError, InternalServerError } from '../utils/errors.util';
+import { OrderService } from './order.service';
 
 export class JobService {
   // Lazy-load orderService to avoid circular dependency at module load time
   private get orderService() {
     // Import here instead of at the top to break circular dependency
-    return require('./order.service').orderService;
+    return OrderService.getInstance();
   }
+  
   // Helper to add credits to mover when job is completed
   private async addCreditsToMover(job: Job | null) {
     if (!job?.moverId) {
