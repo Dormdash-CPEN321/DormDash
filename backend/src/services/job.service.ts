@@ -14,7 +14,6 @@ import {
   GetMoverJobsResponse,
 } from '../types/job.type';
 import { notificationService } from './notification.service';
-import type { OrderService } from './order.service';
 import { OrderStatus } from '../types/order.types';
 import logger from '../utils/logger.util';
 import { EventEmitter } from '../utils/eventEmitter.util';
@@ -23,11 +22,10 @@ import { extractObjectId, extractObjectIdString } from '../utils/mongoose.util';
 import { JobNotFoundError, InternalServerError } from '../utils/errors.util';
 
 export class JobService {
-  // Lazy-load orderService to avoid circular dependency at module load time.
-  // We expose an async resolver so callers explicitly await the resolution.
-  private async getOrderService(): Promise<OrderService> {
-    const mod = await import('./order.service');
-    return mod.orderService as OrderService;
+  // Lazy-load orderService to avoid circular dependency at module load time
+  private get orderService() {
+    // Import here instead of at the top to break circular dependency
+    return require('./order.service').orderService;
   }
   // Helper to add credits to mover when job is completed
   private async addCreditsToMover(job: Job | null) {
@@ -324,7 +322,7 @@ export class JobService {
         );
         try {
           // Use orderService instead of direct orderModel access
-          await (await this.getOrderService()).updateOrderStatus(
+          await this.orderService.updateOrderStatus(
             orderObjectId,
             OrderStatus.ACCEPTED,
             updateData.moverId ?? undefined
@@ -399,7 +397,7 @@ export class JobService {
         );
 
         try {
-          await (await this.getOrderService()).updateOrderStatus(
+          await this.orderService.updateOrderStatus(
             orderObjectId,
             OrderStatus.PICKED_UP,
             extractObjectIdString(updatedJob.moverId)
@@ -465,7 +463,7 @@ export class JobService {
 
         try {
             if (job.jobType === JobType.STORAGE) {
-                await (await this.getOrderService()).updateOrderStatus(
+                await this.orderService.updateOrderStatus(
                 orderObjectId,
                 OrderStatus.IN_STORAGE,
                 extractObjectIdString(updatedJob.moverId)
@@ -481,7 +479,7 @@ export class JobService {
             } else {
                 // For RETURN jobs, mark order as RETURNED (not COMPLETED yet)
                 // Student will need to confirm delivery before order is COMPLETED
-                await (await this.getOrderService()).updateOrderStatus(
+                await this.orderService.updateOrderStatus(
                 orderObjectId,
                 OrderStatus.RETURNED,
                 extractObjectIdString(updatedJob.moverId)
@@ -640,7 +638,7 @@ export class JobService {
           throw new Error('Invalid orderId in job');
         }
 
-        await (await this.getOrderService()).updateOrderStatus(
+        await this.orderService.updateOrderStatus(
           orderObjectId,
           OrderStatus.PICKED_UP,
           studentId
@@ -788,7 +786,7 @@ export class JobService {
           throw new Error('Invalid orderId in job');
         }
 
-        await (await this.getOrderService()).updateOrderStatus(
+        await this.orderService.updateOrderStatus(
           orderObjectId,
           OrderStatus.COMPLETED,
           studentId

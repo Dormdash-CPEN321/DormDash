@@ -248,16 +248,18 @@ class OrderRepository @Inject constructor(
     suspend fun cancelOrder(){
         val response = orderApi.cancelOrder()
         if (!response.isSuccessful) {
-            throw Exception("Failed to cancel order: ${response.code()} ${response.message()}")
+            // Throw a Retrofit HttpException so callers can inspect status/code
+            throw retrofit2.HttpException(response)
         }
     }
 
     suspend fun createReturnJob(request: CreateReturnJobRequest): CreateReturnJobResponse {
         val response = orderApi.createReturnJob(request)
         if (!response.isSuccessful) {
-            throw RuntimeException("Failed to create return job: ${response.code()} ${response.message()}")
+            // Surface server error as a HttpException with the response so handlers can react
+            throw retrofit2.HttpException(response)
         }
-        return response.body() ?: throw Exception("Empty response from server")
+        return response.body() ?: throw IllegalStateException("Empty response from server")
     }
 
 }
