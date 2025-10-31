@@ -60,7 +60,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      if (!req.user || !req.user._id) {
+      if (!req.user?._id) {
         throw new Error('User not authenticated');
       }
       const result = await this.jobService.getMoverJobs(
@@ -142,7 +142,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      if (!req.user || !req.user._id) throw new Error('User not authenticated');
+      if (!req.user?._id) throw new Error('User not authenticated');
       const moverId = req.user._id.toString();
       const result = await this.jobService.requestPickupConfirmation(
         req.params.id,
