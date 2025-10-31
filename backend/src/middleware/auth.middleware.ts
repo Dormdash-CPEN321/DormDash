@@ -21,7 +21,15 @@ export const authenticateToken: RequestHandler = (
         return;
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      if (!process.env.JWT_SECRET) {
+        res.status(500).json({
+          error: 'Server configuration error',
+          message: 'JWT secret not configured',
+        });
+        return;
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
         id: mongoose.Types.ObjectId;
       };
 
@@ -81,8 +89,12 @@ export const verifyTokenString = async (token?: string) => {
       ? token.split(' ')[1]
       : token;
 
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT secret not configured');
+  }
+
   try {
-    const decoded = jwt.verify(raw, process.env.JWT_SECRET!) as { id: string };
+    const decoded = jwt.verify(raw, process.env.JWT_SECRET) as { id: string };
     if (!decoded.id) throw new Error('Invalid token payload');
 
     const user = await userModel.findById(

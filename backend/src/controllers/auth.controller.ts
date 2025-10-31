@@ -98,7 +98,10 @@ export class AuthController {
     next: NextFunction
   ) {
     try {
-      const user = req.user!; // From JWT middleware
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+      const user = req.user;
       const { userRole } = req.body;
 
       // Initialize credits to 0 when selecting MOVER role

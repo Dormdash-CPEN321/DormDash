@@ -48,11 +48,15 @@ export class StripeService {
         },
       });
 
+      if (!paymentIntent.client_secret) {
+        throw new Error('Payment intent created without client secret');
+      }
+
       return {
         id: paymentIntent.id,
         amount, // Return original amount in dollars
         currency,
-        clientSecret: paymentIntent.client_secret!,
+        clientSecret: paymentIntent.client_secret,
         status: this.mapStripeStatusToOur(paymentIntent.status),
       };
     } catch (error: unknown) {

@@ -664,10 +664,13 @@ export class JobService {
         logger.warn('Failed to emit job.updated after confirmPickup:', emitErr);
       }
 
-      const nonNullUpdatedJob = updatedJob!; // Explicit non-null assertion
+      if (!updatedJob) {
+        throw new Error('Failed to update job - no job returned');
+      }
+
       return {
-        id: nonNullUpdatedJob._id.toString(),
-        status: nonNullUpdatedJob.status,
+        id: updatedJob._id.toString(),
+        status: updatedJob.status,
       };
     } catch (err) {
       logger.error('Error in confirmPickup:', err);
