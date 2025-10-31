@@ -95,32 +95,32 @@ class ProfileViewModel @Inject constructor(
             )
 
             try {
-                val upload = profileRepository.uploadProfilePicture(pictureUri)
-                if (upload.isFailure) {
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = upload.exceptionOrNull()?.message ?: "Failed to upload picture"
-                    )
-                    return@launch  // <- optional; can also avoid by wrapping in else below
-                }
+                val upload = runCatching { profileRepository.uploadProfilePicture(pictureUri).getOrThrow() }
+                    .onFailure {
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = it.message ?: "Failed to upload picture"
+                        )
+                    }.getOrNull()
 
-                val newPath = upload.getOrThrow()
+                if (upload != null) {
+                    val save = runCatching {
+                        profileRepository.updateProfile(
+                            name = user.name,
+                            bio = user.bio ?: "",
+                            profilePicture = upload
+                        ).getOrThrow()
+                    }
 
-                val save = profileRepository.updateProfile(
-                    name = user.name,
-                    bio = user.bio ?: "",
-                    profilePicture = newPath
-                )
-
-                if (save.isSuccess) {
-                    val savedUser = save.getOrThrow()
-                    _uiState.value = _uiState.value.copy(
-                        user = savedUser,
-                        successMessage = "Profile picture updated successfully!"
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = save.exceptionOrNull()?.message ?: "Failed to save picture"
-                    )
+                    save.onSuccess { savedUser ->
+                        _uiState.value = _uiState.value.copy(
+                            user = savedUser,
+                            successMessage = "Profile picture updated successfully!"
+                        )
+                    }.onFailure {
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = it.message ?: "Failed to save picture"
+                        )
+                    }
                 }
             } finally {
                 _uiState.value = _uiState.value.copy(isLoadingPhoto = false)

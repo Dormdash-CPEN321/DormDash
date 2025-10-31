@@ -6,7 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.google.android.gms.maps.model.LatLng
 import java.io.IOException
-
+import android.location.Address
 /**
  * Location utilities for geocoding addresses to coordinates
  */
@@ -47,60 +47,7 @@ object LocationUtils {
                     errorMessage = "Address not found. Please enter a valid address."
                 )
             } else {
-                val location = results[0]
-                val lat = location.latitude
-                val lon = location.longitude
-
-                val thoroughfare = location.thoroughfare
-                val subThoroughfare = location.subThoroughfare
-                val featureName = location.featureName
-
-                when {
-                    // Incomplete street info
-                    thoroughfare.isNullOrBlank() && featureName.isNullOrBlank() -> AddressValidationResult(
-                        isValid = false,
-                        coordinates = null,
-                        formattedAddress = null,
-                        errorMessage = "Please enter a complete street address (e.g., 123 Main St, not just a postal code)."
-                    )
-
-                    // Not in service area
-                    !isInVancouverArea(lat, lon) -> AddressValidationResult(
-                        isValid = false,
-                        coordinates = null,
-                        formattedAddress = null,
-                        errorMessage = "We currently only service Greater Vancouver."
-                    )
-
-                    // Outside BC, Canada
-                    (location.countryCode ?: "") != "CA" || (location.adminArea ?: "") != "British Columbia" -> AddressValidationResult(
-                        isValid = false,
-                        coordinates = null,
-                        formattedAddress = null,
-                        errorMessage = "Address must be in British Columbia, Canada."
-                    )
-
-                    // Missing city info
-                    (location.locality ?: "").isBlank() && location.subAdminArea.isNullOrBlank() -> AddressValidationResult(
-                        isValid = false,
-                        coordinates = null,
-                        formattedAddress = null,
-                        errorMessage = "Please enter a complete address with a valid city name."
-                    )
-
-                    // All checks passed → valid
-                    else -> {
-                        val formatted = (0..location.maxAddressLineIndex)
-                            .joinToString(", ") { idx -> location.getAddressLine(idx) }
-
-                        AddressValidationResult(
-                            isValid = true,
-                            coordinates = LatLng(lat, lon),
-                            formattedAddress = formatted.ifEmpty { address },
-                            errorMessage = null
-                        )
-                    }
-                }
+                validateLocation(results, address)
             }
         } catch (e: IOException) {
             AddressValidationResult(
@@ -120,6 +67,51 @@ object LocationUtils {
     }
 
 
+    private fun validateLocation(results : List<Address>, fallbackAddress: String ) : AddressValidationResult{
+        val location = results[0]
+
+        val lat = location.latitude
+        val lon = location.longitude
+
+        val thoroughfare = location.thoroughfare
+        val subThoroughfare = location.subThoroughfare
+        val featureName = location.featureName
+        return when {
+            thoroughfare.isNullOrBlank() && featureName.isNullOrBlank() ->
+                failure("Please enter a complete street address (e.g., 123 Main St, not just a postal code).")
+
+            !isInVancouverArea(lat, lon) ->
+                failure("We currently only service Greater Vancouver.")
+
+            (location.countryCode ?: "") != "CA" ||
+                    (location.adminArea ?: "") != "British Columbia" ->
+                failure("Address must be in British Columbia, Canada.")
+
+            (location.locality ?: "").isBlank() && location.subAdminArea.isNullOrBlank() ->
+                failure("Please enter a complete address with a valid city name.")
+
+            else -> {
+                val formatted = (0..location.maxAddressLineIndex)
+                    .joinToString(", ") { idx -> location.getAddressLine(idx) }
+
+                AddressValidationResult(
+                    isValid = true,
+                    coordinates = LatLng(lat, lon),
+                    formattedAddress = formatted.ifEmpty { fallbackAddress },
+                    errorMessage = null
+                )
+            }
+        }
+    }
+
+
+    private fun failure(message: String): AddressValidationResult =
+        AddressValidationResult(
+            isValid = false,
+            coordinates = null,
+            formattedAddress = null,
+            errorMessage = message
+        )
 
     private fun isInVancouverArea(lat: Double, lon: Double): Boolean {
         return lat in VANCOUVER_MIN_LAT..VANCOUVER_MAX_LAT &&
