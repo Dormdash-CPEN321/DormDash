@@ -8,6 +8,7 @@ import {
   GetMoverJobsResponse,
   UpdateJobStatusRequest,
   JobResponse,
+  JobStatus,
 } from '../types/job.type';
 import logger from '../utils/logger.util';
 
@@ -113,7 +114,7 @@ export class JobController {
       logger.info(
         `updateJobStatus called for jobId=${req.params.id} payload=${JSON.stringify(req.body)}`
       );
-      if (req.body.status === 'ACCEPTED' && !req.body.moverId && req.user) {
+      if (req.body.status === JobStatus.ACCEPTED && !req.body.moverId && req.user) {
         req.body.moverId = req.user._id.toString();
         logger.info(
           `Assigned moverId from authenticated user: ${req.body.moverId}`
@@ -164,7 +165,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      if (!req.user || !req.user._id) throw new Error('User not authenticated');
+      if (!req.user?._id) throw new Error('User not authenticated');
       const studentId = req.user._id.toString();
       const result = await this.jobService.confirmPickup(
         req.params.id,
@@ -185,7 +186,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      if (!req.user || !req.user._id) throw new Error('User not authenticated');
+      if (!req.user?._id) throw new Error('User not authenticated');
       const moverId = req.user._id.toString();
       const result = await this.jobService.requestDeliveryConfirmation(
         req.params.id,
@@ -208,7 +209,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      if (!req.user || !req.user._id) throw new Error('User not authenticated');
+      if (!req.user?._id) throw new Error('User not authenticated');
       const studentId = req.user._id.toString();
       const result = await this.jobService.confirmDelivery(
         req.params.id,
