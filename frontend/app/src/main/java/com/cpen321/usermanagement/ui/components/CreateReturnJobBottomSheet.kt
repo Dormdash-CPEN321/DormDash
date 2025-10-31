@@ -43,50 +43,37 @@ fun CreateReturnJobBottomSheet(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
-    // Step state
     var currentStep by remember { mutableStateOf(ReturnJobStep.SELECT_DATE) }
-    
-    // Error handling
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // Date selection state
-    var selectedDateMillis by remember { 
-        mutableStateOf(System.currentTimeMillis())
-    }
-    var returnHour by remember { mutableStateOf(17) } // Default 5 PM
+    
+    var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var returnHour by remember { mutableStateOf(17) }
     var returnMinute by remember { mutableStateOf(0) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimeDialog by remember { mutableStateOf(false) }
     
-    // Address state
     var useCustomAddress by remember { mutableStateOf(false) }
     var addressInput by remember { mutableStateOf("") }
     var selectedAddress by remember { mutableStateOf<SelectedAddress?>(null) }
     var customAddress by remember { mutableStateOf<Address?>(null) }
     var isValidating by remember { mutableStateOf(false) }
     
-    // Fee calculation
-    val expectedReturnDate = remember { 
+    var isProcessingPayment by remember { mutableStateOf(false) }
+    var paymentIntentId by remember { mutableStateOf<String?>(null) }
+    
+    val expectedReturnDate = remember(activeOrder.returnTime) {
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }.parse(activeOrder.returnTime)?.time ?: System.currentTimeMillis()
     }
     
-    val daysDifference = remember(selectedDateMillis) {
-        val diff = (selectedDateMillis - expectedReturnDate) / (1000 * 60 * 60 * 24)
-        diff.toInt()
+    val daysDifference = remember(selectedDateMillis, expectedReturnDate) {
+        ((selectedDateMillis - expectedReturnDate) / (1000 * 60 * 60 * 24)).toInt()
     }
     
-    val adjustmentAmount = remember(daysDifference) {
-        Math.abs(daysDifference) * 5.0
-    }
-    
+    val adjustmentAmount = Math.abs(daysDifference) * 5.0
     val isEarlyReturn = daysDifference < 0
     val isLateReturn = daysDifference > 0
-    
-    // Payment state
-    var isProcessingPayment by remember { mutableStateOf(false) }
-    var paymentIntentId by remember { mutableStateOf<String?>(null) }
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -99,7 +86,6 @@ fun CreateReturnJobBottomSheet(
                 .padding(24.dp)
                 .navigationBarsPadding()
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -117,7 +103,6 @@ fun CreateReturnJobBottomSheet(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Error message display
             errorMessage?.let { error ->
                 Card(
                     colors = CardDefaults.cardColors(
@@ -575,86 +560,130 @@ private fun AddressSelectionStep(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Default address option
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = !useCustomAddress,
-                onClick = { actions.onUseCustomAddressChange(false) }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = "Use default address",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = defaultAddress,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        DefaultAddressOption(
+            defaultAddress = defaultAddress,
+            isSelected = !useCustomAddress,
+            onSelect = { actions.onUseCustomAddressChange(false) }
+        )
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Custom address option
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = useCustomAddress,
-                onClick = { actions.onUseCustomAddressChange(true) }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Use custom address",
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
+        CustomAddressOption(
+            isSelected = useCustomAddress,
+            onSelect = { actions.onUseCustomAddressChange(true) }
+        )
         
         if (useCustomAddress) {
             Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = "Currently serving Greater Vancouver, BC only",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            AddressAutocompleteField(
-                value = streetAddress,
+            CustomAddressInput(
+                streetAddress = streetAddress,
                 onValueChange = actions.onStreetAddressChange,
-                onAddressSelected = actions.onAddressSelected,
-                modifier = Modifier.fillMaxWidth()
+                onAddressSelected = actions.onAddressSelected
             )
         }
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        Button(
-            onClick = actions.onConfirm,
-            enabled = !isValidating && (!useCustomAddress || selectedAddress != null),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isValidating) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Validating Address...")
-                }
-            } else {
-                Text("Confirm Return Details")
+        ConfirmAddressButton(
+            isValidating = isValidating,
+            isEnabled = !useCustomAddress || selectedAddress != null,
+            onConfirm = actions.onConfirm
+        )
+    }
+}
+
+@Composable
+private fun DefaultAddressOption(
+    defaultAddress: String,
+    isSelected: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = isSelected,
+            onClick = onSelect
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = "Use default address",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = defaultAddress,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun CustomAddressOption(isSelected: Boolean, onSelect: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = isSelected,
+            onClick = onSelect
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "Use custom address",
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Composable
+private fun CustomAddressInput(
+    streetAddress: String,
+    onValueChange: (String) -> Unit,
+    onAddressSelected: (SelectedAddress) -> Unit
+) {
+    Text(
+        text = "Currently serving Greater Vancouver, BC only",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
+    
+    AddressAutocompleteField(
+        value = streetAddress,
+        onValueChange = onValueChange,
+        onAddressSelected = onAddressSelected,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun ConfirmAddressButton(
+    isValidating: Boolean,
+    isEnabled: Boolean,
+    onConfirm: () -> Unit
+) {
+    Button(
+        onClick = onConfirm,
+        enabled = !isValidating && isEnabled,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (isValidating) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Validating Address...")
             }
+        } else {
+            Text("Confirm Return Details")
         }
     }
 }
@@ -677,86 +706,22 @@ private fun PaymentStep(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Late Return Fee",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = "Total Amount Due",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                
-                Text(
-                    text = "$${String.format("%.2f", lateFee)}",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+        LateFeeCard(lateFee)
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Test card selector
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { showCardSelector = true }
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = selectedTestCard.description,
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = "•••• ${selectedTestCard.number.takeLast(4)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Change card"
-                )
-            }
-        }
+        TestCardSelector(
+            selectedCard = selectedTestCard,
+            onShowSelector = { showCardSelector = true }
+        )
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        Button(
-            onClick = { onPayment(selectedTestCard) },
-            enabled = !isProcessing,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isProcessing) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Processing Payment...")
-                }
-            } else {
-                Text("Pay $${String.format("%.2f", lateFee)}")
-            }
-        }
+        PaymentButton(
+            lateFee = lateFee,
+            isProcessing = isProcessing,
+            onPayment = { onPayment(selectedTestCard) }
+        )
     }
     
     if (showCardSelector) {
@@ -768,6 +733,93 @@ private fun PaymentStep(
             },
             onDismiss = { showCardSelector = false }
         )
+    }
+}
+
+@Composable
+private fun LateFeeCard(lateFee: Double) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Late Return Fee",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Total Amount Due",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            
+            Text(
+                text = "$${String.format("%.2f", lateFee)}",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun TestCardSelector(selectedCard: TestCard, onShowSelector: () -> Unit) {
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onShowSelector
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = selectedCard.description,
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = "•••• ${selectedCard.number.takeLast(4)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = "Change card"
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaymentButton(
+    lateFee: Double,
+    isProcessing: Boolean,
+    onPayment: () -> Unit
+) {
+    Button(
+        onClick = onPayment,
+        enabled = !isProcessing,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (isProcessing) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Processing Payment...")
+            }
+        } else {
+            Text("Pay $${String.format("%.2f", lateFee)}")
+        }
     }
 }
 

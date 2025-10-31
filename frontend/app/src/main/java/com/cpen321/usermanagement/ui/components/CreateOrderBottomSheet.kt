@@ -162,8 +162,8 @@ fun CreateOrderBottomSheet(
                                 } catch (e: com.google.gson.JsonSyntaxException) {
                                     // Malformed response
                                     errorMessage = "Unexpected response from server. Please try again."
-                                    currentStep = OrderCreationStep.ADDRESS_CAPTURE
-                                }
+                                currentStep = OrderCreationStep.ADDRESS_CAPTURE
+                            }
                         }
                     },
                     onError = { error ->
@@ -449,6 +449,36 @@ private fun LoadingQuoteStep() {
     }
 }
 
+private data class DateTimeState(
+    val showPickupDatePicker: Boolean = false,
+    val selectedPickupDateMillis: Long = System.currentTimeMillis() + (24 * 60 * 60 * 1000L),
+    val pickupHour: Int = 10,
+    val pickupMinute: Int = 0,
+    val showPickupTimeDialog: Boolean = false,
+    val showReturnDatePicker: Boolean = false,
+    val selectedReturnDateMillis: Long = System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L),
+    val returnHour: Int = 17,
+    val returnMinute: Int = 0,
+    val showReturnTimeDialog: Boolean = false
+)
+
+private data class DateTimeDisplay(
+    val pickupDate: String,
+    val pickupHour: Int,
+    val pickupMinute: Int,
+    val returnDate: String,
+    val returnHour: Int,
+    val returnMinute: Int,
+    val isReturnBeforePickup: Boolean
+)
+
+private data class DateTimeActions(
+    val onShowPickupDatePicker: () -> Unit,
+    val onShowPickupTimePicker: () -> Unit,
+    val onShowReturnDatePicker: () -> Unit,
+    val onShowReturnTimePicker: () -> Unit
+)
+
 // Step 3: Box Selection with Dynamic Pricing
 @Composable
 private fun BoxSelectionStep(
@@ -460,43 +490,22 @@ private fun BoxSelectionStep(
         mutableStateOf(STANDARD_BOX_SIZES.map { BoxQuantity(it, 0) })
     }
     
-    // Pickup date/time state
-    var showPickupDatePicker by remember { mutableStateOf(false) }
-    var selectedPickupDateMillis by remember { 
-        mutableStateOf(System.currentTimeMillis() + (24 * 60 * 60 * 1000L)) // Tomorrow
-    }
-    var pickupHour by remember { mutableStateOf(10) } // Default 10 AM
-    var pickupMinute by remember { mutableStateOf(0) }
-    var showPickupTimeDialog by remember { mutableStateOf(false) }
+    var dateTimeState by remember { mutableStateOf(DateTimeState()) }
     
-    // Return date & time state
-    var showDatePicker by remember { mutableStateOf(false) }
-    var selectedDateMillis by remember { 
-        mutableStateOf(System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L)) // 7 days from now
-    }
-    var returnHour by remember { mutableStateOf(17) } // Default 5 PM
-    var returnMinute by remember { mutableStateOf(0) }
-    var showReturnTimeDialog by remember { mutableStateOf(false) }
+    val pickupDate = TimeUtils.formatDatePickerDate(dateTimeState.selectedPickupDateMillis)
+    val returnDate = TimeUtils.formatDatePickerDate(dateTimeState.selectedReturnDateMillis)
     
-    val pickupDate = TimeUtils.formatDatePickerDate(selectedPickupDateMillis)
-    val returnDate = TimeUtils.formatDatePickerDate(selectedDateMillis)
+    val pickupDateTime = calculateDateTime(
+        dateTimeState.selectedPickupDateMillis,
+        dateTimeState.pickupHour,
+        dateTimeState.pickupMinute
+    )
     
-    // Validation: Check if return date/time is after pickup date/time
-    val pickupDateTime = Calendar.getInstance().apply {
-        timeInMillis = selectedPickupDateMillis
-        set(Calendar.HOUR_OF_DAY, pickupHour)
-        set(Calendar.MINUTE, pickupMinute)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
-    
-    val returnDateTime = Calendar.getInstance().apply {
-        timeInMillis = selectedDateMillis
-        set(Calendar.HOUR_OF_DAY, returnHour)
-        set(Calendar.MINUTE, returnMinute)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
+    val returnDateTime = calculateDateTime(
+        dateTimeState.selectedReturnDateMillis,
+        dateTimeState.returnHour,
+        dateTimeState.returnMinute
+    )
     
     val isReturnBeforePickup = returnDateTime <= pickupDateTime
     
@@ -506,244 +515,47 @@ private fun BoxSelectionStep(
     val canSubmit = totalBoxes > 0 && !isReturnBeforePickup
     
     Column {
-        // Box Selection
-        Text(
-            text = "Select Boxes",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 16.dp)
+        BoxSelectionList(
+            boxQuantities = boxQuantities,
+            pricingRules = pricingRules,
+            onQuantitiesChange = { boxQuantities = it }
         )
-        
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.heightIn(max = 200.dp)
-        ) {
-            items(boxQuantities) { boxQuantityItem ->
-                BoxSelectionItem(
-                    boxQuantity = boxQuantityItem,
-                    unitPrice = pricingRules.boxPrices[boxQuantityItem.boxSize.type] ?: 0.0,
-                    onQuantityChange = { newQuantity ->
-                        boxQuantities = boxQuantities.map { item ->
-                            if (item.boxSize == boxQuantityItem.boxSize) {
-                                item.copy(quantity = newQuantity)
-                            } else item
-                        }
-                    }
-                )
-            }
-        }
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Pickup Date & Time Selection
-        Text(
-            text = "Pickup Date & Time",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+        DateTimeSelectionSection(
+            display = DateTimeDisplay(
+                pickupDate = pickupDate,
+                pickupHour = dateTimeState.pickupHour,
+                pickupMinute = dateTimeState.pickupMinute,
+                returnDate = returnDate,
+                returnHour = dateTimeState.returnHour,
+                returnMinute = dateTimeState.returnMinute,
+                isReturnBeforePickup = isReturnBeforePickup
+            ),
+            actions = DateTimeActions(
+                onShowPickupDatePicker = { dateTimeState = dateTimeState.copy(showPickupDatePicker = true) },
+                onShowPickupTimePicker = { dateTimeState = dateTimeState.copy(showPickupTimeDialog = true) },
+                onShowReturnDatePicker = { dateTimeState = dateTimeState.copy(showReturnDatePicker = true) },
+                onShowReturnTimePicker = { dateTimeState = dateTimeState.copy(showReturnTimeDialog = true) }
+            )
         )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Pickup Date
-            OutlinedCard(
-                modifier = Modifier.weight(1f),
-                onClick = { showPickupDatePicker = true }
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.DateRange,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "Date",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = pickupDate,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-            
-            // Pickup Time
-            OutlinedCard(
-                modifier = Modifier.weight(1f),
-                onClick = { showPickupTimeDialog = true }
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "Time",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = String.format("%02d:%02d", pickupHour, pickupMinute),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-        }
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Return Date & Time Selection
-        Text(
-            text = "Return Date & Time",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Return Date
-            OutlinedCard(
-                modifier = Modifier.weight(1f),
-                onClick = { showDatePicker = true }
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.DateRange,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "Date",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = returnDate,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-            
-            // Return Time
-            OutlinedCard(
-                modifier = Modifier.weight(1f),
-                onClick = { showReturnTimeDialog = true }
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "Time",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = String.format("%02d:%02d", returnHour, returnMinute),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-        }
-        
-        // Validation error message
-        if (isReturnBeforePickup) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Return date/time must be after pickup date/time",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Price Breakdown
         PriceBreakdownCard(priceBreakdown = currentPrice)
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Proceed to Payment Button
-        Button(
-            onClick = {
-                // Create ISO 8601 datetime string for pickup in Pacific timezone
-                val pacificZone = TimeZone.getTimeZone("America/Los_Angeles")
-                val utcZone = TimeZone.getTimeZone("UTC")
-                
-                // First, extract date components from the UTC milliseconds
-                val utcCalendar = Calendar.getInstance(utcZone).apply {
-                    timeInMillis = selectedPickupDateMillis
-                }
-                val year = utcCalendar.get(Calendar.YEAR)
-                val month = utcCalendar.get(Calendar.MONTH)
-                val day = utcCalendar.get(Calendar.DAY_OF_MONTH)
-                
-                // Now create a Pacific time calendar with those date components
-                val pickupCalendar = Calendar.getInstance(pacificZone).apply {
-                    clear()
-                    set(year, month, day, pickupHour, pickupMinute, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-                
-                // Format to ISO in UTC
-                val isoFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-                    timeZone = utcZone
-                }
-                val pickupTimeIso = isoFormatter.format(pickupCalendar.time)
+        ProceedToPaymentButton(
+            enabled = canSubmit,
+            totalPrice = currentPrice.total,
+            onProceed = {
+                val pickupTimeIso = formatPickupTimeToISO(
+                    dateTimeState.selectedPickupDateMillis,
+                    dateTimeState.pickupHour,
+                    dateTimeState.pickupMinute
+                )
                 
                 val orderRequest = OrderRequest(
                     boxQuantities = boxQuantities.filter { it.quantity > 0 },
@@ -753,65 +565,337 @@ private fun BoxSelectionStep(
                     totalPrice = currentPrice.total
                 )
                 onProceedToPayment(orderRequest)
-            },
-            enabled = canSubmit,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Proceed to Payment - $${String.format("%.2f", currentPrice.total)}")
-        }
+            }
+        )
     }
     
-    // Pickup Date Picker Dialog
-    if (showPickupDatePicker) {
+    DateTimePickerDialogs(
+        dateTimeState = dateTimeState,
+        onPickupDateSelected = { millis ->
+            dateTimeState = dateTimeState.copy(
+                selectedPickupDateMillis = millis,
+                showPickupDatePicker = false
+            )
+        },
+        onPickupTimeSelected = { hour, minute ->
+            dateTimeState = dateTimeState.copy(
+                pickupHour = hour,
+                pickupMinute = minute,
+                showPickupTimeDialog = false
+            )
+        },
+        onReturnDateSelected = { millis ->
+            dateTimeState = dateTimeState.copy(
+                selectedReturnDateMillis = millis,
+                showReturnDatePicker = false
+            )
+        },
+        onReturnTimeSelected = { hour, minute ->
+            dateTimeState = dateTimeState.copy(
+                returnHour = hour,
+                returnMinute = minute,
+                showReturnTimeDialog = false
+            )
+        },
+        onDismiss = { dialog ->
+            dateTimeState = when (dialog) {
+                "pickupDate" -> dateTimeState.copy(showPickupDatePicker = false)
+                "pickupTime" -> dateTimeState.copy(showPickupTimeDialog = false)
+                "returnDate" -> dateTimeState.copy(showReturnDatePicker = false)
+                "returnTime" -> dateTimeState.copy(showReturnTimeDialog = false)
+                else -> dateTimeState
+            }
+        }
+    )
+}
+
+private fun calculateDateTime(dateMillis: Long, hour: Int, minute: Int): Long {
+    return Calendar.getInstance().apply {
+        timeInMillis = dateMillis
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}
+
+private fun formatPickupTimeToISO(dateMillis: Long, hour: Int, minute: Int): String {
+    val pacificZone = TimeZone.getTimeZone("America/Los_Angeles")
+    val utcZone = TimeZone.getTimeZone("UTC")
+    
+    val utcCalendar = Calendar.getInstance(utcZone).apply {
+        timeInMillis = dateMillis
+    }
+    val year = utcCalendar.get(Calendar.YEAR)
+    val month = utcCalendar.get(Calendar.MONTH)
+    val day = utcCalendar.get(Calendar.DAY_OF_MONTH)
+    
+    val pickupCalendar = Calendar.getInstance(pacificZone).apply {
+        clear()
+        set(year, month, day, hour, minute, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    
+    val isoFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = utcZone
+    }
+    return isoFormatter.format(pickupCalendar.time)
+}
+
+@Composable
+private fun BoxSelectionList(
+    boxQuantities: List<BoxQuantity>,
+    pricingRules: PricingRules,
+    onQuantitiesChange: (List<BoxQuantity>) -> Unit
+) {
+    Text(
+        text = "Select Boxes",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(bottom = 16.dp)
+    )
+    
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.heightIn(max = 200.dp)
+    ) {
+        items(boxQuantities) { boxQuantityItem ->
+            BoxSelectionItem(
+                boxQuantity = boxQuantityItem,
+                unitPrice = pricingRules.boxPrices[boxQuantityItem.boxSize.type] ?: 0.0,
+                onQuantityChange = { newQuantity ->
+                    onQuantitiesChange(boxQuantities.map { item ->
+                        if (item.boxSize == boxQuantityItem.boxSize) {
+                            item.copy(quantity = newQuantity)
+                        } else item
+                    })
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun DateTimeSelectionSection(
+    display: DateTimeDisplay,
+    actions: DateTimeActions
+) {
+    Text(
+        text = "Pickup Date & Time",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold
+    )
+    
+    Spacer(modifier = Modifier.height(8.dp))
+    
+    DateTimeRow(
+        date = display.pickupDate,
+        hour = display.pickupHour,
+        minute = display.pickupMinute,
+        onDateClick = actions.onShowPickupDatePicker,
+        onTimeClick = actions.onShowPickupTimePicker
+    )
+    
+    Spacer(modifier = Modifier.height(24.dp))
+    
+    Text(
+        text = "Return Date & Time",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold
+    )
+    
+    Spacer(modifier = Modifier.height(8.dp))
+    
+    DateTimeRow(
+        date = display.returnDate,
+        hour = display.returnHour,
+        minute = display.returnMinute,
+        onDateClick = actions.onShowReturnDatePicker,
+        onTimeClick = actions.onShowReturnTimePicker
+    )
+    
+    if (display.isReturnBeforePickup) {
+        Spacer(modifier = Modifier.height(8.dp))
+        DateTimeValidationError()
+    }
+}
+
+@Composable
+private fun DateTimeRow(
+    date: String,
+    hour: Int,
+    minute: Int,
+    onDateClick: () -> Unit,
+    onTimeClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        DateCard(
+            date = date,
+            onClick = onDateClick,
+            modifier = Modifier.weight(1f)
+        )
+        
+        TimeCard(
+            hour = hour,
+            minute = minute,
+            onClick = onTimeClick,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun DateCard(date: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedCard(
+        modifier = modifier,
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.DateRange,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = "Date",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = date,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeCard(hour: Int, minute: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedCard(
+        modifier = modifier,
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = "Time",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = String.format("%02d:%02d", hour, minute),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DateTimeValidationError() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Return date/time must be after pickup date/time",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProceedToPaymentButton(
+    enabled: Boolean,
+    totalPrice: Double,
+    onProceed: () -> Unit
+) {
+    Button(
+        onClick = onProceed,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Proceed to Payment - $${String.format("%.2f", totalPrice)}")
+    }
+}
+
+@Composable
+private fun DateTimePickerDialogs(
+    dateTimeState: DateTimeState,
+    onPickupDateSelected: (Long) -> Unit,
+    onPickupTimeSelected: (Int, Int) -> Unit,
+    onReturnDateSelected: (Long) -> Unit,
+    onReturnTimeSelected: (Int, Int) -> Unit,
+    onDismiss: (String) -> Unit
+) {
+    if (dateTimeState.showPickupDatePicker) {
         DatePickerDialog(
-            onDateSelected = { dateMillis ->
-                selectedPickupDateMillis = dateMillis
-            },
-            onDismiss = { showPickupDatePicker = false },
+            onDateSelected = onPickupDateSelected,
+            onDismiss = { onDismiss("pickupDate") },
             title = "Select Pickup Date",
-            initialDateMillis = selectedPickupDateMillis,
+            initialDateMillis = dateTimeState.selectedPickupDateMillis,
             minDateOffsetDays = 0
         )
     }
     
-    // Pickup Time Picker Dialog
-    if (showPickupTimeDialog) {
+    if (dateTimeState.showPickupTimeDialog) {
         TimePickerDialog(
-            initialHour = pickupHour,
-            initialMinute = pickupMinute,
-            onTimeSelected = { hour, minute ->
-                pickupHour = hour
-                pickupMinute = minute
-                showPickupTimeDialog = false
-            },
-            onDismiss = { showPickupTimeDialog = false }
+            initialHour = dateTimeState.pickupHour,
+            initialMinute = dateTimeState.pickupMinute,
+            onTimeSelected = onPickupTimeSelected,
+            onDismiss = { onDismiss("pickupTime") }
         )
     }
     
-    // Return Date Picker Dialog
-    if (showDatePicker) {
+    if (dateTimeState.showReturnDatePicker) {
         DatePickerDialog(
-            onDateSelected = { dateMillis ->
-                selectedDateMillis = dateMillis
-            },
-            onDismiss = { showDatePicker = false },
+            onDateSelected = onReturnDateSelected,
+            onDismiss = { onDismiss("returnDate") },
             title = "Select Return Date",
-            initialDateMillis = selectedDateMillis,
-            minDateOffsetDays = 1 // Return must be at least tomorrow
+            initialDateMillis = dateTimeState.selectedReturnDateMillis,
+            minDateOffsetDays = 1
         )
     }
     
-    // Return Time Picker Dialog
-    if (showReturnTimeDialog) {
+    if (dateTimeState.showReturnTimeDialog) {
         TimePickerDialog(
-            initialHour = returnHour,
-            initialMinute = returnMinute,
-            onTimeSelected = { hour, minute ->
-                returnHour = hour
-                returnMinute = minute
-                showReturnTimeDialog = false
-            },
-            onDismiss = { showReturnTimeDialog = false }
+            initialHour = dateTimeState.returnHour,
+            initialMinute = dateTimeState.returnMinute,
+            onTimeSelected = onReturnTimeSelected,
+            onDismiss = { onDismiss("returnTime") }
         )
     }
 }
@@ -888,84 +972,86 @@ private fun PriceBreakdownCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Total (always visible)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Total",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "$${String.format("%.2f", priceBreakdown.total)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
+            PriceTotalRow(priceBreakdown.total)
             
-            // Expandable breakdown
-            TextButton(
-                onClick = { isExpanded = !isExpanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (isExpanded) "Hide breakdown" else "Show breakdown")
-            }
+            ExpandBreakdownButton(
+                isExpanded = isExpanded,
+                onToggle = { isExpanded = !isExpanded }
+            )
             
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(8.dp))
-                
-                // Box details
-                priceBreakdown.boxDetails.forEach { boxItem ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "${boxItem.boxType} (${boxItem.quantity}×)",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "$${String.format("%.2f", boxItem.totalPrice)}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-                
-                // Daily fee
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Rental (${priceBreakdown.days} days)",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "$${String.format("%.2f", priceBreakdown.dailyFee)}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                
-                // Service fees
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Service & Distance Fee",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "$${String.format("%.2f", priceBreakdown.serviceFee)}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                PriceBreakdownDetails(priceBreakdown)
             }
         }
+    }
+}
+
+@Composable
+private fun PriceTotalRow(total: Double) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Total",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "$${String.format("%.2f", total)}",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun ExpandBreakdownButton(isExpanded: Boolean, onToggle: () -> Unit) {
+    TextButton(
+        onClick = onToggle,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(if (isExpanded) "Hide breakdown" else "Show breakdown")
+    }
+}
+
+@Composable
+private fun PriceBreakdownDetails(priceBreakdown: PriceBreakdown) {
+    priceBreakdown.boxDetails.forEach { boxItem ->
+        PriceRow(
+            label = "${boxItem.boxType} (${boxItem.quantity}×)",
+            amount = boxItem.totalPrice
+        )
+    }
+    
+    PriceRow(
+        label = "Rental (${priceBreakdown.days} days)",
+        amount = priceBreakdown.dailyFee
+    )
+    
+    PriceRow(
+        label = "Service & Distance Fee",
+        amount = priceBreakdown.serviceFee
+    )
+}
+
+@Composable
+private fun PriceRow(label: String, amount: Double) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = "$${String.format("%.2f", amount)}",
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
@@ -1069,288 +1155,366 @@ private fun PaymentDetailsStep(
     var nameError by remember { mutableStateOf<String?>(null) }
     var emailError by remember { mutableStateOf<String?>(null) }
     
-    // Email validation regex
     val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
     
-    // Validation function
     fun validateFields(): Boolean {
-        var isValid = true
-        
-        // Validate name
-        if (paymentDetails.cardholderName.isBlank()) {
-            nameError = "Name is required"
-            isValid = false
-        } else if (paymentDetails.cardholderName.length < 2) {
-            nameError = "Name must be at least 2 characters"
-            isValid = false
-        } else if (!paymentDetails.cardholderName.matches("^[a-zA-Z\\s'-]+$".toRegex())) {
-            nameError = "Name contains invalid characters"
-            isValid = false
-        } else {
-            nameError = null
-        }
-        
-        // Validate email
-        if (paymentDetails.email.isBlank()) {
-            emailError = "Email is required"
-            isValid = false
-        } else if (!paymentDetails.email.matches(emailRegex)) {
-            emailError = "Please enter a valid email address"
-            isValid = false
-        } else {
-            emailError = null
-        }
-        
-        return isValid
+        return validateName(paymentDetails.cardholderName) { nameError = it } &&
+               validateEmail(paymentDetails.email, emailRegex) { emailError = it }
     }
     
     Column {
-        // Order Summary
-        Text(
-            text = "Order Summary",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Total: $${String.format("%.2f", orderRequest.totalPrice)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "${orderRequest.boxQuantities.sumOf { it.quantity }} boxes for ${orderRequest.returnDate}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        OrderSummarySection(orderRequest)
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Test Card Selection (Demo Mode)
-        Text(
-            text = "Payment Method (Demo)",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+        TestCardSelectionSection(
+            selectedCard = selectedTestCard,
+            showSelector = showCardSelector,
+            onShowSelector = { showCardSelector = it },
+            onCardSelected = { card ->
+                selectedTestCard = card
+                showCardSelector = false
+            }
         )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { showCardSelector = true }
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = selectedTestCard.description,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "**** **** **** ${selectedTestCard.number.takeLast(4)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Change card",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        
-        if (showCardSelector) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Card {
-                LazyColumn {
-                    items(TestPaymentMethods.TEST_CARDS) { testCard ->
-                        ListItem(
-                            headlineContent = { Text(testCard.description) },
-                            supportingContent = { Text("**** **** **** ${testCard.number.takeLast(4)}") },
-                            modifier = Modifier.clickable {
-                                selectedTestCard = testCard
-                                showCardSelector = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Customer Information
-        Text(
-            text = "Customer Information",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = paymentDetails.cardholderName,
-            onValueChange = { name ->
-                onPaymentDetailsChange(paymentDetails.copy(cardholderName = name))
-                // Clear error when user starts typing
-                if (nameError != null) nameError = null
-            },
-            label = { Text("Full Name") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            isError = nameError != null,
-            supportingText = nameError?.let { 
-                { Text(it, color = MaterialTheme.colorScheme.error) }
-            },
-            enabled = !isSubmitting
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = paymentDetails.email,
-            onValueChange = { email ->
-                onPaymentDetailsChange(paymentDetails.copy(email = email))
-                // Clear error when user starts typing
-                if (emailError != null) emailError = null
-            },
-            label = { Text("Email Address") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            isError = emailError != null,
-            supportingText = emailError?.let { 
-                { Text(it, color = MaterialTheme.colorScheme.error) }
-            },
-            placeholder = { Text("example@email.com") },
-            enabled = !isSubmitting
+        CustomerInformationSection(
+            paymentDetails = paymentDetails,
+            onPaymentDetailsChange = onPaymentDetailsChange,
+            nameError = nameError,
+            emailError = emailError,
+            isSubmitting = isSubmitting,
+            onNameChanged = { if (nameError != null) nameError = null },
+            onEmailChanged = { if (emailError != null) emailError = null }
         )
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Warning about test cards
         if (selectedTestCard.description.contains("Declined", ignoreCase = true)) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Warning: This test card will be declined",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
+            DeclinedCardWarning()
             Spacer(modifier = Modifier.height(16.dp))
         }
         
-        // Process Payment Button
-        val canProcessPayment = paymentDetails.cardholderName.isNotBlank() && 
-                               paymentDetails.email.matches(emailRegex)
-        
-        Button(
-            onClick = {
-                if (validateFields()) {
-                    showConfirmDialog = true
-                }
-            },
-            enabled = canProcessPayment && !isSubmitting,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (isSubmitting) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Processing...")
-                }
-            } else {
-                Text("Process Payment - $${String.format("%.2f", orderRequest.totalPrice)}")
+        PaymentActionButton(
+            orderRequest = orderRequest,
+            paymentDetails = paymentDetails,
+            emailRegex = emailRegex,
+            isSubmitting = isSubmitting,
+            onValidateAndProceed = {
+                if (validateFields()) showConfirmDialog = true
             }
-        }
+        )
         
-        if (!canProcessPayment) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Please fill in all required fields with valid information",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        
-        // Confirmation Dialog
         if (showConfirmDialog) {
-            AlertDialog(
-                onDismissRequest = { showConfirmDialog = false },
-                title = { Text("Confirm Payment") },
-                text = {
-                    Column {
-                        Text("Please confirm the payment details:")
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Amount: $${String.format("%.2f", orderRequest.totalPrice)}", fontWeight = FontWeight.Bold)
-                        Text("Name: ${paymentDetails.cardholderName}")
-                        Text("Email: ${paymentDetails.email}")
-                        Text("Card: ${selectedTestCard.description}")
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "This is a demo payment using test cards.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            PaymentConfirmationDialog(
+                orderRequest = orderRequest,
+                paymentDetails = paymentDetails,
+                selectedCard = selectedTestCard,
+                isSubmitting = isSubmitting,
+                onConfirm = {
+                    showConfirmDialog = false
+                    onProcessPayment()
                 },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showConfirmDialog = false
-                            onProcessPayment()
-                        },
-                        enabled = !isSubmitting
-                    ) {
-                        Text("Confirm & Pay")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { showConfirmDialog = false },
-                        enabled = !isSubmitting
-                    ) {
-                        Text("Cancel")
-                    }
-                }
+                onDismiss = { showConfirmDialog = false }
             )
         }
     }
+}
+
+private fun validateName(name: String, onError: (String?) -> Unit): Boolean {
+    return when {
+        name.isBlank() -> {
+            onError("Name is required")
+            false
+        }
+        name.length < 2 -> {
+            onError("Name must be at least 2 characters")
+            false
+        }
+        !name.matches("^[a-zA-Z\\s'-]+$".toRegex()) -> {
+            onError("Name contains invalid characters")
+            false
+        }
+        else -> {
+            onError(null)
+            true
+        }
+    }
+}
+
+private fun validateEmail(email: String, emailRegex: Regex, onError: (String?) -> Unit): Boolean {
+    return when {
+        email.isBlank() -> {
+            onError("Email is required")
+            false
+        }
+        !email.matches(emailRegex) -> {
+            onError("Please enter a valid email address")
+            false
+        }
+        else -> {
+            onError(null)
+            true
+        }
+    }
+}
+
+@Composable
+private fun OrderSummarySection(orderRequest: OrderRequest) {
+    Text(
+        text = "Order Summary",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
+    
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Total: $${String.format("%.2f", orderRequest.totalPrice)}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "${orderRequest.boxQuantities.sumOf { it.quantity }} boxes for ${orderRequest.returnDate}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun TestCardSelectionSection(
+    selectedCard: TestCard,
+    showSelector: Boolean,
+    onShowSelector: (Boolean) -> Unit,
+    onCardSelected: (TestCard) -> Unit
+) {
+    Text(
+        text = "Payment Method (Demo)",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold
+    )
+    
+    Spacer(modifier = Modifier.height(8.dp))
+    
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { onShowSelector(true) }
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = selectedCard.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "**** **** **** ${selectedCard.number.takeLast(4)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = "Change card",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+    
+    if (showSelector) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Card {
+            LazyColumn {
+                items(TestPaymentMethods.TEST_CARDS) { testCard ->
+                    ListItem(
+                        headlineContent = { Text(testCard.description) },
+                        supportingContent = { Text("**** **** **** ${testCard.number.takeLast(4)}") },
+                        modifier = Modifier.clickable { onCardSelected(testCard) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomerInformationSection(
+    paymentDetails: PaymentDetails,
+    onPaymentDetailsChange: (PaymentDetails) -> Unit,
+    nameError: String?,
+    emailError: String?,
+    isSubmitting: Boolean,
+    onNameChanged: () -> Unit,
+    onEmailChanged: () -> Unit
+) {
+    Text(
+        text = "Customer Information",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold
+    )
+    
+    Spacer(modifier = Modifier.height(16.dp))
+    
+    OutlinedTextField(
+        value = paymentDetails.cardholderName,
+        onValueChange = { name ->
+            onPaymentDetailsChange(paymentDetails.copy(cardholderName = name))
+            onNameChanged()
+        },
+        label = { Text("Full Name") },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        isError = nameError != null,
+        supportingText = nameError?.let { 
+            { Text(it, color = MaterialTheme.colorScheme.error) }
+        },
+        enabled = !isSubmitting
+    )
+    
+    Spacer(modifier = Modifier.height(16.dp))
+    
+    OutlinedTextField(
+        value = paymentDetails.email,
+        onValueChange = { email ->
+            onPaymentDetailsChange(paymentDetails.copy(email = email))
+            onEmailChanged()
+        },
+        label = { Text("Email Address") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        isError = emailError != null,
+        supportingText = emailError?.let { 
+            { Text(it, color = MaterialTheme.colorScheme.error) }
+        },
+        placeholder = { Text("example@email.com") },
+        enabled = !isSubmitting
+    )
+}
+
+@Composable
+private fun DeclinedCardWarning() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Warning: This test card will be declined",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaymentActionButton(
+    orderRequest: OrderRequest,
+    paymentDetails: PaymentDetails,
+    emailRegex: Regex,
+    isSubmitting: Boolean,
+    onValidateAndProceed: () -> Unit
+) {
+    val canProcessPayment = paymentDetails.cardholderName.isNotBlank() && 
+                           paymentDetails.email.matches(emailRegex)
+    
+    Button(
+        onClick = onValidateAndProceed,
+        enabled = canProcessPayment && !isSubmitting,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (isSubmitting) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Processing...")
+            }
+        } else {
+            Text("Process Payment - $${String.format("%.2f", orderRequest.totalPrice)}")
+        }
+    }
+    
+    if (!canProcessPayment) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Please fill in all required fields with valid information",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun PaymentConfirmationDialog(
+    orderRequest: OrderRequest,
+    paymentDetails: PaymentDetails,
+    selectedCard: TestCard,
+    isSubmitting: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Confirm Payment") },
+        text = {
+            Column {
+                Text("Please confirm the payment details:")
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Amount: $${String.format("%.2f", orderRequest.totalPrice)}", fontWeight = FontWeight.Bold)
+                Text("Name: ${paymentDetails.cardholderName}")
+                Text("Email: ${paymentDetails.email}")
+                Text("Card: ${selectedCard.description}")
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "This is a demo payment using test cards.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = !isSubmitting
+            ) {
+                Text("Confirm & Pay")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isSubmitting
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 // Step 5: Processing Payment
@@ -1394,87 +1558,15 @@ private fun OrderConfirmationStep(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Success Icon
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-            modifier = Modifier.size(80.dp)
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+        SuccessIcon()
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        Text(
-            text = "Order Created Successfully!",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = "Your payment has been processed and your order is confirmed.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+        ConfirmationMessage()
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Order Details
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Order Details",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Total Amount:")
-                    Text(
-                        "$${String.format("%.2f", orderRequest.totalPrice)}",
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Boxes:")
-                    Text("${orderRequest.boxQuantities.sumOf { it.quantity }} boxes")
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Return Date:")
-                    Text(orderRequest.returnDate)
-                }
-            }
-        }
+        OrderDetailsCard(orderRequest)
         
         Spacer(modifier = Modifier.height(32.dp))
         
@@ -1484,5 +1576,76 @@ private fun OrderConfirmationStep(
         ) {
             Text("Close")
         }
+    }
+}
+
+@Composable
+private fun SuccessIcon() {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        modifier = Modifier.size(80.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Icon(
+                Icons.Default.Check,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConfirmationMessage() {
+    Text(
+        text = "Order Created Successfully!",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center
+    )
+    
+    Spacer(modifier = Modifier.height(8.dp))
+    
+    Text(
+        text = "Your payment has been processed and your order is confirmed.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center
+    )
+}
+
+@Composable
+private fun OrderDetailsCard(orderRequest: OrderRequest) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Order Details",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            OrderDetailRow("Total Amount:", "$${String.format("%.2f", orderRequest.totalPrice)}")
+            OrderDetailRow("Boxes:", "${orderRequest.boxQuantities.sumOf { it.quantity }} boxes")
+            OrderDetailRow("Return Date:", orderRequest.returnDate)
+        }
+    }
+}
+
+@Composable
+private fun OrderDetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label)
+        Text(value, fontWeight = if (label.contains("Total")) FontWeight.Medium else null)
     }
 }

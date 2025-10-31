@@ -1,5 +1,6 @@
 package com.cpen321.usermanagement.ui.components
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -15,8 +16,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -76,6 +80,8 @@ private fun ActiveOrderStatusContent(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val hasActiveReturnJob = hasActiveReturnJob(studentJobs, order.id)
+    val returnJob = findActiveReturnJob(studentJobs, order.id)
 
     Card(
         modifier = modifier
@@ -87,271 +93,335 @@ private fun ActiveOrderStatusContent(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
     ) {
-        // Check if an active return job exists for this order
-        // An active return job is one that's not cancelled and not completed yet
-        val hasActiveReturnJob = studentJobs.any { job ->
-            job.jobType == JobType.RETURN &&
-                    job.orderId == order.id &&
-                    job.status != JobStatus.CANCELLED &&
-                    job.status != JobStatus.COMPLETED
-        }
-
-        // Find the return job if it exists
-        val returnJob = studentJobs.find { job ->
-            job.jobType == JobType.RETURN &&
-            job.orderId == order.id &&
-            job.status != JobStatus.CANCELLED &&
-            job.status != JobStatus.COMPLETED
-        }
-
-        println("Active return job  : ${hasActiveReturnJob}")
-        println("StudentJobs ${studentJobs}")
-        println("orderid : ${order.id}")
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Status Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Order Status and Details",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Status",
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // Progress Indicator (based on order status)
-            val progress = when (order.status) {
-                OrderStatus.PENDING -> 0.2f
-                OrderStatus.ACCEPTED -> 0.4f
-                OrderStatus.PICKED_UP -> 0.7f
-                OrderStatus.IN_STORAGE -> 1.0f
-                OrderStatus.CANCELLED -> 0.0f
-                OrderStatus.RETURNED -> 0.2f
-                OrderStatus.COMPLETED -> 0.2f
-            }
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary
+            OrderStatusHeader()
+            
+            OrderProgressIndicator(order.status)
+            
+            OrderStatusDetails(
+                order = order,
+                hasActiveReturnJob = hasActiveReturnJob
             )
-
-            // Status Details
-            StatusDetailRow(
-                icon = Icons.Default.CheckCircle,
-                label = "Status",
-                value = order.status.displayText
+            
+            CalendarButtonSection(
+                order = order,
+                hasActiveReturnJob = hasActiveReturnJob,
+                returnJob = returnJob,
+                context = context
             )
+            
+            JobStatusCard(
+                order = order,
+                hasActiveReturnJob = hasActiveReturnJob,
+                onCreateReturnJob = onCreateReturnJob
+            )
+        }
+    }
+}
 
+private fun hasActiveReturnJob(studentJobs: List<Job>, orderId: String?): Boolean {
+    return studentJobs.any { job ->
+        job.jobType == JobType.RETURN &&
+                job.orderId == orderId &&
+                job.status != JobStatus.CANCELLED &&
+                job.status != JobStatus.COMPLETED
+    }
+}
 
-            if (!hasActiveReturnJob){
-                StatusDetailRow(
-                    icon = Icons.Default.LocationOn,
-                    label = "Pickup Address",
-                    value = order.studentAddress.formattedAddress
-                )
+private fun findActiveReturnJob(studentJobs: List<Job>, orderId: String?): Job? {
+    return studentJobs.find { job ->
+        job.jobType == JobType.RETURN &&
+                job.orderId == orderId &&
+                job.status != JobStatus.CANCELLED &&
+                job.status != JobStatus.COMPLETED
+    }
+}
+
+@Composable
+private fun OrderStatusHeader() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Order Status and Details",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = "Status",
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun OrderProgressIndicator(status: OrderStatus) {
+    val progress = when (status) {
+        OrderStatus.PENDING -> 0.2f
+        OrderStatus.ACCEPTED -> 0.4f
+        OrderStatus.PICKED_UP -> 0.7f
+        OrderStatus.IN_STORAGE -> 1.0f
+        OrderStatus.CANCELLED -> 0.0f
+        OrderStatus.RETURNED -> 0.2f
+        OrderStatus.COMPLETED -> 0.2f
+    }
+    LinearProgressIndicator(
+        progress = { progress },
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.primary
+    )
+}
+
+@Composable
+private fun OrderStatusDetails(
+    order: Order,
+    hasActiveReturnJob: Boolean
+) {
+    StatusDetailRow(
+        icon = Icons.Default.CheckCircle,
+        label = "Status",
+        value = order.status.displayText
+    )
+
+    if (!hasActiveReturnJob) {
+        StatusDetailRow(
+            icon = Icons.Default.LocationOn,
+            label = "Pickup Address",
+            value = order.studentAddress.formattedAddress
+        )
+    }
+
+    if (order.status == OrderStatus.IN_STORAGE) {
+        StatusDetailRow(
+            icon = Icons.Default.LocationOn,
+            label = "Storage Location",
+            value = order.warehouseAddress.formattedAddress
+        )
+    }
+
+    if (!hasActiveReturnJob) {
+        StatusDetailRow(
+            icon = Icons.Default.Info,
+            label = "Pickup Date",
+            value = TimeUtils.formatDateTime(order.pickupTime)
+        )
+    }
+
+    if (hasActiveReturnJob) {
+        StatusDetailRow(
+            icon = Icons.Default.Info,
+            label = "Return Date",
+            value = TimeUtils.formatDateTime(order.returnTime)
+        )
+    }
+
+    Spacer(modifier = Modifier.height(2.dp))
+}
+
+@Composable
+private fun CalendarButtonSection(
+    order: Order,
+    hasActiveReturnJob: Boolean,
+    returnJob: Job?,
+    context: Context
+) {
+    val showCalendarButton = (!hasActiveReturnJob && order.status == OrderStatus.ACCEPTED) ||
+                             (hasActiveReturnJob && returnJob?.status == JobStatus.ACCEPTED)
+
+    if (!showCalendarButton) return
+
+    val (eventTime, buttonText, eventTitle, locationAddress) = if (hasActiveReturnJob) {
+        listOf(
+            order.returnTime,
+            "Add Return to Calendar",
+            "DormDash Storage Return",
+            order.returnAddress?.formattedAddress
+        )
+    } else {
+        listOf(
+            order.pickupTime,
+            "Add Pickup to Calendar",
+            "DormDash Storage Pickup",
+            order.studentAddress.formattedAddress
+        )
+    }
+
+    val calendarEventUrl = generateCalendarUrl(
+        eventTime as String,
+        eventTitle as String,
+        locationAddress as String
+    )
+
+    if (calendarEventUrl != null) {
+        CalendarButton(
+            buttonText = buttonText as String,
+            calendarUrl = calendarEventUrl,
+            context = context
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+private fun generateCalendarUrl(
+    eventTime: String,
+    eventTitle: String,
+    locationAddress: String
+): String? {
+    return try {
+        val zoned: ZonedDateTime = try {
+            ZonedDateTime.parse(eventTime)
+        } catch (e1: Exception) {
+            try {
+                OffsetDateTime.parse(eventTime).toZonedDateTime()
+            } catch (e2: Exception) {
+                val ldt = LocalDateTime.parse(eventTime)
+                ldt.atZone(ZoneId.systemDefault())
             }
+        }
 
+        val pacificStart = zoned.withZoneSameInstant(ZoneId.of("America/Los_Angeles"))
+        val pacificEnd = pacificStart.plusMinutes(15)
+        val dateFormatterLocal = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
 
-            // Show warehouse/storage location when order is in storage
-            if (order.status == OrderStatus.IN_STORAGE ) {
-                StatusDetailRow(
-                    icon = Icons.Default.LocationOn,
-                    label = "Storage Location",
-                    value = order.warehouseAddress.formattedAddress
-                )
-            }
+        val title = Uri.encode(eventTitle)
+        val details = Uri.encode("Make sure to meet your mover on time!")
+        val location = Uri.encode(locationAddress)
 
-            if (!hasActiveReturnJob){
-                StatusDetailRow(
-                    icon = Icons.Default.Info,
-                    label ="Pickup Date",
-                    value = "${TimeUtils.formatDateTime(order.pickupTime)}"
-                )
-            }
+        "https://www.google.com/calendar/render?action=TEMPLATE" +
+                "&text=$title" +
+                "&dates=${pacificStart.format(dateFormatterLocal)}/${pacificEnd.format(dateFormatterLocal)}" +
+                "&details=$details" +
+                "&location=$location" +
+                "&ctz=America/Los_Angeles"
+    } catch (e: java.time.format.DateTimeParseException) {
+        println("Error parsing date for calendar: ${e.message}")
+        null
+    } catch (e: IllegalArgumentException) {
+        println("Invalid date value for calendar: ${e.message}")
+        null
+    }
+}
 
-            if (hasActiveReturnJob){
-                StatusDetailRow(
-                    icon = Icons.Default.Info,
-                    label ="Return Date",
-                    value = "${TimeUtils.formatDateTime(order.returnTime)}"
-                )
-            }
+@Composable
+private fun CalendarButton(
+    buttonText: String,
+    calendarUrl: String,
+    context: Context
+) {
+    OutlinedButton(
+        onClick = {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(calendarUrl))
+            context.startActivity(intent)
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector = Icons.Default.Event,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(buttonText)
+    }
+}
 
-            Spacer(modifier = Modifier.height(2.dp))
-
-            // Calendar Button Logic - Show when job is ACCEPTED
-            val showCalendarButton = (!hasActiveReturnJob && order.status == OrderStatus.ACCEPTED) ||
-                                    (hasActiveReturnJob && returnJob?.status == JobStatus.ACCEPTED)
-
-            if (showCalendarButton) {
-                val (eventTime, buttonText, eventTitle, locationAddress) = if (hasActiveReturnJob) {
-                    // Return job - use returnTime and return location
-                    listOf(
-                        order.returnTime,
-                        "Add Return to Calendar",
-                        "DormDash Storage Return",
-                        order.returnAddress?.formattedAddress
-                    )
-                } else {
-                    // Pickup job - use pickupTime and student address
-                    listOf(
-                        order.pickupTime,
-                        "Add Pickup to Calendar",
-                        "DormDash Storage Pickup",
-                        order.studentAddress.formattedAddress
-                    )
-                }
-
-                // Calculate calendar URL outside of composable context
-                val calendarEventUrl = try {
-                    val zoned: ZonedDateTime = try {
-                        ZonedDateTime.parse(eventTime as String)
-                    } catch (e1: Exception) {
-                        try {
-                            OffsetDateTime.parse(eventTime as String).toZonedDateTime()
-                        } catch (e2: Exception) {
-                            val ldt = LocalDateTime.parse(eventTime as String)
-                            ldt.atZone(ZoneId.systemDefault())
-                        }
-                    }
-
-                    val pacificStart = zoned.withZoneSameInstant(ZoneId.of("America/Los_Angeles"))
-                    val pacificEnd = pacificStart.plusMinutes(15)
-                    val dateFormatterLocal = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
-
-                    val title = Uri.encode(eventTitle as String)
-                    val details = Uri.encode("Make sure to meet your mover on time!")
-                    val location = Uri.encode(locationAddress as String)
-
-                    "https://www.google.com/calendar/render?action=TEMPLATE" +
-                        "&text=$title" +
-                        "&dates=${pacificStart.format(dateFormatterLocal)}/${pacificEnd.format(dateFormatterLocal)}" +
-                        "&details=$details" +
-                        "&location=$location" +
-                        "&ctz=America/Los_Angeles"
-                } catch (e: java.time.format.DateTimeParseException) {
-                    println("Error parsing date for calendar: ${e.message}")
-                    null
-                } catch (e: IllegalArgumentException) {
-                    println("Invalid date value for calendar: ${e.message}")
-                    null
-                }
-
-                // Only show button if URL was successfully generated
-                if (calendarEventUrl != null) {
-                    OutlinedButton(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(calendarEventUrl))
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Event,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(buttonText as String)
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (hasActiveReturnJob) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.tertiaryContainer
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (!hasActiveReturnJob ) {
-                            Text(
-                                text = "📦 Pickup & Storage",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                            val storageStatusText = when {
-                                order.status == OrderStatus.PENDING -> "📋 Awaiting mover"
-                                order.status == OrderStatus.ACCEPTED -> "✅ Pickup scheduled"
-                                order.status == OrderStatus.PICKED_UP -> "🚚 En route to storage"
-                                order.status == OrderStatus.IN_STORAGE -> "🏬 In storage"
-                                else -> order.status.displayText
-                            }
-
-                            StatusDetailRow(
-                                icon = Icons.Default.CheckCircle,
-                                label = "Status",
-                                value = storageStatusText,
-                            )
-                    } else {
-                        Text(
-                            text = "🚚 Return Delivery",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-
-                        // Find the return job that belongs to this order (match on orderId)
-                        val returnJob = studentJobs.find { job -> job.jobType == JobType.RETURN && job.orderId == order.id }
-                        println("Return job ${returnJob}")
-                        val returnStatusText = when (returnJob?.status) {
-                            JobStatus.AVAILABLE -> "📋 Awaiting mover"
-                            JobStatus.ACCEPTED -> "✅ Return scheduled"
-                            JobStatus.PICKED_UP -> "🚚 Out for delivery"
-                            JobStatus.COMPLETED -> "✅ Delivered"
-                            else -> "📦 Processing return"
-                        }
-
-                        StatusDetailRow(
-                            icon = Icons.Default.CheckCircle,
-                            label = "Status",
-                            value = returnStatusText,
-                        )
-                    }
-                }
-
-                // Show button only if:
-                // 1. Order is in storage
-                // 2. No active return job exists (completed return jobs don't count)
-                if (order.status == OrderStatus.IN_STORAGE && !hasActiveReturnJob) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Button(onClick = onCreateReturnJob) {
-                            //this is technically creating a create return job, but makes more sense to the user to see it as Confirm Return
-                            Text("Confirm Order Return")
-                        }
-                    }
-                }
+@Composable
+private fun JobStatusCard(
+    order: Order,
+    hasActiveReturnJob: Boolean,
+    onCreateReturnJob: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (hasActiveReturnJob)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (!hasActiveReturnJob) {
+                PickupJobStatus(order, onCreateReturnJob)
+            } else {
+                ReturnJobStatus()
             }
         }
     }
+}
+
+@Composable
+private fun PickupJobStatus(order: Order, onCreateReturnJob: () -> Unit) {
+    Text(
+        text = "📦 Pickup & Storage",
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onTertiaryContainer
+    )
+    
+    val storageStatusText = when {
+        order.status == OrderStatus.PENDING -> "📋 Awaiting mover"
+        order.status == OrderStatus.ACCEPTED -> "✅ Pickup scheduled"
+        order.status == OrderStatus.PICKED_UP -> "🚚 En route to storage"
+        order.status == OrderStatus.IN_STORAGE -> "🏬 In storage"
+        else -> order.status.displayText
+    }
+    
+    Text(
+        text = storageStatusText,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onTertiaryContainer
+    )
+    
+    if (order.status == OrderStatus.IN_STORAGE) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Button(
+            onClick = onCreateReturnJob,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiary
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Home,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Schedule Return Delivery")
+        }
+    }
+}
+
+@Composable
+private fun ReturnJobStatus() {
+    Text(
+        text = "🏠 Return Delivery",
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onPrimaryContainer
+    )
+    Text(
+        text = "✅ Return delivery scheduled",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onPrimaryContainer
+    )
 }
 
 @Composable
