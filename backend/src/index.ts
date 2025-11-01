@@ -42,8 +42,14 @@ process.on('unhandledRejection', (reason: unknown) => {
   // Gracefully close server and exit
   server.close(() => {
     logger.info('Server closed due to unhandled rejection');
-    process.exitCode = 1;
+    process.exit(1);
   });
+  
+  // Force exit after timeout if graceful shutdown fails
+  setTimeout(() => {
+    logger.error('Forced exit after timeout');
+    process.exit(1);
+  }, 10000);
 });
 
 process.on('uncaughtException', (error: Error) => {
@@ -51,6 +57,12 @@ process.on('uncaughtException', (error: Error) => {
   // Gracefully close server and exit
   server.close(() => {
     logger.info('Server closed due to uncaught exception');
-    process.exitCode = 1;
+    process.exit(1);
   });
+  
+  // Force exit after timeout if graceful shutdown fails
+  setTimeout(() => {
+    logger.error('Forced exit after timeout');
+    process.exit(1);
+  }, 10000);
 });
