@@ -153,7 +153,7 @@ export class JobService {
       const newJob: Job = {
         _id: new mongoose.Types.ObjectId(),
         orderId: new mongoose.Types.ObjectId(reqData.orderId),
-        studentId: new mongoose.Types.ObjectId(reqData.studentId),
+        studentId: new mongoose.Types.ObjectId(reqData.studentId as string),
         jobType: reqData.jobType,
         status: JobStatus.AVAILABLE,
         volume: reqData.volume,

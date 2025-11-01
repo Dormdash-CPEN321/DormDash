@@ -1,5 +1,5 @@
 import { JobResponse, Job } from '../types/job.type';
-import logger from '../utils/logger.util';
+
 /**
  * JobMapper - Centralized data transformation for Job entities
  * Produces API DTOs (string IDs and ISO timestamps) consumed by the frontend.

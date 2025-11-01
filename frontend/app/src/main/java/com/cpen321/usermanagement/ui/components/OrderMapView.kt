@@ -16,6 +16,7 @@ import com.google.maps.android.compose.*
 import com.cpen321.usermanagement.utils.LocationUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 // Data class to group map state
 private data class MapState(
@@ -70,7 +71,15 @@ private fun GeocodeAddressEffect(
                     isLoading = false,
                     hasError = location == null
                 ))
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                // Network error during geocoding
+                onStateChange(MapState(
+                    location = LocationUtils.getFallbackCoordinates(address),
+                    isLoading = false,
+                    hasError = true
+                ))
+            } catch (e: IllegalArgumentException) {
+                // Invalid address format
                 onStateChange(MapState(
                     location = LocationUtils.getFallbackCoordinates(address),
                     isLoading = false,

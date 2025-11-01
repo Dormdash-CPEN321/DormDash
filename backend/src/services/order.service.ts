@@ -161,15 +161,10 @@ export class OrderService {
   }
 
   async createReturnJob(
-    studentId: ObjectId,  // ✅ Required, not optional
+    studentId: ObjectId,
     returnJobRequest?: CreateReturnJobRequest
   ): Promise<CreateReturnJobResponse> {
     try {
-      // ✅ Validate studentId is provided
-      if (!studentId) {
-        throw new Error('Student ID is required to create return job');
-      }
-      
       const activeOrder = await orderModel.findActiveOrder({
         studentId,
         status: { $in: ACTIVE_ORDER_STATUSES },
@@ -177,12 +172,6 @@ export class OrderService {
 
       if (!activeOrder) {
         throw new Error('No active order found to create return job for');
-      }
-      
-      // ✅ Validate activeOrder has valid _id
-      if (!activeOrder._id) {
-        logger.error('Active order found but has no _id:', activeOrder);
-        throw new Error('Invalid order data: missing order ID');
       }
 
       // Idempotency guard: check if a return job already exists for this order

@@ -10,7 +10,7 @@ import {
   CreateReturnJobResponse,
   CreateReturnJobRequest,
 } from '../types/order.types';
-import mongoose, { ObjectId } from 'mongoose';
+import { ObjectId } from 'mongoose';
 import logger from '../utils/logger.util';
 import { OrderMapper } from '../mappers/order.mapper';
 
@@ -53,16 +53,16 @@ export class OrderController {
     next: NextFunction
   ) {
     try {
-      // Use authenticated user id from req.user (set by auth middleware)
-      const studentId = req.user?._id as unknown as ObjectId;
-      
-      if (!studentId) {
+      // Validate that the user is authenticated
+      if (!req.user?._id) {
         res.status(401).json({ 
           success: false,
           message: 'Authentication required. Please log in.',
         } as CreateReturnJobResponse);
         return;
       }
+
+      const studentId = req.user?._id as unknown as ObjectId;
       
       const returnJobRequest = req.body as CreateReturnJobRequest;
       
