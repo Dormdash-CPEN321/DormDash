@@ -369,7 +369,6 @@ export class RoutePlannerService {
       // Filter jobs that are feasible by arrival, within mover availability,
       // and — if a maxDuration is provided — fit within the remaining time budget.
       const feasibleJobs = jobsWithDistances.filter(j => {
-        if (!j) return false;
         if (!j.isFeasibleByArrival) return false;
         if (!j.withinAvailability) return false;
         if (typeof maxDuration === 'number') {
@@ -397,10 +396,6 @@ export class RoutePlannerService {
         (a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime()
       );
       const selectedJob = feasibleJobs[0];
-
-      if (!selectedJob) {
-        throw new Error('Selected job is null or undefined');
-      }
 
       const jobDuration = selectedJob.jobDuration;
       const pickupLoc = selectedJob.pickupAddress;

@@ -25,7 +25,7 @@ app.use(errorHandler);
 
 connectDB().catch((error: unknown) => {
   logger.error('Failed to connect to database:', error);
-  process.exit(1);
+  throw error; // Let the unhandled rejection crash the process
 });
 
 const server = app.listen(PORT, () => {
@@ -35,3 +35,22 @@ const server = app.listen(PORT, () => {
 const io = initSocket(server);
 
 logger.info(`Socket.io ${io ? 'initialized' : 'failed to initialize'}`);
+
+// Global error handlers for graceful shutdown
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.error('Unhandled Rejection:', reason);
+  // Gracefully close server and exit
+  server.close(() => {
+    logger.info('Server closed due to unhandled rejection');
+    process.exitCode = 1;
+  });
+});
+
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught Exception:', error);
+  // Gracefully close server and exit
+  server.close(() => {
+    logger.info('Server closed due to uncaught exception');
+    process.exitCode = 1;
+  });
+});
