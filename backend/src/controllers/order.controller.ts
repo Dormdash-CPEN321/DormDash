@@ -62,7 +62,7 @@ export class OrderController {
         return;
       }
 
-      const studentId = req.user?._id as unknown as ObjectId;
+      const studentId = req.user._id as unknown as ObjectId;
       
       const returnJobRequest = req.body as CreateReturnJobRequest;
       
