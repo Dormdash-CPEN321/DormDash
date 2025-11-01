@@ -82,8 +82,7 @@ export class JobModel {
   async findById(jobId: mongoose.Types.ObjectId): Promise<Job | null> {
     try {
       return await this.job
-        .findById(jobId)
-        .populate('orderId studentId moverId');
+        .findById(jobId);
     } catch (error) {
       logger.error('Error finding job:', error);
       throw new Error('Failed to find job');
@@ -93,8 +92,7 @@ export class JobModel {
   async findByOrderId(orderId: mongoose.Types.ObjectId): Promise<Job[]> {
     try {
       return await this.job
-        .find({ orderId })
-        .populate('orderId studentId moverId');
+        .find({ orderId });
     } catch (error) {
       logger.error('Error finding jobs by order:', error);
       throw new Error('Failed to find jobs');
@@ -104,8 +102,7 @@ export class JobModel {
   async findAvailableJobs(): Promise<Job[]> {
     try {
       const jobs = await this.job
-        .find({ status: JobStatus.AVAILABLE })
-        .populate('orderId studentId');
+        .find({ status: JobStatus.AVAILABLE });
       return jobs;
     } catch (error) {
       logger.error('Error finding available jobs:', error);
@@ -115,7 +112,7 @@ export class JobModel {
 
   async findAllJobs(): Promise<Job[]> {
     try {
-      return await this.job.find({}).populate('orderId studentId moverId');
+      return await this.job.find({});
     } catch (error) {
       logger.error('Error finding all jobs:', error);
       throw new Error('Failed to find all jobs');
@@ -124,7 +121,7 @@ export class JobModel {
 
   async findByMoverId(moverId: mongoose.Types.ObjectId): Promise<Job[]> {
     try {
-      return await this.job.find({ moverId }).populate('orderId studentId');
+      return await this.job.find({ moverId });
     } catch (error) {
       logger.error('Error finding mover jobs:', error);
       throw new Error('Failed to find mover jobs');
@@ -133,7 +130,7 @@ export class JobModel {
 
   async findByStudentId(studentId: mongoose.Types.ObjectId): Promise<Job[]> {
     try {
-      return await this.job.find({ studentId }).populate('orderId moverId');
+      return await this.job.find({ studentId });
     } catch (error) {
       logger.error('Error finding student jobs:', error);
       throw new Error('Failed to find student jobs');

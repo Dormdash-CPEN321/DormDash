@@ -10,7 +10,7 @@ import {
   CreateReturnJobResponse,
   CreateReturnJobRequest,
 } from '../types/order.types';
-import { ObjectId } from 'mongoose';
+import mongoose, { ObjectId } from 'mongoose';
 import logger from '../utils/logger.util';
 import { OrderMapper } from '../mappers/order.mapper';
 
@@ -54,10 +54,20 @@ export class OrderController {
   ) {
     try {
       // Use authenticated user id from req.user (set by auth middleware)
-      const studentId = req.user?._id;
+      const studentId = req.user?._id as unknown as ObjectId;
+      
+      if (!studentId) {
+        res.status(401).json({ 
+          success: false,
+          message: 'Authentication required. Please log in.',
+        } as CreateReturnJobResponse);
+        return;
+      }
+      
       const returnJobRequest = req.body as CreateReturnJobRequest;
+      
       const result = await this.orderService.createReturnJob(
-        studentId as ObjectId | undefined,
+        studentId,
         returnJobRequest
       );
       res.status(201).json(result);
@@ -73,10 +83,10 @@ export class OrderController {
     next: NextFunction
   ) {
     try {
-      const orders = await this.orderService.getAllOrders(
-        req.user?._id as ObjectId | undefined
+      const result = await this.orderService.getAllOrders(
+        req.user?._id as unknown as ObjectId
       );
-      res.status(200).json(orders);
+      res.status(200).json(result);
     } catch (error) {
       // TODO: improve error handling
       next(error);
@@ -89,22 +99,15 @@ export class OrderController {
     next: NextFunction
   ) {
     try {
-      // Get studentId from authenticated user
-      const studentId = req.user?._id;
-
-      const order = await this.orderService.getUserActiveOrder(
-        studentId as ObjectId | undefined
-      );
-
+      const studentId = req.user?._id as unknown as ObjectId;
+      const order = await this.orderService.getUserActiveOrder(studentId);
       if (!order) {
-        return res.status(404).json(null);
+        res.status(404).json(null);
+        return;
       }
-
-      // Map to CreateOrderResponse so `id` (string) is included for frontend
-      const mapped = OrderMapper.toCreateOrderResponse(order);
-      res.status(200).json(mapped);
+      res.status(200).json(order);
     } catch (error) {
-      logger.error('Error in getActiveOrder controller:', error);
+      // TODO: improve error handling
       next(error);
     }
   }
@@ -115,13 +118,13 @@ export class OrderController {
     next: NextFunction
   ) {
     try {
-      const result = await this.orderService.cancelOrder(
-        req.user?._id as ObjectId | undefined
-      );
+      const studentId = req.user?._id as unknown as ObjectId;
+      const result = await this.orderService.cancelOrder(studentId);
       res.status(200).json(result);
     } catch (error) {
-      logger.error('Error in cancelOrder controller:', error);
+      // TODO: improve error handling
       next(error);
     }
   }
 }
+
