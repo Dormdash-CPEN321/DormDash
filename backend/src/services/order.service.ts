@@ -4,6 +4,7 @@ import { jobModel } from '../models/job.model';
 import { WAREHOUSES } from '../constants/warehouses';
 import {
   CreateOrderRequest,
+  CreateOrderRequestWithIdempotency,
   QuoteRequest,
   GetQuoteResponse,
   CancelOrderResponse,
@@ -73,7 +74,7 @@ export class OrderService {
   }
 
   async createOrder(
-    reqData: CreateOrderRequest & { idempotencyKey?: string }
+    reqData: CreateOrderRequestWithIdempotency
   ): Promise<CreateOrderResponse> {
     try {
       const idempotencyKey = reqData.idempotencyKey;
@@ -284,14 +285,36 @@ export class OrderService {
     }
   }
 
-  async getUserActiveOrder(
+    async getUserActiveOrder(
     studentId: ObjectId | undefined
   ): Promise<Order | null> {
     const activeOrder = await orderModel.findActiveOrder({
       studentId,
       status: { $in: ACTIVE_ORDER_STATUSES },
     });
-    return activeOrder;
+    
+    // Return null if no active order found
+    if (!activeOrder) {
+      return null;
+    }
+    
+    // Transform to include 'id' field expected by frontend
+    return {
+      _id: activeOrder._id,
+      id: activeOrder._id.toString(),
+      studentId: activeOrder.studentId,
+      moverId: activeOrder.moverId,
+      status: activeOrder.status,
+      volume: activeOrder.volume,
+      price: activeOrder.price,
+      studentAddress: activeOrder.studentAddress,
+      warehouseAddress: activeOrder.warehouseAddress,
+      returnAddress: activeOrder.returnAddress,
+      pickupTime: activeOrder.pickupTime,
+      returnTime: activeOrder.returnTime,
+      idempotencyKey: activeOrder.idempotencyKey,
+      paymentIntentId: activeOrder.paymentIntentId,
+    } as Order;
   }
 
   async getAllOrders(

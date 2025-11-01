@@ -48,7 +48,7 @@ export function emitJobCreated(job: Job, meta?: EventMeta): void {
     const rooms = [
       `order:${payload.job.orderId}`,
       `job:${payload.job.id}`,
-      `user:${job.studentId.toString()}`,
+      `user:${extractId(job.studentId)}`,
       'role:mover', // Broadcast to all movers
     ];
 
@@ -99,13 +99,13 @@ export function emitJobUpdated(job: Job | null, meta?: EventMeta): void {
     } else {
       // Job is assigned to a mover - emit to base rooms + specific mover only
       emitToRooms(
-        [...baseRooms, `user:${job.moverId.toString()}`],
+        [...baseRooms, `user:${extractId(job.moverId)}`],
         'job.updated',
         payload,
         meta
       );
       logger.info(
-        `Emitted job.updated for assigned job ${payload.job.id} to mover ${job.moverId.toString()}`
+        `Emitted job.updated for assigned job ${payload.job.id} to mover ${extractId(job.moverId)}`
       );
     }
   } catch (err) {
@@ -123,8 +123,8 @@ export function emitOrderCreated(order: Order | null, meta?: EventMeta): void {
       event: 'order.created',
       order: {
         id: order?._id.toString(),
-        studentId: order?.studentId.toString(),
-        moverId: order?.moverId?.toString(),
+        studentId: extractId(order?.studentId),
+        moverId: order?.moverId ? extractId(order.moverId) : undefined,
         status: order?.status,
         volume: order?.volume,
         price: order?.price,
@@ -138,7 +138,7 @@ export function emitOrderCreated(order: Order | null, meta?: EventMeta): void {
     };
 
     const rooms = [
-      `user:${order?.studentId.toString()}`,
+      `user:${extractId(order?.studentId)}`,
       `order:${order?._id.toString()}`,
     ];
 
@@ -159,8 +159,8 @@ export function emitOrderUpdated(order: Order | null, meta?: EventMeta): void {
       event: 'order.updated',
       order: {
         id: order?._id.toString(),
-        studentId: order?.studentId.toString(),
-        moverId: order?.moverId?.toString(),
+        studentId: extractId(order?.studentId),
+        moverId: order?.moverId ? extractId(order.moverId) : undefined,
         status: order?.status,
         volume: order?.volume,
         price: order?.price,
@@ -174,7 +174,7 @@ export function emitOrderUpdated(order: Order | null, meta?: EventMeta): void {
     };
 
     const rooms = [
-      `user:${order?.studentId.toString()}`,
+      `user:${extractId(order?.studentId)}`,
       `order:${order?._id.toString()}`,
     ];
 

@@ -389,7 +389,7 @@ private fun PickupJobStatus(order: Order, onCreateReturnJob: () -> Unit) {
         color = MaterialTheme.colorScheme.onTertiaryContainer
     )
     
-    if (order.status == OrderStatus.IN_STORAGE) {
+    if (order.status == OrderStatus.IN_STORAGE ) {
         Spacer(modifier = Modifier.height(4.dp))
         Button(
             onClick = onCreateReturnJob,

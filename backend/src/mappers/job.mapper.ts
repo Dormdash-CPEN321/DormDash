@@ -1,4 +1,5 @@
 import { JobResponse, Job } from '../types/job.type';
+import { extractObjectIdString } from '../utils/mongoose.util';
 
 /**
  * JobMapper - Centralized data transformation for Job entities
@@ -11,14 +12,15 @@ import { JobResponse, Job } from '../types/job.type';
 export function toJobResponse(job: Job): JobResponse {
   const id = job._id.toString();
 
-  const orderId = job.orderId.toString();
+  // Safely extract orderId string (handles populated documents or ObjectId)
+  const orderId = extractObjectIdString(job.orderId);
 
 
   return {
     id,
     orderId,
-    studentId: job.studentId.toString(),
-    moverId: job.moverId?.toString(),
+    studentId: extractObjectIdString(job.studentId),
+    moverId: job.moverId ? extractObjectIdString(job.moverId) : undefined,
     jobType: job.jobType,
     status: job.status,
     volume: job.volume,

@@ -5,9 +5,7 @@ import logger from './utils/logger.util';
 import { verifyTokenString } from './middleware/auth.middleware'; // optional helper
 import SocketData from './types/socket.types';
 
-let io:
-  | Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>
-  | undefined = undefined;
+let io: Server<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, SocketData>
 
 export function initSocket(server: http.Server) {
   io = new Server<

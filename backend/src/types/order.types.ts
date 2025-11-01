@@ -47,6 +47,11 @@ export interface GetQuoteResponse {
 
 export type CreateOrderRequest = z.infer<typeof createOrderSchema>;
 
+// Extend CreateOrderRequest with idempotencyKey for createOrder service method
+export interface CreateOrderRequestWithIdempotency extends CreateOrderRequest {
+  idempotencyKey?: string;
+}
+
 export interface CreateOrderResponse extends Order {
   id: string;
   // Keep backward-compatible field expected by frontend

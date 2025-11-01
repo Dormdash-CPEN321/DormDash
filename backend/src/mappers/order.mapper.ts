@@ -1,4 +1,5 @@
 import { Order, CreateOrderResponse } from '../types/order.types';
+import { extractObjectIdString } from '../utils/mongoose.util';
 
 /**
  * OrderMapper - Centralized data transformation for Order entities
@@ -9,8 +10,8 @@ export const OrderMapper = {
     return {
       _id: order._id,
       id: order._id.toString(),
-      studentId: order.studentId.toString(),
-      moverId: order.moverId?.toString(),
+      studentId: extractObjectIdString(order.studentId),
+      moverId: order.moverId ? extractObjectIdString(order.moverId) : undefined,
       status: order.status,
       volume: order.volume,
       price: order.price,
@@ -27,8 +28,8 @@ export const OrderMapper = {
     return {
       _id: order._id,
       id: order._id.toString(),
-      studentId: order.studentId.toString(),
-      moverId: order.moverId?.toString(),
+      studentId: extractObjectIdString(order.studentId),
+      moverId: order.moverId ? extractObjectIdString(order.moverId) : undefined,
       status: order.status,
       volume: order.volume,
       price: order.price,

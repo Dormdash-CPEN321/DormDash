@@ -502,9 +502,9 @@ export class JobService {
 
       return {
         id: updatedJob._id.toString(),
-        orderId: updatedJob.orderId.toString(),
-        studentId: updatedJob.studentId.toString(),
-        moverId: updatedJob.moverId?.toString(),
+        orderId: extractObjectIdString(updatedJob.orderId),
+        studentId: extractObjectIdString(updatedJob.studentId),
+        moverId: updatedJob.moverId ? extractObjectIdString(updatedJob.moverId) : undefined,
         jobType: updatedJob.jobType,
         status: updatedJob.status,
         volume: updatedJob.volume,
