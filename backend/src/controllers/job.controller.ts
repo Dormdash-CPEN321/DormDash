@@ -104,7 +104,7 @@ export class JobController {
   }
 
   async updateJobStatus(
-    req: Request<{ id: string }, {}, UpdateJobStatusRequest>,
+    req: Request<{ id: string }, object, UpdateJobStatusRequest>,
     res: Response<JobResponse>,
     next: NextFunction
   ) {

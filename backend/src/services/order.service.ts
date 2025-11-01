@@ -111,11 +111,11 @@ export class OrderService {
         price: totalPrice,
         studentAddress,
         warehouseAddress,
-        returnAddress: returnAddress || studentAddress, // Default to student address if not provided
+        returnAddress: returnAddress ?? studentAddress, // Default to student address if not provided
         pickupTime,
         returnTime,
-        idempotencyKey: idempotencyKey || undefined,
-        paymentIntentId: paymentIntentId || undefined,
+        idempotencyKey: idempotencyKey ?? undefined,
+        paymentIntentId: paymentIntentId ?? undefined,
       };
 
       try {
@@ -223,8 +223,8 @@ export class OrderService {
 
       // Use custom return address if provided, otherwise use order's return address or student address
       const finalReturnAddress =
-        returnJobRequest?.returnAddress ||
-        activeOrder.returnAddress ||
+        returnJobRequest?.returnAddress ??
+        activeOrder.returnAddress ??
         activeOrder.studentAddress;
 
       const returnDateString: string | undefined = returnJobRequest?.actualReturnDate;

@@ -301,7 +301,7 @@ export class RoutePlannerService {
           // Ensure we are dealing with plain objects (they were normalized earlier)
           const j = job;
           const location = j.pickupAddress;
-          if (location?.lat == null || location?.lon == null) {
+          if (location.lat == null || location.lon == null) {
             const jobId = j.id ? j.id : 'unknown';
             logger.warn(
               `Job ${jobId} missing location data: ${JSON.stringify(j)}`
@@ -410,16 +410,10 @@ export class RoutePlannerService {
       }
 
       const jobDuration = selectedJob.jobDuration;
-
       const pickupLoc = selectedJob.pickupAddress;
       const dropoffLoc = selectedJob.dropoffAddress;
-
-      if (!pickupLoc || !dropoffLoc) {
-        throw new Error('Pickup or dropoff location is missing');
-      }
-
-  const travelTime = selectedJob.travelTime;
-  const waitingTime = selectedJob.waitingTime;
+      const travelTime = selectedJob.travelTime;
+      const waitingTime = selectedJob.waitingTime;
 
       route.push({
         jobId: String(selectedJob.id),
@@ -578,14 +572,14 @@ export class RoutePlannerService {
   private validateJobLocationData(job: JobResponse): boolean {
     const { pickupAddress, dropoffAddress } = job;
 
-    if (!pickupAddress?.lat || !pickupAddress?.lon) {
+    if (!pickupAddress.lat || !pickupAddress.lon) {
       logger.warn(
         `Job ${job.id} has invalid or missing pickupAddress: ${JSON.stringify(pickupAddress)}`
       );
       return false;
     }
 
-    if (!dropoffAddress?.lat || !dropoffAddress?.lon) {
+    if (!dropoffAddress.lat || !dropoffAddress.lon) {
       logger.warn(
         `Job ${job.id} has invalid or missing dropoffAddress: ${JSON.stringify(dropoffAddress)}`
       );

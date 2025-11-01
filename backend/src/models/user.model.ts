@@ -111,10 +111,7 @@ export class UserModel {
 
       // If updating FCM token, first remove it from any other users
       // FCM tokens are device-specific, so one token can only belong to one user
-      if (
-        validatedData.fcmToken !== undefined &&
-        validatedData.fcmToken !== null
-      ) {
+      if (validatedData.fcmToken !== undefined) {
         await this.user.updateMany(
           {
             fcmToken: validatedData.fcmToken,
