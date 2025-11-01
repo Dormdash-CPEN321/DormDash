@@ -53,6 +53,8 @@ import com.cpen321.usermanagement.data.remote.api.RetrofitClient
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cpen321.usermanagement.ui.viewmodels.JobViewModel
 import dagger.hilt.android.EntryPointAccessors
+import retrofit2.HttpException
+import java.io.IOException
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
@@ -346,7 +348,17 @@ private fun MainContent(
                         
                         // Refresh active order
                         orderViewModel.refreshActiveOrder()
-                    } catch (e: Exception) {
+                    } catch (e: HttpException) {
+                        snackBarHostState.showSnackbar(
+                            message = "Failed to create return job: Server error (${e.code()})",
+                            duration = SnackbarDuration.Long
+                        )
+                    } catch (e: IOException) {
+                        snackBarHostState.showSnackbar(
+                            message = "Failed to create return job: Network error",
+                            duration = SnackbarDuration.Long
+                        )
+                    } catch (e: IllegalStateException) {
                         snackBarHostState.showSnackbar(
                             message = "Failed to create return job: ${e.message}",
                             duration = SnackbarDuration.Long

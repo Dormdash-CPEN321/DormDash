@@ -280,10 +280,10 @@ private fun generateCalendarUrl(
     return try {
         val zoned: ZonedDateTime = try {
             ZonedDateTime.parse(eventTime)
-        } catch (e1: Exception) {
+        } catch (e1: java.time.format.DateTimeParseException) {
             try {
                 OffsetDateTime.parse(eventTime).toZonedDateTime()
-            } catch (e2: Exception) {
+            } catch (e2: java.time.format.DateTimeParseException) {
                 val ldt = LocalDateTime.parse(eventTime)
                 ldt.atZone(ZoneId.systemDefault())
             }

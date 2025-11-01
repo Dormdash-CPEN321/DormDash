@@ -5,7 +5,6 @@ import mongoose from 'mongoose';
 import { JobStatus, JobType } from '../types/job.type';
 import { jobModel } from '../models/job.model';
 import { userModel } from '../models/user.model';
-import { FirebaseMessagingError } from 'firebase-admin/messaging';
 
 class NotificationService {
   async sendNotificationToDevice(payload: NotificationPayload) {

@@ -11,8 +11,6 @@ import {
   CreateReturnJobRequest,
 } from '../types/order.types';
 import { ObjectId } from 'mongoose';
-import logger from '../utils/logger.util';
-import { OrderMapper } from '../mappers/order.mapper';
 
 export class OrderController {
   constructor(private orderService: OrderService) {}
