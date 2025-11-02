@@ -21,7 +21,6 @@ beforeAll(async () => {
   // Suppress all console output during tests
   console.log = jest.fn();
   console.warn = jest.fn();
-  console.error = jest.fn();
   console.info = jest.fn();
   // Connect to test database
   await connectDB();
@@ -64,7 +63,6 @@ afterAll(async () => {
   // Restore console functions
   console.log = originalConsole.log;
   console.warn = originalConsole.warn;
-  console.error = originalConsole.error;
   console.info = originalConsole.info;
 });
 
