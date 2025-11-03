@@ -6,8 +6,8 @@ let isInitialized = false;
 const setupEventListeners = (): void => {
   if (isInitialized) return;
   
-  mongoose.connection.on('error', () => {
-    logger.error('❌ MongoDB connection error');
+  mongoose.connection.on('error', (error) => {
+    logger.error('❌ MongoDB connection error', error);
   });
 
   mongoose.connection.on('disconnected', () => {
