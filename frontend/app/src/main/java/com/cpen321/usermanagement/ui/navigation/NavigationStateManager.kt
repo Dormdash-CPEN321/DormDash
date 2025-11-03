@@ -119,16 +119,12 @@ class NavigationStateManager @Inject constructor() {
     /**
      * Navigate to auth screen
      */
-    fun navigateToAuth() {
-        _navigationEvent.value = NavigationEvent.NavigateToAuth
-        _navigationState.value = _navigationState.value.copy(currentRoute = NavRoutes.AUTH)
-    }
-
-    /**
-     * Navigate to auth screen with success message
-     */
-    fun navigateToAuthWithMessage(message: String) {
-        _navigationEvent.value = NavigationEvent.NavigateToAuthWithMessage(message)
+    fun navigateToAuth(message: String? = null) {
+        _navigationEvent.value = if (message != null) {
+            NavigationEvent.NavigateToAuthWithMessage(message)
+        } else {
+            NavigationEvent.NavigateToAuth
+        }
         _navigationState.value = _navigationState.value.copy(currentRoute = NavRoutes.AUTH)
     }
 
@@ -143,48 +139,36 @@ class NavigationStateManager @Inject constructor() {
     /**
      * Navigate to main screen
      */
-    fun navigateToMain() {
-        _navigationEvent.value = NavigationEvent.NavigateToMain
-        _navigationState.value = _navigationState.value.copy(currentRoute = NavRoutes.MAIN)
-    }
-
-    /**
-     * Navigate to main screen with success message
-     */
-    fun navigateToMainWithMessage(message: String) {
-        _navigationEvent.value = NavigationEvent.NavigateToMainWithMessage(message)
+    fun navigateToMain(message: String? = null) {
+        _navigationEvent.value = if (message != null) {
+            NavigationEvent.NavigateToMainWithMessage(message)
+        } else {
+            NavigationEvent.NavigateToMain
+        }
         _navigationState.value = _navigationState.value.copy(currentRoute = NavRoutes.MAIN)
     }
 
     /**
      * Navigate to student main screen
      */
-    fun navigateToStudentMain() {
-        _navigationEvent.value = NavigationEvent.NavigateToStudentMain
-        _navigationState.value = _navigationState.value.copy(currentRoute = NavRoutes.STUDENT)
-    }
-
-    /**
-     * Navigate to student main screen with success message
-     */
-    fun navigateToStudentMainWithMessage(message: String) {
-        _navigationEvent.value = NavigationEvent.NavigateToStudentMainWithMessage(message)
+    fun navigateToStudentMain(message: String? = null) {
+        _navigationEvent.value = if (message != null) {
+            NavigationEvent.NavigateToStudentMainWithMessage(message)
+        } else {
+            NavigationEvent.NavigateToStudentMain
+        }
         _navigationState.value = _navigationState.value.copy(currentRoute = NavRoutes.STUDENT)
     }
 
     /**
      * Navigate to mover main screen
      */
-    fun navigateToMoverMain() {
-        _navigationEvent.value = NavigationEvent.NavigateToMoverMain
-        _navigationState.value = _navigationState.value.copy(currentRoute = NavRoutes.MOVER)
-    }
-
-    /**
-     * Navigate to mover main screen with success message
-     */
-    fun navigateToMoverMainWithMessage(message: String) {
-        _navigationEvent.value = NavigationEvent.NavigateToMoverMainWithMessage(message)
+    fun navigateToMoverMain(message: String? = null) {
+        _navigationEvent.value = if (message != null) {
+            NavigationEvent.NavigateToMoverMainWithMessage(message)
+        } else {
+            NavigationEvent.NavigateToMoverMain
+        }
         _navigationState.value = _navigationState.value.copy(currentRoute = NavRoutes.MOVER)
     }
 
@@ -244,7 +228,7 @@ class NavigationStateManager @Inject constructor() {
             needsProfileCompletion = false,
             isLoading = false
         )
-        navigateToAuthWithMessage("Signed Out Successfully")
+        navigateToAuth("Signed Out Successfully")
     }
 
     /**
@@ -258,7 +242,7 @@ class NavigationStateManager @Inject constructor() {
             needsProfileCompletion = false,
             isLoading = false
         )
-        navigateToAuthWithMessage("Account deleted successfully!")
+        navigateToAuth("Account deleted successfully!")
     }
 
     /**
@@ -278,9 +262,9 @@ class NavigationStateManager @Inject constructor() {
         // Navigate to role-specific screen with message based on user role
         val currentUserRole = _navigationState.value.userRole
         when (currentUserRole?.uppercase()) {
-            "STUDENT" -> navigateToStudentMainWithMessage(message)
-            "MOVER" -> navigateToMoverMainWithMessage(message)
-            else -> navigateToMainWithMessage(message) // Fallback to generic main screen
+            "STUDENT" -> navigateToStudentMain(message)
+            "MOVER" -> navigateToMoverMain(message)
+            else -> navigateToMain(message) // Fallback to generic main screen
         }
     }
 
@@ -321,9 +305,9 @@ class NavigationStateManager @Inject constructor() {
         } else {
             // Navigate to role-specific main screen with message
             when (userRole.uppercase()) {
-                "STUDENT" -> navigateToStudentMainWithMessage(message)
-                "MOVER" -> navigateToMoverMainWithMessage(message)
-                else -> navigateToMainWithMessage(message) // Fallback to generic main screen
+                "STUDENT" -> navigateToStudentMain(message)
+                "MOVER" -> navigateToMoverMain(message)
+                else -> navigateToMain(message) // Fallback to generic main screen
             }
         }
     }
