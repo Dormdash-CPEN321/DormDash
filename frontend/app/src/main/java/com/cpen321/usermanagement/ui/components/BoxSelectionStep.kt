@@ -585,7 +585,23 @@ private fun PriceBreakdownCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            PriceTotalRow(priceBreakdown.total)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Total",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "$${String.format("%.2f", priceBreakdown.total)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             
             ExpandBreakdownButton(
                 isExpanded = isExpanded,
@@ -597,27 +613,6 @@ private fun PriceBreakdownCard(
                 PriceBreakdownDetails(priceBreakdown)
             }
         }
-    }
-}
-
-@Composable
-private fun PriceTotalRow(total: Double) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Total",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = "$${String.format("%.2f", total)}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
     }
 }
 
