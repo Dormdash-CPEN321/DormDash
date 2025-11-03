@@ -295,8 +295,6 @@ private fun MainContent(
 ) {
     var showCreateOrderSheet by remember { mutableStateOf(false) }
     var showCreateReturnJobSheet by remember { mutableStateOf(false) }
-    val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val coroutineScope = rememberCoroutineScope()
     
     Scaffold(
         modifier = modifier,
@@ -316,90 +314,114 @@ private fun MainContent(
             activeOrder = activeOrder,
             studentJobs = studentJobs,
             onCreateOrderClick = { showCreateOrderSheet = true },
-            onCreateReturnJobClick = {
-                showCreateReturnJobSheet = true
-            }
+            onCreateReturnJobClick = { showCreateReturnJobSheet = true }
         )
     }
     
-    // Create Order Bottom Sheet
-    if (showCreateOrderSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showCreateOrderSheet = false },
-            sheetState = bottomSheetState
-        ) {
-            CreateOrderBottomSheet(
-                onDismiss = { showCreateOrderSheet = false },
-                orderViewModel = orderViewModel,
-                paymentRepository = PaymentRepository(RetrofitClient.paymentInterface),
-                onSubmitOrder = { orderRequest, paymentIntentId ->
-                    // Handle order submission with repository
-                    coroutineScope.launch {
-                        val result = orderViewModel.submitOrder(orderRequest, paymentIntentId)
-                        result.onSuccess { order ->
-                            println("Order submitted successfully: $order")
-                            // Order is now set in repository._activeOrder, StatusPanel will show it
-                        }.onFailure { exception ->
-                            println("Order submission failed: $exception")
-                        }
-                        // Close sheet after async operation completes
-                        showCreateOrderSheet = false
-                    }
-                }
-            )
-        }
-    }
+    CreateOrderBottomSheetHandler(
+        showSheet = showCreateOrderSheet,
+        onDismiss = { showCreateOrderSheet = false },
+        orderViewModel = orderViewModel
+    )
     
-    // Create Return Job Bottom Sheet
-    if (showCreateReturnJobSheet && activeOrder != null) {
-        CreateReturnJobBottomSheet(
-            activeOrder = activeOrder,
+    CreateReturnJobBottomSheetHandler(
+        showSheet = showCreateReturnJobSheet,
+        activeOrder = activeOrder,
+        onDismiss = { showCreateReturnJobSheet = false },
+        orderViewModel = orderViewModel,
+        snackBarHostState = snackBarHostState
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateOrderBottomSheetHandler(
+    showSheet: Boolean,
+    onDismiss: () -> Unit,
+    orderViewModel: OrderViewModel
+) {
+    if (!showSheet) return
+    
+    val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = bottomSheetState
+    ) {
+        CreateOrderBottomSheet(
+            onDismiss = onDismiss,
+            orderViewModel = orderViewModel,
             paymentRepository = PaymentRepository(RetrofitClient.paymentInterface),
-            onDismiss = { showCreateReturnJobSheet = false },
-            onSubmit = { request, paymentIntentId ->
+            onSubmitOrder = { orderRequest, paymentIntentId ->
                 coroutineScope.launch {
-                    try {
-                        val response = orderViewModel.createReturnJob(request)
-                        showCreateReturnJobSheet = false
-                        
-                        // Show appropriate message based on response
-                        val message = when {
-                            response.refundAmount != null && response.refundAmount > 0 -> {
-                                "Return job created! Refund of $${String.format("%.2f", response.refundAmount)} has been processed for early return."
-                            }
-                            response.lateFee != null && response.lateFee > 0 -> {
-                                "Return job created with late fee of $${String.format("%.2f", response.lateFee)}."
-                            }
-                            else -> "Return job created successfully!"
-                        }
-                        
-                        snackBarHostState.showSnackbar(
-                            message = message,
-                            duration = SnackbarDuration.Long
-                        )
-                        
-                        // Refresh active order
-                        orderViewModel.refreshActiveOrder()
-                    } catch (e: HttpException) {
-                        snackBarHostState.showSnackbar(
-                            message = "Failed to create return job: Server error (${e.code()})",
-                            duration = SnackbarDuration.Long
-                        )
-                    } catch (e: IOException) {
-                        snackBarHostState.showSnackbar(
-                            message = "Failed to create return job: Network error",
-                            duration = SnackbarDuration.Long
-                        )
-                    } catch (e: IllegalStateException) {
-                        snackBarHostState.showSnackbar(
-                            message = "Failed to create return job: ${e.message}",
-                            duration = SnackbarDuration.Long
-                        )
+                    val result = orderViewModel.submitOrder(orderRequest, paymentIntentId)
+                    result.onSuccess { order ->
+                        println("Order submitted successfully: $order")
+                    }.onFailure { exception ->
+                        println("Order submission failed: $exception")
                     }
+                    onDismiss()
                 }
             }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateReturnJobBottomSheetHandler(
+    showSheet: Boolean,
+    activeOrder: Order?,
+    onDismiss: () -> Unit,
+    orderViewModel: OrderViewModel,
+    snackBarHostState: SnackbarHostState
+) {
+    if (!showSheet || activeOrder == null) return
+    
+    val coroutineScope = rememberCoroutineScope()
+    
+    CreateReturnJobBottomSheet(
+        activeOrder = activeOrder,
+        paymentRepository = PaymentRepository(RetrofitClient.paymentInterface),
+        onDismiss = onDismiss,
+        onSubmit = { request, paymentIntentId ->
+            coroutineScope.launch {
+                try {
+                    val response = orderViewModel.createReturnJob(request)
+                    onDismiss()
+                    
+                    val message = when {
+                        response.refundAmount != null && response.refundAmount > 0 -> {
+                            "Return job created! Refund of $${String.format("%.2f", response.refundAmount)} has been processed for early return."
+                        }
+                        response.lateFee != null && response.lateFee > 0 -> {
+                            "Return job created with late fee of $${String.format("%.2f", response.lateFee)}."
+                        }
+                        else -> "Return job created successfully!"
+                    }
+                    
+                    snackBarHostState.showSnackbar(message = message, duration = SnackbarDuration.Long)
+                    orderViewModel.refreshActiveOrder()
+                } catch (e: HttpException) {
+                    snackBarHostState.showSnackbar(
+                        message = "Failed to create return job: Server error (${e.code()})",
+                        duration = SnackbarDuration.Long
+                    )
+                } catch (e: IOException) {
+                    snackBarHostState.showSnackbar(
+                        message = "Failed to create return job: Network error",
+                        duration = SnackbarDuration.Long
+                    )
+                } catch (e: IllegalStateException) {
+                    snackBarHostState.showSnackbar(
+                        message = "Failed to create return job: ${e.message}",
+                        duration = SnackbarDuration.Long
+                    )
+                }
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
