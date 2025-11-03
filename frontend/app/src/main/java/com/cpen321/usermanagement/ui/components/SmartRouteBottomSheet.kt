@@ -541,171 +541,109 @@ private fun RouteJobCard(
     
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(spacing.medium)) {
-            JobCardHeader(job = job, index = index, spacing = spacing)
-            Spacer(modifier = Modifier.height(spacing.small))
-            
-            if (job.distanceFromPrevious > 0) {
-                TravelInfoRow(job = job)
-                Spacer(modifier = Modifier.height(spacing.extraSmall))
+            // Header with job index, type, and price
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primary,
+                                RoundedCornerShape(16.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${index + 1}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text(
+                        text = job.jobType,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+                Text(
+                    text = "$${String.format("%.2f", job.price)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-            
-            PickupAddressRow(address = job.pickupAddress.formattedAddress)
-            Spacer(modifier = Modifier.height(spacing.extraSmall))
-            
-            TimingAndDurationRow(job = job, spacing = spacing)
-            
-            VolumeText(volume = job.volume, spacing = spacing)
             Spacer(modifier = Modifier.height(spacing.small))
             
-            AcceptJobButton(onJobClick = onJobClick, spacing = spacing)
+            JobDetailsSection(job = job, spacing = spacing)
+            
+            Button(
+                onClick = onJobClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(
+                    Icons.Default.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("Accept Job")
+            }
         }
     }
 }
 
 @Composable
-private fun JobCardHeader(job: JobInRoute, index: Int, spacing: Spacing) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            JobIndexBadge(index = index + 1)
-            Spacer(modifier = Modifier.width(spacing.small))
+private fun JobDetailsSection(job: JobInRoute, spacing: Spacing) {
+    if (job.distanceFromPrevious > 0) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.DirectionsCar, null, Modifier.size(16.dp), tint = Color.Black)
+            Spacer(Modifier.width(4.dp))
             Text(
-                text = job.jobType,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
+                "${String.format("%.1f", job.distanceFromPrevious)} km • ${job.travelTimeFromPrevious} min travel",
+                style = MaterialTheme.typography.bodySmall, color = Color.Black
             )
         }
+        Spacer(Modifier.height(spacing.extraSmall))
+    }
+    
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.LocationOn, null, Modifier.size(16.dp), tint = Color.Black)
+        Spacer(Modifier.width(4.dp))
         Text(
-            text = "$${String.format("%.2f", job.price)}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            job.pickupAddress.formattedAddress,
+            style = MaterialTheme.typography.bodySmall, color = Color.Black, maxLines = 1
         )
     }
-}
-
-@Composable
-private fun JobIndexBadge(index: Int) {
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .background(
-                MaterialTheme.colorScheme.primary,
-                RoundedCornerShape(16.dp)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "$index",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary
-        )
-    }
-}
-
-@Composable
-private fun TravelInfoRow(job: JobInRoute) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            Icons.Default.DirectionsCar,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = Color.Black
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = "${String.format("%.1f", job.distanceFromPrevious)} km • ${job.travelTimeFromPrevious} min travel",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Black
-        )
-    }
-}
-
-@Composable
-private fun PickupAddressRow(address: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            Icons.Default.LocationOn,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = Color.Black
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = address,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Black,
-            maxLines = 1
-        )
-    }
-}
-
-@Composable
-private fun TimingAndDurationRow(job: JobInRoute, spacing: Spacing) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
+    Spacer(Modifier.height(spacing.extraSmall))
+    
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Default.Schedule,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = Color.Black
-            )
-            Spacer(modifier = Modifier.width(4.dp))
+            Icon(Icons.Default.Schedule, null, Modifier.size(16.dp), tint = Color.Black)
+            Spacer(Modifier.width(4.dp))
             Text(
-                text = TimeUtils.formatDateTime(job.scheduledTime),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Black
+                TimeUtils.formatDateTime(job.scheduledTime),
+                style = MaterialTheme.typography.bodySmall, color = Color.Black
             )
         }
-        Text(
-            text = "${job.estimatedDuration} min job",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Black
-        )
+        Text("${job.estimatedDuration} min job", style = MaterialTheme.typography.bodySmall, color = Color.Black)
     }
-}
-
-@Composable
-private fun VolumeText(volume: Double, spacing: Spacing) {
+    
     Text(
-        text = "${String.format("%.1f", volume)} m³",
-        style = MaterialTheme.typography.bodySmall,
-        color = Color.Black,
+        "${String.format("%.1f", job.volume)} m³",
+        style = MaterialTheme.typography.bodySmall, color = Color.Black,
         modifier = Modifier.padding(top = spacing.extraSmall)
     )
-}
-
-@Composable
-private fun AcceptJobButton(onJobClick: () -> Unit, spacing: Spacing) {
-    Button(
-        onClick = onJobClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        )
-    ) {
-        Icon(
-            Icons.Default.Schedule,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(spacing.extraSmall))
-        Text("Accept Job")
-    }
+    Spacer(Modifier.height(spacing.small))
 }
 
 @Composable
@@ -788,52 +726,61 @@ private fun DurationSelector(
             .padding(spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        DurationSelectorHeader(spacing)
-        DurationSlider(
-            spacing = spacing,
+        // Header
+        Icon(
+            Icons.Default.Schedule,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(spacing.medium))
+
+        Text(
+            text = "Maximum Shift Duration",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(spacing.small))
+
+        Text(
+            text = "How long do you want to work?",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(spacing.large))
+        
+        DurationSliderSection(
             durationOptions = durationOptions,
             selectedDuration = selectedDuration,
-            onDurationSelected = onDurationSelected
+            onDurationSelected = onDurationSelected,
+            spacing = spacing
         )
-        DurationConfirmButton(spacing, onConfirm)
+        
+        // Confirm button
+        Spacer(modifier = Modifier.height(spacing.large))
+
+        Button(
+            onClick = onConfirm,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = true
+        ) {
+            Text("Find Smart Route")
+        }
+
+        Spacer(modifier = Modifier.height(spacing.medium))
     }
 }
 
 @Composable
-private fun DurationSelectorHeader(spacing: Spacing) {
-    Icon(
-        Icons.Default.Schedule,
-        contentDescription = null,
-        modifier = Modifier.size(48.dp),
-        tint = MaterialTheme.colorScheme.primary
-    )
-
-    Spacer(modifier = Modifier.height(spacing.medium))
-
-    Text(
-        text = "Maximum Shift Duration",
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold
-    )
-
-    Spacer(modifier = Modifier.height(spacing.small))
-
-    Text(
-        text = "How long do you want to work?",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.secondary,
-        textAlign = TextAlign.Center
-    )
-
-    Spacer(modifier = Modifier.height(spacing.large))
-}
-
-@Composable
-private fun DurationSlider(
-    spacing: Spacing,
+private fun DurationSliderSection(
     durationOptions: List<Pair<Int?, String>>,
     selectedDuration: Int?,
-    onDurationSelected: (Int?) -> Unit
+    onDurationSelected: (Int?) -> Unit,
+    spacing: Spacing
 ) {
     val optionCount = durationOptions.size
     val initialIndex = durationOptions.indexOfFirst { it.first == selectedDuration }.let { if (it >= 0) it else 0 }
@@ -863,21 +810,6 @@ private fun DurationSlider(
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(top = spacing.small)
     )
-}
-
-@Composable
-private fun DurationConfirmButton(spacing: Spacing, onConfirm: () -> Unit) {
-    Spacer(modifier = Modifier.height(spacing.large))
-
-    Button(
-        onClick = onConfirm,
-        modifier = Modifier.fillMaxWidth(),
-        enabled = true
-    ) {
-        Text("Find Smart Route")
-    }
-
-    Spacer(modifier = Modifier.height(spacing.medium))
 }
 
 private fun fetchCurrentLocationAndRoute(
