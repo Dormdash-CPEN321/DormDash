@@ -4,6 +4,57 @@ import logger from '../utils/logger.util';
 
 const IMAGES_DIR = path.join(__dirname, '../../uploads/images');
 
+/**
+ * Safe wrapper for fs.promises.rename that validates both source and destination paths
+ * to prevent path traversal attacks.
+ */
+async function safeRename(sourcePath: string, destPath: string): Promise<void> {
+  const resolvedSource = path.resolve(sourcePath);
+  const resolvedDest = path.resolve(destPath);
+  const resolvedImagesDir = path.resolve(IMAGES_DIR);
+
+  // Validate destination is within IMAGES_DIR
+  if (
+    !resolvedDest.startsWith(resolvedImagesDir + path.sep) &&
+    resolvedDest !== resolvedImagesDir
+  ) {
+    throw new Error('Destination path is outside allowed directory');
+  }
+
+  // Validate source basename doesn't contain path traversal
+  const sourceBase = path.basename(sourcePath);
+  if (!/^[a-zA-Z0-9._-]+$/.test(sourceBase)) {
+    throw new Error('Source filename contains invalid characters');
+  }
+
+  await fs.promises.rename(resolvedSource, resolvedDest);
+}
+
+/**
+ * Safe wrapper for fs.promises.unlink that validates the path is within IMAGES_DIR
+ * to prevent path traversal attacks. 
+ */
+async function safeUnlink(filePath: string): Promise<void> {
+  const resolved = path.resolve(filePath);
+  const resolvedImagesDir = path.resolve(IMAGES_DIR);
+
+  // Validate path is within IMAGES_DIR
+  if (
+    !resolved.startsWith(resolvedImagesDir + path.sep) &&
+    resolved !== resolvedImagesDir
+  ) {
+    throw new Error('File path is outside allowed directory');
+  }
+
+  // Validate basename doesn't contain path traversal
+  const base = path.basename(filePath);
+  if (!/^[a-zA-Z0-9._-]+$/.test(base)) {
+    throw new Error('Filename contains invalid characters');
+  }
+
+  await fs.promises.unlink(resolved);
+}
+
 export async function saveImage(filePath: string, userId: string): Promise<string> {
   try {
     const fileExtension = path.extname(filePath);
@@ -20,7 +71,7 @@ export async function saveImage(filePath: string, userId: string): Promise<strin
       throw new Error('Invalid destination path for image');
     }
 
-    await fs.promises.rename(filePath, resolvedNewPath);
+    await safeRename(filePath, resolvedNewPath);
 
     return resolvedNewPath.split(path.sep).join('/');
   } catch (error) {
@@ -30,7 +81,7 @@ export async function saveImage(filePath: string, userId: string): Promise<strin
       if (/^[a-zA-Z0-9._-]+$/.test(base)) {
         const candidate = path.join(IMAGES_DIR, base);
         try {
-          await fs.promises.unlink(candidate);
+          await safeUnlink(candidate);
         } catch (e: unknown) {
           // Ignore if file doesn't exist; log unexpected errors
           const errObj = e as { code?: string };
@@ -69,7 +120,7 @@ export async function deleteImage(url: string): Promise<void> {
     }
     const resolved = path.join(IMAGES_DIR, base);
     try {
-      await fs.promises.unlink(resolved);
+      await safeUnlink(resolved);
     } catch (err: unknown) {
       const errObj = err as { code?: string };
       if (errObj.code && errObj.code !== 'ENOENT') {
