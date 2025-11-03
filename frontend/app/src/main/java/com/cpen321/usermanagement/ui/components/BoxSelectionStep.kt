@@ -80,10 +80,21 @@ fun BoxSelectionStep(
         Spacer(modifier = Modifier.height(24.dp))
         
         DateTimeSelectionSection(
-            display = dateTimeCalculations.toDisplay(),
-            actions = createDateTimeActions { field -> 
-                dateTimeState = updateDateTimeState(dateTimeState, field, true)
-            }
+            display = DateTimeDisplay(
+                pickupDate = dateTimeCalculations.pickupDate,
+                pickupHour = dateTimeCalculations.pickupHour,
+                pickupMinute = dateTimeCalculations.pickupMinute,
+                returnDate = dateTimeCalculations.returnDate,
+                returnHour = dateTimeCalculations.returnHour,
+                returnMinute = dateTimeCalculations.returnMinute,
+                isReturnBeforePickup = dateTimeCalculations.isReturnBeforePickup
+            ),
+            actions = DateTimeActions(
+                onShowPickupDatePicker = { dateTimeState = dateTimeState.copy(showPickupDatePicker = true) },
+                onShowPickupTimePicker = { dateTimeState = dateTimeState.copy(showPickupTimeDialog = true) },
+                onShowReturnDatePicker = { dateTimeState = dateTimeState.copy(showReturnDatePicker = true) },
+                onShowReturnTimePicker = { dateTimeState = dateTimeState.copy(showReturnTimeDialog = true) }
+            )
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -123,17 +134,7 @@ private data class DateTimeCalculations(
     val pickupMinute: Int,
     val returnHour: Int,
     val returnMinute: Int
-) {
-    fun toDisplay() = DateTimeDisplay(
-        pickupDate = pickupDate,
-        pickupHour = pickupHour,
-        pickupMinute = pickupMinute,
-        returnDate = returnDate,
-        returnHour = returnHour,
-        returnMinute = returnMinute,
-        isReturnBeforePickup = isReturnBeforePickup
-    )
-}
+)
 
 private fun calculateDateTimeValues(state: DateTimeState): DateTimeCalculations {
     val pickupDate = TimeUtils.formatDatePickerDate(state.selectedPickupDateMillis)
@@ -152,23 +153,6 @@ private fun calculateDateTimeValues(state: DateTimeState): DateTimeCalculations 
         returnHour = state.returnHour,
         returnMinute = state.returnMinute
     )
-}
-
-private fun createDateTimeActions(onShow: (String) -> Unit) = DateTimeActions(
-    onShowPickupDatePicker = { onShow("showPickupDatePicker") },
-    onShowPickupTimePicker = { onShow("showPickupTimeDialog") },
-    onShowReturnDatePicker = { onShow("showReturnDatePicker") },
-    onShowReturnTimePicker = { onShow("showReturnTimeDialog") }
-)
-
-private fun updateDateTimeState(state: DateTimeState, field: String, show: Boolean): DateTimeState {
-    return when (field) {
-        "showPickupDatePicker" -> state.copy(showPickupDatePicker = show)
-        "showPickupTimeDialog" -> state.copy(showPickupTimeDialog = show)
-        "showReturnDatePicker" -> state.copy(showReturnDatePicker = show)
-        "showReturnTimeDialog" -> state.copy(showReturnTimeDialog = show)
-        else -> state
-    }
 }
 
 @Composable
