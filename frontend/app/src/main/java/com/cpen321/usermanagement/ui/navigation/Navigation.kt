@@ -101,113 +101,104 @@ private fun handleNavigationEvent(
     mainViewModel: MainViewModel
 ) {
     when (navigationEvent) {
-        is NavigationEvent.NavigateToAuth -> {
-            navController.navigate(NavRoutes.AUTH) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToAuthWithMessage -> {
-            authViewModel.setSuccessMessage(navigationEvent.message)
-            navController.navigate(NavRoutes.AUTH) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToMain -> {
-            navController.navigate(NavRoutes.MAIN) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToMainWithMessage -> {
-            mainViewModel.setSuccessMessage(navigationEvent.message)
-            navController.navigate(NavRoutes.MAIN) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToProfileCompletion -> {
-            navController.navigate(NavRoutes.PROFILE_COMPLETION) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToProfile -> {
-            navController.navigate(NavRoutes.PROFILE)
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToManageProfile -> {
-            navController.navigate(NavRoutes.MANAGE_PROFILE)
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToManageOrders -> {
-            val route = when (navigationStateManager.getCurrentUserRole()?.uppercase()) {
-                "MOVER" -> NavRoutes.JOB_HISTORY
-                else -> NavRoutes.MANAGE_ORDERS
-            }
-            navController.navigate(route)
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToRoleSelection -> {
-            navController.navigate(NavRoutes.ROLE_SELECTION) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToStudentMain -> {
-            navController.navigate(NavRoutes.STUDENT) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToStudentMainWithMessage -> {
-            mainViewModel.setSuccessMessage(navigationEvent.message)
-            navController.navigate(NavRoutes.STUDENT) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToMoverMain -> {
-            navController.navigate(NavRoutes.MOVER) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
-        is NavigationEvent.NavigateToMoverMainWithMessage -> {
-            mainViewModel.setSuccessMessage(navigationEvent.message)
-            navController.navigate(NavRoutes.MOVER) {
-                popUpTo(0) { inclusive = true }
-            }
-            navigationStateManager.clearNavigationEvent()
-        }
-
+        is NavigationEvent.NavigateToAuth -> 
+            navigateAndClear(NavRoutes.AUTH, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToAuthWithMessage -> 
+            navigateWithMessageAndClear(NavRoutes.AUTH, navigationEvent.message, authViewModel::setSuccessMessage, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToMain -> 
+            navigateAndClear(NavRoutes.MAIN, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToMainWithMessage -> 
+            navigateWithMessageAndClear(NavRoutes.MAIN, navigationEvent.message, mainViewModel::setSuccessMessage, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToProfileCompletion -> 
+            navigateAndClear(NavRoutes.PROFILE_COMPLETION, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToProfile -> 
+            navigateSimple(NavRoutes.PROFILE, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToManageProfile -> 
+            navigateSimple(NavRoutes.MANAGE_PROFILE, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToManageOrders -> 
+            handleManageOrdersNavigation(navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToRoleSelection -> 
+            navigateAndClear(NavRoutes.ROLE_SELECTION, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToStudentMain -> 
+            navigateAndClear(NavRoutes.STUDENT, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToStudentMainWithMessage -> 
+            navigateWithMessageAndClear(NavRoutes.STUDENT, navigationEvent.message, mainViewModel::setSuccessMessage, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToMoverMain -> 
+            navigateAndClear(NavRoutes.MOVER, navController, navigationStateManager)
+        
+        is NavigationEvent.NavigateToMoverMainWithMessage -> 
+            navigateWithMessageAndClear(NavRoutes.MOVER, navigationEvent.message, mainViewModel::setSuccessMessage, navController, navigationStateManager)
+        
         is NavigationEvent.NavigateBack -> {
             navController.popBackStack()
             navigationStateManager.clearNavigationEvent()
         }
-
+        
         is NavigationEvent.ClearBackStack -> {
             navController.popBackStack(navController.graph.startDestinationId, false)
             navigationStateManager.clearNavigationEvent()
         }
-
+        
         is NavigationEvent.NoNavigation -> {
-            // Do nothing
         }
     }
+}
+
+private fun navigateSimple(
+    route: String,
+    navController: NavHostController,
+    navigationStateManager: NavigationStateManager
+) {
+    navController.navigate(route)
+    navigationStateManager.clearNavigationEvent()
+}
+
+private fun navigateAndClear(
+    route: String,
+    navController: NavHostController,
+    navigationStateManager: NavigationStateManager
+) {
+    navController.navigate(route) {
+        popUpTo(0) { inclusive = true }
+    }
+    navigationStateManager.clearNavigationEvent()
+}
+
+private fun navigateWithMessageAndClear(
+    route: String,
+    message: String,
+    setMessage: (String) -> Unit,
+    navController: NavHostController,
+    navigationStateManager: NavigationStateManager
+) {
+    setMessage(message)
+    navController.navigate(route) {
+        popUpTo(0) { inclusive = true }
+    }
+    navigationStateManager.clearNavigationEvent()
+}
+
+private fun handleManageOrdersNavigation(
+    navController: NavHostController,
+    navigationStateManager: NavigationStateManager
+) {
+    val route = when (navigationStateManager.getCurrentUserRole()?.uppercase()) {
+        "MOVER" -> NavRoutes.JOB_HISTORY
+        else -> NavRoutes.MANAGE_ORDERS
+    }
+    navController.navigate(route)
+    navigationStateManager.clearNavigationEvent()
 }
 
 @Composable
