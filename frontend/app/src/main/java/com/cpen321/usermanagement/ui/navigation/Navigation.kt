@@ -238,7 +238,7 @@ private fun AppNavHost(
                 onProfileCompleted = { navigationStateManager.handleProfileCompletion() },
                 onProfileCompletedWithMessage = { message ->
                     Log.d("AppNavigation", "Profile completed with message: $message")
-                    navigationStateManager.handleProfileCompletionWithMessage(message)
+                    navigationStateManager.handleProfileCompletion(message)
                 }
             )
         }

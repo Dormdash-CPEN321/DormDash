@@ -219,7 +219,7 @@ class AuthViewModel @Inject constructor(
                     // Navigate to appropriate role-specific home screen
                     val needsProfileCompletion = user.bio.isNullOrBlank()
                     val userRole = user.userRole ?: role // Use the role from user or fallback to selected role
-                    navigationStateManager.handleRoleSelectionWithMessage(
+                    navigationStateManager.handleRoleSelection(
                         userRole = userRole,
                         message = "Welcome! Your role has been set to ${userRole.lowercase().replaceFirstChar { it.uppercase() }}",
                         needsProfileCompletion = needsProfileCompletion

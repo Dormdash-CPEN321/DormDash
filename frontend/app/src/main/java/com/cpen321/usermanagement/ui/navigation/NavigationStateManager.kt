@@ -248,18 +248,9 @@ class NavigationStateManager @Inject constructor() {
     /**
      * Handle profile completion
      */
-    fun handleProfileCompletion() {
+    fun handleProfileCompletion(message: String? = null) {
         _navigationState.value = _navigationState.value.copy(needsProfileCompletion = false)
         // Navigate to role-specific screen based on user role
-        navigateToRoleBasedMainScreen()
-    }
-
-    /**
-     * Handle profile completion with success message
-     */
-    fun handleProfileCompletionWithMessage(message: String) {
-        _navigationState.value = _navigationState.value.copy(needsProfileCompletion = false)
-        // Navigate to role-specific screen with message based on user role
         val currentUserRole = _navigationState.value.userRole
         when (currentUserRole?.uppercase()) {
             "STUDENT" -> navigateToStudentMain(message)
@@ -271,7 +262,7 @@ class NavigationStateManager @Inject constructor() {
     /**
      * Handle role selection completion
      */
-    fun handleRoleSelection(userRole: String, needsProfileCompletion: Boolean) {
+    fun handleRoleSelection(userRole: String, needsProfileCompletion: Boolean, message: String? = null) {
         // Update navigation state with the selected user role
         _navigationState.value = _navigationState.value.copy(
             needsRoleSelection = false,
@@ -281,29 +272,7 @@ class NavigationStateManager @Inject constructor() {
         if (needsProfileCompletion) {
             navigateToProfileCompletion()
         } else {
-            // Navigate to role-specific main screen
-            when (userRole.uppercase()) {
-                "STUDENT" -> navigateToStudentMain()
-                "MOVER" -> navigateToMoverMain()
-                else -> navigateToMain() // Fallback to generic main screen
-            }
-        }
-    }
-
-    /**
-     * Handle role selection completion with success message
-     */
-    fun handleRoleSelectionWithMessage(userRole: String, message: String, needsProfileCompletion: Boolean) {
-        // Update navigation state with the selected user role
-        _navigationState.value = _navigationState.value.copy(
-            needsRoleSelection = false,
-            userRole = userRole
-        )
-        
-        if (needsProfileCompletion) {
-            navigateToProfileCompletion()
-        } else {
-            // Navigate to role-specific main screen with message
+            // Navigate to role-specific main screen with optional message
             when (userRole.uppercase()) {
                 "STUDENT" -> navigateToStudentMain(message)
                 "MOVER" -> navigateToMoverMain(message)
