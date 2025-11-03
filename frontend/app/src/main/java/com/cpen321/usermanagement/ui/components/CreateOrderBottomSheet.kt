@@ -57,7 +57,6 @@ fun CreateOrderBottomSheet(
     var orderRequest by remember { mutableStateOf<OrderRequest?>(null) }
     var paymentIntentResponse by remember { mutableStateOf<CreatePaymentIntentResponse?>(null) }
     var paymentDetails by remember { mutableStateOf(PaymentDetails()) }
-    // Prevent duplicate submissions from UI
     var isSubmitting by remember { mutableStateOf(false) }
     
     // Error handling
@@ -69,244 +68,287 @@ fun CreateOrderBottomSheet(
     Column(
         modifier = modifier.padding(24.dp)
     ) {
-        // Header with back button (if not on first step)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (currentStep != OrderCreationStep.ADDRESS_CAPTURE) {
-                    IconButton(
-                        onClick = { 
-                            currentStep = when(currentStep) {
-                                OrderCreationStep.BOX_SELECTION -> OrderCreationStep.ADDRESS_CAPTURE
-                                OrderCreationStep.PAYMENT_DETAILS -> OrderCreationStep.BOX_SELECTION
-                                OrderCreationStep.PROCESSING_PAYMENT -> OrderCreationStep.PAYMENT_DETAILS
-                                else -> OrderCreationStep.ADDRESS_CAPTURE
-                            }
-                        }
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
+        OrderCreationHeader(
+            currentStep = currentStep,
+            onDismiss = onDismiss,
+            onBack = { 
+                currentStep = when(currentStep) {
+                    OrderCreationStep.BOX_SELECTION -> OrderCreationStep.ADDRESS_CAPTURE
+                    OrderCreationStep.PAYMENT_DETAILS -> OrderCreationStep.BOX_SELECTION
+                    OrderCreationStep.PROCESSING_PAYMENT -> OrderCreationStep.PAYMENT_DETAILS
+                    else -> OrderCreationStep.ADDRESS_CAPTURE
                 }
-                Text(
-                    text = when(currentStep) {
-                        OrderCreationStep.ADDRESS_CAPTURE -> "Enter Address"
-                        OrderCreationStep.LOADING_QUOTE -> "Getting Quote"
-                        OrderCreationStep.BOX_SELECTION -> "Select Boxes"
-                        OrderCreationStep.PAYMENT_DETAILS -> "Payment Details"
-                        OrderCreationStep.PROCESSING_PAYMENT -> "Processing Payment"
-                        OrderCreationStep.ORDER_CONFIRMATION -> "Order Confirmed"
-                    },
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
             }
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Close, contentDescription = "Close")
-            }
-        }
+        )
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Error message display
-        errorMessage?.let { error ->
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        ErrorMessageDisplay(errorMessage = errorMessage)
         
-        // Step content
-        when (currentStep) {
-            OrderCreationStep.ADDRESS_CAPTURE -> {
-                AddressCaptureStep(
-                    onAddressConfirmed = { address ->
-                        studentAddress = address
-                        currentStep = OrderCreationStep.LOADING_QUOTE
+        OrderCreationStepContent(
+            currentStep = currentStep,
+            studentAddress = studentAddress,
+            pricingRules = pricingRules,
+            orderRequest = orderRequest,
+            paymentDetails = paymentDetails,
+            isSubmitting = isSubmitting,
+            onAddressConfirmed = { address ->
+                studentAddress = address
+                currentStep = OrderCreationStep.LOADING_QUOTE
+                errorMessage = null
+                
+                coroutineScope.launch {
+                    handleQuoteFetch(
+                        orderViewModel = orderViewModel,
+                        address = address,
+                        onSuccess = { quoteResponse ->
+                            warehouseAddress = quoteResponse.warehouseAddress
+                            pricingRules = PricingRules(distanceServiceFee = quoteResponse.distancePrice)
+                            currentStep = OrderCreationStep.BOX_SELECTION
+                        },
+                        onError = { error ->
+                            errorMessage = error
+                            currentStep = OrderCreationStep.ADDRESS_CAPTURE
+                        }
+                    )
+                }
+            },
+            onAddressError = { error -> errorMessage = error },
+            onProceedToPayment = { order ->
+                orderRequest = order
+                currentStep = OrderCreationStep.PAYMENT_DETAILS
+                errorMessage = null
+            },
+            onPaymentDetailsChange = { details -> paymentDetails = details },
+            onProcessPayment = {
+                orderRequest?.let { order ->
+                    if (!isSubmitting) {
+                        isSubmitting = true
+                        currentStep = OrderCreationStep.PROCESSING_PAYMENT
                         errorMessage = null
                         
-                        // Real API call to get quote
                         coroutineScope.launch {
-                            try {
-                                val result = orderViewModel.getQuote(address)
-                                result.fold(
-                                    onSuccess = { quoteResponse ->
-                                        warehouseAddress = quoteResponse.warehouseAddress
-                                        pricingRules = PricingRules(
-                                            distanceServiceFee = quoteResponse.distancePrice
-                                        )
-                                        currentStep = OrderCreationStep.BOX_SELECTION
-                                    },
-                                    onFailure = { exception: Throwable ->
-                                        errorMessage = "Failed to get pricing: ${exception.message}"
-                                        currentStep = OrderCreationStep.ADDRESS_CAPTURE
-                                    }
-                                )
-                            } catch (e: java.io.IOException) {
-                                    // Network issue
-                                    errorMessage = "Network error while fetching pricing. Please check your connection and try again."
-                                    currentStep = OrderCreationStep.ADDRESS_CAPTURE
-                                } catch (e: retrofit2.HttpException) {
-                                    // HTTP error from backend
-                                    errorMessage = "Server error while fetching pricing. Please try again later."
-                                    currentStep = OrderCreationStep.ADDRESS_CAPTURE
-                                } catch (e: com.google.gson.JsonSyntaxException) {
-                                    // Malformed response
-                                    errorMessage = "Unexpected response from server. Please try again."
-                                currentStep = OrderCreationStep.ADDRESS_CAPTURE
-                            }
+                            handlePaymentProcessing(
+                                order = order,
+                                paymentDetails = paymentDetails,
+                                paymentRepository = paymentRepository,
+                                onSuccess = { intentId ->
+                                    onSubmitOrder(order, intentId)
+                                    currentStep = OrderCreationStep.ORDER_CONFIRMATION
+                                },
+                                onError = { error ->
+                                    errorMessage = error
+                                    currentStep = OrderCreationStep.PAYMENT_DETAILS
+                                    isSubmitting = false
+                                }
+                            )
                         }
-                    },
-                    onError = { error ->
-                        errorMessage = error
                     }
+                }
+            },
+            onClose = onDismiss
+        )
+    }
+}
+
+@Composable
+private fun OrderCreationHeader(
+    currentStep: OrderCreationStep,
+    onDismiss: () -> Unit,
+    onBack: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (currentStep != OrderCreationStep.ADDRESS_CAPTURE) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            }
+            Text(
+                text = when(currentStep) {
+                    OrderCreationStep.ADDRESS_CAPTURE -> "Enter Address"
+                    OrderCreationStep.LOADING_QUOTE -> "Getting Quote"
+                    OrderCreationStep.BOX_SELECTION -> "Select Boxes"
+                    OrderCreationStep.PAYMENT_DETAILS -> "Payment Details"
+                    OrderCreationStep.PROCESSING_PAYMENT -> "Processing Payment"
+                    OrderCreationStep.ORDER_CONFIRMATION -> "Order Confirmed"
+                },
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        IconButton(onClick = onDismiss) {
+            Icon(Icons.Default.Close, contentDescription = "Close")
+        }
+    }
+}
+
+@Composable
+fun ErrorMessageDisplay(errorMessage: String?) {
+    errorMessage?.let { error ->
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = error,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun OrderCreationStepContent(
+    currentStep: OrderCreationStep,
+    studentAddress: Address?,
+    pricingRules: PricingRules?,
+    orderRequest: OrderRequest?,
+    paymentDetails: PaymentDetails,
+    isSubmitting: Boolean,
+    onAddressConfirmed: (Address) -> Unit,
+    onAddressError: (String) -> Unit,
+    onProceedToPayment: (OrderRequest) -> Unit,
+    onPaymentDetailsChange: (PaymentDetails) -> Unit,
+    onProcessPayment: () -> Unit,
+    onClose: () -> Unit
+) {
+    when (currentStep) {
+        OrderCreationStep.ADDRESS_CAPTURE -> {
+            AddressCaptureStep(
+                onAddressConfirmed = onAddressConfirmed,
+                onError = onAddressError
+            )
+        }
+        
+        OrderCreationStep.LOADING_QUOTE -> {
+            LoadingQuoteStep()
+        }
+        
+        OrderCreationStep.BOX_SELECTION -> {
+            pricingRules?.let { rules ->
+                BoxSelectionStep(
+                    pricingRules = rules,
+                    studentAddress = studentAddress!!,
+                    onProceedToPayment = onProceedToPayment
                 )
             }
-            
-            OrderCreationStep.LOADING_QUOTE -> {
-                LoadingQuoteStep()
-            }
-            
-            OrderCreationStep.BOX_SELECTION -> {
-                pricingRules?.let { rules ->
-                    BoxSelectionStep(
-                        pricingRules = rules,
-                        studentAddress = studentAddress!!,
-                        onProceedToPayment = { order ->
-                            orderRequest = order
-                            currentStep = OrderCreationStep.PAYMENT_DETAILS
-                            errorMessage = null
-                        }
-                    )
-                }
-            }
-            
-            OrderCreationStep.PAYMENT_DETAILS -> {
-                orderRequest?.let { order ->
-                    PaymentDetailsStep(
-                        orderRequest = order,
-                        paymentDetails = paymentDetails,
-                        onPaymentDetailsChange = { details ->
-                            paymentDetails = details
-                        },
-                        isSubmitting = isSubmitting,
-                        onProcessPayment = {
-                            // Prevent duplicate starts
-                            if (!isSubmitting) {
-                                isSubmitting = true
-
-                                currentStep = OrderCreationStep.PROCESSING_PAYMENT
-                                errorMessage = null
-
-                                // Create payment intent and process payment with timeout
-                                coroutineScope.launch {
-                                    try {
-                                        // Add timeout protection (30 seconds)
-                                        withTimeout(30000L) {
-                                            // Step 1: Create payment intent
-                                            println("Creating payment intent for amount: ${order.totalPrice}")
-                                            val intentResult = paymentRepository.createPaymentIntent(order.totalPrice)
-                                            intentResult.fold(
-                                                onSuccess = { intent ->
-                                                    println("Payment intent created successfully: ${intent.id}")
-                                                    paymentIntentResponse = intent
-
-                                                    // Step 2: Process payment with customer info
-                                                    val customerInfo = CustomerInfo(
-                                                        name = paymentDetails.cardholderName,
-                                                        email = paymentDetails.email,
-                                                        address = PaymentAddress(
-                                                            line1 = order.currentAddress,
-                                                            city = "Vancouver",
-                                                            state = "BC",
-                                                            postalCode = "V6T1Z4",
-                                                            country = "CA"
-                                                        )
-                                                    )
-
-                                                    println("Processing payment with intent ID: ${intent.id}")
-                                                    val paymentResult = paymentRepository.processPayment(
-                                                        intent.id,
-                                                        customerInfo,
-                                                        TestPaymentMethods.VISA_SUCCESS // Use selected test card
-                                                    )
-
-                                                    paymentResult.fold(
-                                                        onSuccess = { payment ->
-                                                            if (payment.status == "SUCCEEDED") {
-                                                                // Submit order to backend with payment intent ID
-                                                                onSubmitOrder(order, intent.id)
-                                                                currentStep = OrderCreationStep.ORDER_CONFIRMATION
-                                                                // keep isSubmitting=true until sheet closes to avoid re-submits
-                                                            } else {
-                                                                errorMessage = "Payment was declined. Please try a different payment method."
-                                                                currentStep = OrderCreationStep.PAYMENT_DETAILS
-                                                                isSubmitting = false
-                                                            }
-                                                        },
-                                                        onFailure = { exception ->
-                                                            errorMessage = "Payment processing failed: ${exception.message}"
-                                                            currentStep = OrderCreationStep.PAYMENT_DETAILS
-                                                            isSubmitting = false
-                                                        }
-                                                    )
-                                                },
-                                                onFailure = { exception ->
-                                                    println("Failed to create payment intent: ${exception.message}")
-                                                    errorMessage = "Failed to initialize payment: ${exception.message}"
-                                                    currentStep = OrderCreationStep.PAYMENT_DETAILS
-                                                    isSubmitting = false
-                                                }
-                                            )
-                                        }
-                                    } catch (e: TimeoutCancellationException) {
-                                        errorMessage = "Payment request timed out. Please check your connection and try again."
-                                        currentStep = OrderCreationStep.PAYMENT_DETAILS
-                                        isSubmitting = false
-                                    } catch (e: java.io.IOException) {
-                                        errorMessage = "Network error during payment. Please check your connection and try again."
-                                        currentStep = OrderCreationStep.PAYMENT_DETAILS
-                                        isSubmitting = false
-                                    } catch (e: retrofit2.HttpException) {
-                                        errorMessage = "Payment server error. Please try again later."
-                                        currentStep = OrderCreationStep.PAYMENT_DETAILS
-                                        isSubmitting = false
-                                    } catch (e: com.google.gson.JsonSyntaxException) {
-                                        errorMessage = "Unexpected response during payment. Please try again."
-                                        currentStep = OrderCreationStep.PAYMENT_DETAILS
-                                        isSubmitting = false
-                                    }
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-            
-            OrderCreationStep.PROCESSING_PAYMENT -> {
-                ProcessingPaymentStep()
-            }
-            
-            OrderCreationStep.ORDER_CONFIRMATION -> {
-                orderRequest?.let { order ->
-                    OrderConfirmationStep(
-                        orderRequest = order,
-                        onClose = onDismiss
-                    )
-                }
+        }
+        
+        OrderCreationStep.PAYMENT_DETAILS -> {
+            orderRequest?.let { order ->
+                PaymentDetailsStep(
+                    orderRequest = order,
+                    paymentDetails = paymentDetails,
+                    onPaymentDetailsChange = onPaymentDetailsChange,
+                    isSubmitting = isSubmitting,
+                    onProcessPayment = onProcessPayment
+                )
             }
         }
+        
+        OrderCreationStep.PROCESSING_PAYMENT -> {
+            ProcessingPaymentStep()
+        }
+        
+        OrderCreationStep.ORDER_CONFIRMATION -> {
+            orderRequest?.let { order ->
+                OrderConfirmationStep(
+                    orderRequest = order,
+                    onClose = onClose
+                )
+            }
+        }
+    }
+}
+
+private suspend fun handleQuoteFetch(
+    orderViewModel: OrderViewModel,
+    address: Address,
+    onSuccess: (GetQuoteResponse) -> Unit,
+    onError: (String) -> Unit
+) {
+    try {
+        val result = orderViewModel.getQuote(address)
+        result.fold(
+            onSuccess = onSuccess,
+            onFailure = { exception: Throwable ->
+                onError("Failed to get pricing: ${exception.message}")
+            }
+        )
+    } catch (e: java.io.IOException) {
+        onError("Network error while fetching pricing. Please check your connection and try again.")
+    } catch (e: retrofit2.HttpException) {
+        onError("Server error while fetching pricing. Please try again later.")
+    } catch (e: com.google.gson.JsonSyntaxException) {
+        onError("Unexpected response from server. Please try again.")
+    }
+}
+
+private suspend fun handlePaymentProcessing(
+    order: OrderRequest,
+    paymentDetails: PaymentDetails,
+    paymentRepository: PaymentRepository,
+    onSuccess: (String) -> Unit,
+    onError: (String) -> Unit
+) {
+    try {
+        withTimeout(30000L) {
+            val intentResult = paymentRepository.createPaymentIntent(order.totalPrice)
+            intentResult.fold(
+                onSuccess = { intent ->
+                    val customerInfo = CustomerInfo(
+                        name = paymentDetails.cardholderName,
+                        email = paymentDetails.email,
+                        address = PaymentAddress(
+                            line1 = order.currentAddress,
+                            city = "Vancouver",
+                            state = "BC",
+                            postalCode = "V6T1Z4",
+                            country = "CA"
+                        )
+                    )
+                    
+                    val paymentResult = paymentRepository.processPayment(
+                        intent.id,
+                        customerInfo,
+                        TestPaymentMethods.VISA_SUCCESS
+                    )
+                    
+                    paymentResult.fold(
+                        onSuccess = { payment ->
+                            if (payment.status == "SUCCEEDED") {
+                                onSuccess(intent.id)
+                            } else {
+                                onError("Payment was declined. Please try a different payment method.")
+                            }
+                        },
+                        onFailure = { exception ->
+                            onError("Payment processing failed: ${exception.message}")
+                        }
+                    )
+                },
+                onFailure = { exception ->
+                    onError("Failed to initialize payment: ${exception.message}")
+                }
+            )
+        }
+    } catch (e: TimeoutCancellationException) {
+        onError("Payment request timed out. Please check your connection and try again.")
+    } catch (e: java.io.IOException) {
+        onError("Network error during payment. Please check your connection and try again.")
+    } catch (e: retrofit2.HttpException) {
+        onError("Payment server error. Please try again later.")
+    } catch (e: com.google.gson.JsonSyntaxException) {
+        onError("Unexpected response during payment. Please try again.")
     }
 }
 
