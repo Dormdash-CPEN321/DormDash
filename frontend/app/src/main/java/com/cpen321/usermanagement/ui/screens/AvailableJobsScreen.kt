@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cpen321.usermanagement.data.local.models.Job
@@ -230,6 +231,7 @@ private fun AvailableJobsList(
         }
     } else {
         LazyColumn(
+            modifier = Modifier.testTag("find_jobs_list"),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(jobsToShow) { job ->

@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -309,7 +310,9 @@ private fun SmartRouteStateContent(
 
         is SmartRouteUiState.Loading -> {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("route_loading"),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 CircularProgressIndicator(modifier = Modifier.padding(spacing.large))
@@ -387,7 +390,9 @@ private fun RouteContent(
     val spacing = LocalSpacing.current
     
     LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("route_jobs_list"),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         // Metrics summary card
@@ -403,7 +408,8 @@ private fun RouteContent(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = spacing.small),
+                    .padding(vertical = spacing.small)
+                    .testTag("accept_all_jobs_button"),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -452,7 +458,9 @@ private fun RouteMetricsCard(metrics: RouteMetrics) {
     val spacing = LocalSpacing.current
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("route_summary"),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
@@ -476,17 +484,20 @@ private fun RouteMetricsCard(metrics: RouteMetrics) {
                 MetricItem(
                     label = "Earnings",
                     value = "$${String.format("%.2f", metrics.totalEarnings)}",
-                    icon = Icons.Default.AttachMoney
+                    icon = Icons.Default.AttachMoney,
+                    testTag = "route_total_credits"
                 )
                 MetricItem(
                     label = "Jobs",
                     value = metrics.totalJobs.toString(),
-                    icon = Icons.Default.CallToAction
+                    icon = Icons.Default.CallToAction,
+                    testTag = "route_job_count"
                 )
                 MetricItem(
                     label = "Distance",
                     value = "${String.format("%.1f", metrics.totalDistance)} km",
-                    icon = Icons.Default.DirectionsCar
+                    icon = Icons.Default.DirectionsCar,
+                    testTag = "route_total_distance"
                 )
             }
             
@@ -499,12 +510,14 @@ private fun RouteMetricsCard(metrics: RouteMetrics) {
                 MetricItem(
                     label = "Duration",
                     value = "${metrics.totalDuration} min",
-                    icon = Icons.Default.Schedule
+                    icon = Icons.Default.Schedule,
+                    testTag = "route_total_time"
                 )
                 MetricItem(
                     label = "$/Hour",
                     value = "$${String.format("%.2f", metrics.earningsPerHour)}",
-                    icon = Icons.Default.AttachMoney
+                    icon = Icons.Default.AttachMoney,
+                    testTag = "route_earnings_per_hour"
                 )
             }
         }
@@ -515,11 +528,14 @@ private fun RouteMetricsCard(metrics: RouteMetrics) {
 private fun MetricItem(
     label: String,
     value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    testTag: String = ""
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(8.dp)
+        modifier = Modifier
+            .padding(8.dp)
+            .then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier)
     ) {
         Icon(
             icon,
@@ -551,7 +567,11 @@ private fun RouteJobCard(
 ) {
     val spacing = LocalSpacing.current
     
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("route_job_card")
+    ) {
         Column(modifier = Modifier.padding(spacing.medium)) {
             // Header with job index, type, and price
             Row(
@@ -583,7 +603,8 @@ private fun RouteJobCard(
                     text = "$${String.format("%.2f", job.price)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.testTag("route_job_credits")
                 )
             }
             Spacer(modifier = Modifier.height(spacing.small))
@@ -592,7 +613,9 @@ private fun RouteJobCard(
             
             Button(
                 onClick = onJobClick,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("route_job_accept_button"),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -622,23 +645,34 @@ private fun TextWithIndex(index: Int) {
 @Composable
 private fun JobDetailsSection(job: JobInRoute, spacing: Spacing) {
     if (job.distanceFromPrevious > 0) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(Icons.Default.DirectionsCar, null, Modifier.size(16.dp), tint = Color.Black)
             Spacer(Modifier.width(4.dp))
             Text(
                 "${String.format("%.1f", job.distanceFromPrevious)} km • ${job.travelTimeFromPrevious} min travel",
-                style = MaterialTheme.typography.bodySmall, color = Color.Black
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Black,
+                modifier = Modifier.testTag("route_job_travel_time")
             )
         }
         Spacer(Modifier.height(spacing.extraSmall))
     }
     
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Icon(Icons.Default.LocationOn, null, Modifier.size(16.dp), tint = Color.Black)
         Spacer(Modifier.width(4.dp))
         Text(
             job.pickupAddress.formattedAddress,
-            style = MaterialTheme.typography.bodySmall, color = Color.Black, maxLines = 1
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Black,
+            maxLines = 1,
+            modifier = Modifier.testTag("route_job_pickup_address")
         )
     }
     Spacer(Modifier.height(spacing.extraSmall))
@@ -649,15 +683,21 @@ private fun JobDetailsSection(job: JobInRoute, spacing: Spacing) {
             Spacer(Modifier.width(4.dp))
             Text(
                 TimeUtils.formatDateTime(job.scheduledTime),
-                style = MaterialTheme.typography.bodySmall, color = Color.Black
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Black
             )
         }
-        Text("${job.estimatedDuration} min job", style = MaterialTheme.typography.bodySmall, color = Color.Black)
+        Text(
+            "${job.estimatedDuration} min job",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Black
+        )
     }
     
     Text(
         "${String.format("%.1f", job.volume)} m³",
-        style = MaterialTheme.typography.bodySmall, color = Color.Black,
+        style = MaterialTheme.typography.bodySmall,
+        color = Color.Black,
         modifier = Modifier.padding(top = spacing.extraSmall)
     )
     Spacer(Modifier.height(spacing.small))
