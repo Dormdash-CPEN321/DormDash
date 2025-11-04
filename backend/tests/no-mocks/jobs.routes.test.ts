@@ -144,7 +144,80 @@ describe('POST /api/jobs', () => {
             .expect(400);
     });
 
-    // TODO: Auth can be moved to middleware tests?
+    test('should return 400 for missing orderId', async () => {
+        const reqData = {
+            studentId: testUserId.toString(),
+            jobType: "STORAGE",
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send(reqData)
+            .expect(400);
+    });
+
+    test('should return 400 for missing studentId', async () => {
+        const reqData = {
+            orderId: new mongoose.Types.ObjectId().toString(),
+            jobType: "STORAGE",
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send(reqData)
+            .expect(400);
+    });
+
+    test('should return 400 for invalid volume (0)', async () => {
+        const reqData = {
+            orderId: new mongoose.Types.ObjectId().toString(),
+            studentId: testUserId.toString(),
+            jobType: "STORAGE",
+            volume: 0,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send(reqData)
+            .expect(400);
+    });
+
+    test('should return 400 for invalid price (0)', async () => {
+        const reqData = {
+            orderId: new mongoose.Types.ObjectId().toString(),
+            studentId: testUserId.toString(),
+            jobType: "STORAGE",
+            volume: 10,
+            price: 0,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send(reqData)
+            .expect(400);
+    });
+
     test('should return 401 without authentication', async () => {
         const reqData = {
             orderId: new mongoose.Types.ObjectId().toString(),
@@ -316,6 +389,12 @@ describe('GET /api/jobs/mover', () => {
 
         expect(response.body.data.jobs).toEqual([]);
     });
+
+    test('should return 401 without authentication', async () => {
+        await request(app)
+            .get('/api/jobs/mover')
+            .expect(401);
+    });
 });
 
 describe('GET /api/jobs/student', () => {
@@ -369,6 +448,12 @@ describe('GET /api/jobs/student', () => {
             .expect(200);
 
         expect(response.body.data.jobs).toEqual([]);
+    });
+
+    test('should return 401 without authentication', async () => {
+        await request(app)
+            .get('/api/jobs/student')
+            .expect(401);
     });
 });
 
@@ -478,6 +563,84 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(response.body.data.status).toBe(JobStatus.PICKED_UP);
     });
 
+    test('should update job status to COMPLETED for STORAGE job', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 10,
+            price: 50,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.PICKED_UP,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        // Update mover to have MOVER role and credits
+        await (userModel as any).user.findByIdAndUpdate(testMoverId, { userRole: 'MOVER', credits: 0 });
+
+        const response = await request(app)
+            .patch(`/api/jobs/${job._id}/status`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .send({ status: JobStatus.COMPLETED })
+            .expect(200);
+
+        expect(response.body.data.status).toBe(JobStatus.COMPLETED);
+    });
+
+    test('should update job status to COMPLETED for RETURN job', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 15,
+            price: 75,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.PICKED_UP,
+            volume: 15,
+            price: 75,
+            pickupAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Return Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        // Update mover to have MOVER role and credits
+        await (userModel as any).user.findByIdAndUpdate(testMoverId, { userRole: 'MOVER', credits: 0 });
+
+        const response = await request(app)
+            .patch(`/api/jobs/${job._id}/status`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .send({ status: JobStatus.COMPLETED })
+            .expect(200);
+
+        expect(response.body.data.status).toBe(JobStatus.COMPLETED);
+    });
+
     test('should return 400 for invalid status', async () => {
         const job = await jobModel.create({
             orderId: new mongoose.Types.ObjectId(),
@@ -497,6 +660,72 @@ describe('PATCH /api/jobs/:id/status', () => {
             .patch(`/api/jobs/${job._id}/status`)
             .set('Authorization', `Bearer ${moverAuthToken}`)
             .send({ status: 'INVALID_STATUS' })
+            .expect(400);
+    });
+
+    test('should return 400 for missing status', async () => {
+        const job = await jobModel.create({
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: testUserId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.AVAILABLE,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .patch(`/api/jobs/${job._id}/status`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .send({})
+            .expect(400);
+    });
+
+    test('should return 404 for non-existent job when updating status', async () => {
+        const nonExistentId = new mongoose.Types.ObjectId();
+        await request(app)
+            .patch(`/api/jobs/${nonExistentId}/status`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .send({ status: JobStatus.ACCEPTED })
+            .expect(404);
+    });
+
+    test('should handle job already accepted scenario', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 10,
+            price: 50,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.ACCEPTED,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        // Try to accept an already accepted job
+        await request(app)
+            .patch(`/api/jobs/${job._id}/status`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .send({ status: JobStatus.ACCEPTED })
             .expect(400);
     });
 });
@@ -547,7 +776,59 @@ describe('POST /api/jobs/:id/arrived', () => {
         await request(app)
             .post(`/api/jobs/${job._id}/arrived`)
             .set('Authorization', `Bearer ${moverAuthToken}`)
-            .expect(403); // FIX: should be 403 Forbidden
+            .expect(403);
+    });
+
+    test('should return 404 for non-existent job', async () => {
+        const nonExistentId = new mongoose.Types.ObjectId();
+        await request(app)
+            .post(`/api/jobs/${nonExistentId}/arrived`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .expect(404);
+    });
+
+    test('should return 400 for RETURN job type', async () => {
+        const job = await jobModel.create({
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.ACCEPTED,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .post(`/api/jobs/${job._id}/arrived`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .expect(400);
+    });
+
+    test('should return 400 if job status is not ACCEPTED', async () => {
+        const job = await jobModel.create({
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.AVAILABLE,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .post(`/api/jobs/${job._id}/arrived`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .expect(400);
     });
 });
 
@@ -626,6 +907,81 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
             .set('Authorization', `Bearer ${authToken}`)
             .expect(403);
     });
+
+    test('should return 404 for non-existent job', async () => {
+        const nonExistentId = new mongoose.Types.ObjectId();
+        await request(app)
+            .post(`/api/jobs/${nonExistentId}/confirm-pickup`)
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(404);
+    });
+
+    test('should return 400 for RETURN job type', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 10,
+            price: 50,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            verificationRequestedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .post(`/api/jobs/${job._id}/confirm-pickup`)
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
+    });
+
+    test('should return 400 if job status is not AWAITING_STUDENT_CONFIRMATION', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 10,
+            price: 50,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.ACCEPTED,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .post(`/api/jobs/${job._id}/confirm-pickup`)
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
+    });
 });
 
 describe('POST /api/jobs/:id/delivered', () => {
@@ -700,6 +1056,80 @@ describe('POST /api/jobs/:id/delivered', () => {
             .post(`/api/jobs/${job._id}/delivered`)
             .set('Authorization', `Bearer ${moverAuthToken}`)
             .expect(403);
+    });
+
+    test('should return 404 for non-existent job', async () => {
+        const nonExistentId = new mongoose.Types.ObjectId();
+        await request(app)
+            .post(`/api/jobs/${nonExistentId}/delivered`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .expect(404);
+    });
+
+    test('should return 400 for STORAGE job type', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 10,
+            price: 50,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.PICKED_UP,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .post(`/api/jobs/${job._id}/delivered`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .expect(400);
+    });
+
+    test('should return 400 if job status is not PICKED_UP', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 15,
+            price: 75,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.ACCEPTED,
+            volume: 15,
+            price: 75,
+            pickupAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Return Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .post(`/api/jobs/${job._id}/delivered`)
+            .set('Authorization', `Bearer ${moverAuthToken}`)
+            .expect(400);
     });
 });
 
@@ -777,5 +1207,80 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             .post(`/api/jobs/${job._id}/confirm-delivery`)
             .set('Authorization', `Bearer ${authToken}`)
             .expect(403);
+    });
+
+    test('should return 404 for non-existent job', async () => {
+        const nonExistentId = new mongoose.Types.ObjectId();
+        await request(app)
+            .post(`/api/jobs/${nonExistentId}/confirm-delivery`)
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(404);
+    });
+
+    test('should return 400 for STORAGE job type', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 10,
+            price: 50,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString(),
+            verificationRequestedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .post(`/api/jobs/${job._id}/confirm-delivery`)
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
+    });
+
+    test('should return 400 if job status is not AWAITING_STUDENT_CONFIRMATION', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PENDING,
+            volume: 15,
+            price: 75,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        });
+
+        const job = await jobModel.create({
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testMoverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.PICKED_UP,
+            volume: 15,
+            price: 75,
+            pickupAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Return Address' },
+            scheduledTime: new Date().toISOString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await request(app)
+            .post(`/api/jobs/${job._id}/confirm-delivery`)
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(400);
     });
 });

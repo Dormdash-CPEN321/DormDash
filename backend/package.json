@@ -4,6 +4,9 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:coverage:watch": "jest --coverage --watch",
+    "test:file": "jest --coverage",
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "nodemon --exec ts-node src/index.ts",
@@ -55,7 +58,24 @@
     "testEnvironment": "node",
     "collectCoverageFrom": [
       "src/**/*.{ts,js}",
-      "!src/**/*.d.ts"
+      "!src/**/*.d.ts",
+      "!src/**/*.d.ts",
+      "!src/index.ts",
+      "!src/socket.ts"
+    ],
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+
+    "coverageReporters": [
+      "text",
+      "text-summary",
+      "html",
+      "lcov"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "/tests/",
+      "/dist/"
     ]
   }
 }
