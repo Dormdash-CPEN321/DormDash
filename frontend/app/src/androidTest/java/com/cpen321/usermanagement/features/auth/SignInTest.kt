@@ -14,6 +14,8 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SignInTest : AuthTestBase() {
 
+    override val startSignedOut: Boolean = true
+
     @Test
     fun authScreen_showsBothButtons() {
         composeTestRule.waitForIdle()

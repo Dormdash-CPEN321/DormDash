@@ -1,14 +1,21 @@
 package com.cpen321.usermanagement
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import android.content.Intent
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.test.core.app.ActivityScenario
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.cpen321.usermanagement.data.repository.AuthRepository
+import com.cpen321.usermanagement.fakes.FakeAuthRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
 import org.junit.runner.RunWith
+import javax.inject.Inject
 
 /**
  * Base class for Find Jobs feature tests.
@@ -23,17 +30,31 @@ abstract class FindJobsTestBase {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
-    
+    val composeTestRule = createComposeRule()
+
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     protected lateinit var device: UiDevice
-    
+    protected lateinit var scenario: ActivityScenario<MainActivity>
+
     @Before
     fun baseSetup() {
         hiltRule.inject()
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         
-        // Wait for the app to settle after injection
-        // The FakeAuthRepository automatically provides a logged-in mover
+        // Set signed-in state BEFORE launching the activity
+        if (authRepository is FakeAuthRepository) {
+            runBlocking {
+                (authRepository as FakeAuthRepository).resetToSignedIn()
+            }
+        }
+
+        // Now launch the activity with signed-in state
+        val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
+        scenario = ActivityScenario.launch(intent)
+
+        // Wait for the app to settle after launching
         composeTestRule.waitForIdle()
 
         // Grant notification permission automatically

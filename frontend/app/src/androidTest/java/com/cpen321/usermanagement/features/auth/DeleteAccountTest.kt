@@ -1,8 +1,7 @@
 package com.cpen321.usermanagement.features.auth
+
 import androidx.compose.ui.test.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Until
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 import org.junit.runner.RunWith

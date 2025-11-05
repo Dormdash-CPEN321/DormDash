@@ -8,12 +8,12 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 /**
  * Fake implementation of AuthRepository for testing.
- * Pre-configured with a logged-in mover user.
+ * Starts signed out by default - tests can call resetToSignedIn() if needed.
  */
 class FakeAuthRepository : AuthRepository {
 
-    private var isAuthenticated = true
-    private var storedToken: String? = "fake_test_token_12345"
+    private var isAuthenticated = false
+    private var storedToken: String? = null
     private val fakeUser = User(
         _id = "test_mover_id_123",
         userRole = "mover",
@@ -34,6 +34,22 @@ class FakeAuthRepository : AuthRepository {
         credits = 100.0f
     )
 
+    /**
+     * Reset to signed-out state for auth flow tests
+     */
+    fun resetToSignedOut() {
+        isAuthenticated = false
+        storedToken = null
+    }
+
+    /**
+     * Reset to signed-in state
+     */
+    fun resetToSignedIn() {
+        isAuthenticated = true
+        storedToken = "fake_test_token_12345"
+    }
+
     override suspend fun signInWithGoogle(context: Context): Result<GoogleIdTokenCredential> {
         val fakeCredential = GoogleIdTokenCredential(
             id = "fake-google-id",
@@ -48,6 +64,8 @@ class FakeAuthRepository : AuthRepository {
     }
 
     override suspend fun googleSignIn(tokenId: String): Result<AuthData> {
+        isAuthenticated = true
+        storedToken = "fake_test_token_12345"
         return Result.success(AuthData(
             token = storedToken!!,
             user = fakeUser
@@ -55,6 +73,8 @@ class FakeAuthRepository : AuthRepository {
     }
 
     override suspend fun googleSignUp(tokenId: String): Result<AuthData> {
+        isAuthenticated = true
+        storedToken = "fake_test_token_12345"
         return Result.success(AuthData(
             token = storedToken!!,
             user = fakeUser
