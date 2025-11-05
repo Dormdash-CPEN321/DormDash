@@ -51,6 +51,8 @@ android {
     packaging {
         resources {
             excludes.add("META-INF/DEPENDENCIES")
+            excludes.add("META-INF/LICENSE.md")
+            excludes.add("META-INF/LICENSE-notice.md")
         }
     }
 }
@@ -63,9 +65,12 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.4.0-alpha05")
     implementation(libs.androidx.compose.material3)
+    androidTestImplementation("io.mockk:mockk-android:1.13.8")
+    androidTestImplementation("io.mockk:mockk-agent:1.13.8")
     implementation("androidx.compose.material:material-icons-extended")
-    
+
     // Navigation
     implementation(libs.androidx.navigation.compose)
     

@@ -35,7 +35,16 @@ class FakeAuthRepository : AuthRepository {
     )
 
     override suspend fun signInWithGoogle(context: Context): Result<GoogleIdTokenCredential> {
-        return Result.failure(Exception("Not implemented in fake"))
+        val fakeCredential = GoogleIdTokenCredential(
+            id = "fake-google-id",
+            idToken = "fake-id-token-12345",
+            displayName = "Test User",
+            familyName = "User",
+            givenName = "Test",
+            profilePictureUri = null,
+            phoneNumber = ""
+        )
+        return Result.success(fakeCredential)
     }
 
     override suspend fun googleSignIn(tokenId: String): Result<AuthData> {

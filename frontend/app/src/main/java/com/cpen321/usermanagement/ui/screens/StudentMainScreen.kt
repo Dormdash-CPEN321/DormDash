@@ -30,6 +30,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.cpen321.usermanagement.R
@@ -61,10 +62,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.collection.orderedScatterSetOf
 import androidx.compose.runtime.LaunchedEffect
 import android.util.Log
+import androidx.compose.material3.Icon
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import com.cpen321.usermanagement.di.SocketClientEntryPoint
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import com.cpen321.usermanagement.data.local.models.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -478,7 +481,9 @@ private fun ProfileActionButton(
 
     IconButton(
         onClick = onClick,
-        modifier = modifier.size(spacing.extraLarge2)
+        modifier = modifier
+            .size(spacing.extraLarge2)
+            .testTag("ProfileButton")
     ) {
         ProfileIcon()
     }
@@ -487,7 +492,9 @@ private fun ProfileActionButton(
 @Composable
 private fun ProfileIcon() {
     Icon(
-        name = R.drawable.ic_account_circle,
+        painter = painterResource(id = R.drawable.ic_account_circle),
+        contentDescription = "Profile",
+        tint = MaterialTheme.colorScheme.onSurface
     )
 }
 
