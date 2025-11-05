@@ -1,70 +1,50 @@
-package com.cpen321.usermanagement.features.auth
+package com.cpen321.usermanagement.features.manageOrders
 
-import android.content.Intent
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.core.app.ActivityScenario
-import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.cpen321.usermanagement.MainActivity
-import com.cpen321.usermanagement.data.repository.AuthRepository
-import com.cpen321.usermanagement.fakes.FakeAuthRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
-import javax.inject.Inject
+import org.junit.runner.RunWith
+import kotlin.math.sign
 
 @HiltAndroidTest
-abstract class AuthTestBase {
+@RunWith(AndroidJUnit4::class)
+class OrderTestBase {
+
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
-    val composeTestRule = createComposeRule()
-
-    @Inject
-    lateinit var authRepository: AuthRepository
+    val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     protected lateinit var device: UiDevice
-    protected lateinit var scenario: ActivityScenario<MainActivity>
-
-    /**
-     * Override this in subclasses to start signed out (for auth flow tests)
-     * Default is false (starts signed in) for tests like sign out, delete account
-     */
-    protected open val startSignedOut: Boolean = false
 
     @Before
     fun baseSetup() {
         hiltRule.inject()
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
-        // Set auth state BEFORE launching the activity
-        if (!startSignedOut && authRepository is FakeAuthRepository) {
-            runBlocking {
-                (authRepository as FakeAuthRepository).resetToSignedIn()
-            }
-        }
-
-        // Now launch the activity with the correct auth state
-        val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
-        scenario = ActivityScenario.launch(intent)
-
-        // Wait for the app to settle after launching
+        // Wait for the app to settle after injection
+        // The FakeAuthRepository automatically provides a logged-in mover
         composeTestRule.waitForIdle()
 
         // Grant notification permission automatically
         grantNotificationPermission()
 
-    }
+        //always need to be signed in for these use cases
+        signIn()
 
+    }
     protected fun grantNotificationPermission() {
         device.wait(
             androidx.test.uiautomator.Until.findObject(
@@ -106,9 +86,9 @@ abstract class AuthTestBase {
         if (completeProfileNodes.isNotEmpty()) {
             // Try to find and click "Skip" or "Later" button
             composeTestRule
-            .onNodeWithText("Skip", useUnmergedTree = true)
+                .onNodeWithText("Skip", useUnmergedTree = true)
                 .performClick()
-            }
+        }
 
         composeTestRule.waitForIdle()
 

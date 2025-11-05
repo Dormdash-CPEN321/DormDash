@@ -48,8 +48,24 @@ class SignInTest : AuthTestBase() {
             firstClickable?.click()
         }
 
+        composeTestRule.waitForIdle()
+
+        // Check if "Complete Your Profile" popup appears and skip it if present
+        val completeProfileNodes = composeTestRule
+            .onAllNodesWithText("Complete Your Profile", useUnmergedTree = true)
+            .fetchSemanticsNodes()
+
+        if (completeProfileNodes.isNotEmpty()) {
+            // Try to find and click "Skip" or "Later" button
+            composeTestRule
+                .onNodeWithText("Skip", useUnmergedTree = true)
+                .performClick()
+        }
+
+        composeTestRule.waitForIdle()
+
         // Wait for sign-in flow to complete
-        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+        composeTestRule.waitUntil(timeoutMillis = 3000) {
             composeTestRule
                 .onAllNodesWithText("DormDash", useUnmergedTree = true)
                 .fetchSemanticsNodes()
