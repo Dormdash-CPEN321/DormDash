@@ -218,6 +218,44 @@ describe('POST /api/jobs', () => {
             .expect(400);
     });
 
+    test('should return 400 for invalid studentId (not a valid MongoDB ObjectId)', async () => {
+        const reqData = {
+            orderId: new mongoose.Types.ObjectId().toString(),
+            studentId: "invalid-student-id",
+            jobType: "STORAGE",
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send(reqData)
+            .expect(400);
+    });
+
+    test('should return 400 for invalid orderId (not a valid MongoDB ObjectId)', async () => {
+        const reqData = {
+            orderId: "invalid-order-id",
+            studentId: testUserId.toString(),
+            jobType: "STORAGE",
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send(reqData)
+            .expect(400);
+    });
+
     test('should return 401 without authentication', async () => {
         const reqData = {
             orderId: new mongoose.Types.ObjectId().toString(),
@@ -512,7 +550,7 @@ describe('PATCH /api/jobs/:id/status', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString() // 1 day later
-        });
+        } as any);
 
         // Create a job with the order ID
         const job = await jobModel.create({
@@ -573,7 +611,7 @@ describe('PATCH /api/jobs/:id/status', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -612,7 +650,7 @@ describe('PATCH /api/jobs/:id/status', () => {
             warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -704,7 +742,7 @@ describe('PATCH /api/jobs/:id/status', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -844,7 +882,7 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString() // 1 day later
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -884,7 +922,7 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString() // 1 day later
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -926,7 +964,7 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -960,7 +998,7 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -982,6 +1020,21 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
             .set('Authorization', `Bearer ${authToken}`)
             .expect(400);
     });
+
+    test('should return 500 when jobId is empty string', async () => {
+        await request(app)
+            .post('/api/jobs/%20/confirm-pickup')  
+            .set('Authorization', `Bearer ${authToken}`)
+            .expect(500);
+    });
+
+    test('should return 401 when studentId is missing', async () => {
+        const validJobId = new mongoose.Types.ObjectId();
+        await request(app)
+            .post(`/api/jobs/${validJobId}/confirm-pickup`)
+            // No Authorization header - req.user will be undefined
+            .expect(401);
+    });
 });
 
 describe('POST /api/jobs/:id/delivered', () => {
@@ -996,7 +1049,7 @@ describe('POST /api/jobs/:id/delivered', () => {
             warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString() // 1 day later
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -1035,7 +1088,7 @@ describe('POST /api/jobs/:id/delivered', () => {
             warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString() // 1 day later
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -1076,7 +1129,7 @@ describe('POST /api/jobs/:id/delivered', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -1109,7 +1162,7 @@ describe('POST /api/jobs/:id/delivered', () => {
             warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -1145,7 +1198,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString() // 1 day later
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -1185,7 +1238,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString() // 1 day later
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -1227,7 +1280,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,
@@ -1261,7 +1314,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             warehouseAddress: { lat: 49.2606, lon: -123.2460, formattedAddress: 'Warehouse Address' },
             pickupTime: new Date().toISOString(),
             returnTime: new Date(Date.now() + 86400000).toISOString()
-        });
+        } as any);
 
         const job = await jobModel.create({
             orderId: order._id,

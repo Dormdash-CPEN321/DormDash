@@ -43,6 +43,7 @@ export class JobController {
 
     async getMoverJobs(req: Request, res: Response<GetMoverJobsResponse>, next: NextFunction) {
         try {
+            // TODO: this will never be reached but has to be present to satisfy TypeScript
             if (!req.user || !req.user._id) {
                 throw new Error("User not authenticated");
             }
@@ -106,6 +107,7 @@ export class JobController {
     }
 
     // Student confirms mover picked up items
+    //TODO: define a proper req type 
     async confirmPickup(req: Request<{ id: string }>, res: Response, next: NextFunction) {
         try {
             if (!req.user || !req.user._id) throw new Error('User not authenticated');

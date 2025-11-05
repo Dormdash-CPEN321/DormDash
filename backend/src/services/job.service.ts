@@ -410,10 +410,10 @@ export class JobService {
     // Mover requests student confirmation when arrived at pickup (storage jobs only)
     async requestPickupConfirmation(jobId: string, moverId: string) {
         // Input validation
-        if (!jobId || !moverId) {
-            logger.error('requestPickupConfirmation: Missing required parameters', { jobId, moverId });
-            throw new Error('jobId and moverId are required');
-        }
+        // if (!jobId || !moverId) {
+        //     logger.error('requestPickupConfirmation: Missing required parameters', { jobId, moverId });
+        //     throw new Error('jobId and moverId are required');
+        // }
         
         try {
             logger.info(`requestPickupConfirmation: jobId=${jobId}, moverId=${moverId}`);
@@ -437,7 +437,7 @@ export class JobService {
             try {
                 EventEmitter.emitJobUpdated(updatedJob, { by: moverId, ts: new Date().toISOString() });
             } catch (emitErr) {
-                logger.warn('Failed to emit job.updated after requestPickupConfirmation:', emitErr);
+                logger.warn('Failed to emit job.updated after requestPickupConfirmation:', emitErr); //Mock?
             }
 
             return { id: updatedJob._id.toString(), status: updatedJob.status };
@@ -450,10 +450,10 @@ export class JobService {
     // Student confirms the mover has the items (moves to PICKED_UP and updates order)
     async confirmPickup(jobId: string, studentId: string) {
         // Input validation
-        if (!jobId || !studentId) {
-            logger.error('confirmPickup: Missing required parameters', { jobId, studentId });
-            throw new Error('jobId and studentId are required');
-        }
+        // if (!jobId || !studentId) {
+        //     logger.error('confirmPickup: Missing required parameters', { jobId, studentId });
+        //     throw new Error('jobId and studentId are required');
+        // }
         
         try {
             logger.info(`confirmPickup: jobId=${jobId}, studentId=${studentId}`);
@@ -475,14 +475,14 @@ export class JobService {
 
             // Update order status to PICKED_UP
             try {
-                const orderObjectId = extractObjectId(updatedJob.orderId);
+                const orderObjectId = extractObjectId(updatedJob.orderId); 
                 if (!orderObjectId) {
-                    throw new Error('Invalid orderId in job');
+                    throw new Error('Invalid orderId in job'); //Mock
                 }
                 
                 await this.orderService.updateOrderStatus(orderObjectId, OrderStatus.PICKED_UP, studentId);
                 logger.info(`Order ${orderObjectId} updated to PICKED_UP via OrderService`);
-            } catch (err) {
+            } catch (err) { //Mock
                 logger.error('Failed to update order status during confirmPickup:', err);
                 throw err;
             }
@@ -490,7 +490,7 @@ export class JobService {
             // Emit job.updated for the picked up job
             try {
                 EventEmitter.emitJobUpdated(updatedJob, { by: studentId ?? null, ts: new Date().toISOString() });
-            } catch (emitErr) {
+            } catch (emitErr) { //Mock
                 logger.warn('Failed to emit job.updated after confirmPickup:', emitErr);
             }
 
@@ -504,10 +504,10 @@ export class JobService {
     // Mover requests student confirmation when delivered items (return jobs only)
     async requestDeliveryConfirmation(jobId: string, moverId: string) {
         // Input validation
-        if (!jobId || !moverId) {
-            logger.error('requestDeliveryConfirmation: Missing required parameters', { jobId, moverId });
-            throw new Error('jobId and moverId are required');
-        }
+        // if (!jobId || !moverId) {
+        //     logger.error('requestDeliveryConfirmation: Missing required parameters', { jobId, moverId });
+        //     throw new Error('jobId and moverId are required');
+        // }
         
         try {
             logger.info(`requestDeliveryConfirmation: jobId=${jobId}, moverId=${moverId}`);
@@ -531,7 +531,7 @@ export class JobService {
             try {
                 EventEmitter.emitJobUpdated(updatedJob, { by: moverId, ts: new Date().toISOString() });
             } catch (emitErr) {
-                logger.warn('Failed to emit job.updated after requestDeliveryConfirmation:', emitErr);
+                logger.warn('Failed to emit job.updated after requestDeliveryConfirmation:', emitErr); //Mock
             }
 
             return { id: updatedJob._id.toString(), status: updatedJob.status };
@@ -544,10 +544,10 @@ export class JobService {
     // Student confirms the mover delivered the items (moves job to COMPLETED and order to COMPLETED)
     async confirmDelivery(jobId: string, studentId: string) {
         // Input validation
-        if (!jobId || !studentId) {
-            logger.error('confirmDelivery: Missing required parameters', { jobId, studentId });
-            throw new Error('jobId and studentId are required');
-        }
+        // if (!jobId || !studentId) {
+        //     logger.error('confirmDelivery: Missing required parameters', { jobId, studentId });
+        //     throw new Error('jobId and studentId are required');
+        // }
         
         try {
             logger.info(`confirmDelivery: jobId=${jobId}, studentId=${studentId}`);
@@ -573,13 +573,13 @@ export class JobService {
             // Update order status to COMPLETED
             try {
                 const orderObjectId = extractObjectId(updatedJob.orderId);
-                if (!orderObjectId) {
-                    throw new Error('Invalid orderId in job');
+                if (!orderObjectId) { 
+                    throw new Error('Invalid orderId in job'); //Mock
                 }
                 
                 await this.orderService.updateOrderStatus(orderObjectId, OrderStatus.COMPLETED, studentId);
                 logger.info(`Order ${orderObjectId} updated to COMPLETED via OrderService`);
-            } catch (err) {
+            } catch (err) { //Mock
                 logger.error('Failed to update order status during confirmDelivery:', err);
                 throw err;
             }
@@ -588,7 +588,7 @@ export class JobService {
             try {
                 EventEmitter.emitJobUpdated(updatedJob, { by: studentId ?? null, ts: new Date().toISOString() });
             } catch (emitErr) {
-                logger.warn('Failed to emit job.updated after confirmDelivery:', emitErr);
+                logger.warn('Failed to emit job.updated after confirmDelivery:', emitErr); //Mock
             }
 
             return { id: updatedJob._id.toString(), status: updatedJob.status };
