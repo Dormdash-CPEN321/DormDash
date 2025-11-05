@@ -17,15 +17,11 @@ router.post(
   }
 );
 
-router.post(
-    '/',
-    validateBody<CreateOrderRequest>(createOrderSchema),
-    (req, res, next) => {
-      orderController.createOrder(req, res, next).catch((err: unknown) => {
-        next(err);
-      });
-    }
-);
+router.post('/', (req, res, next) => {
+  orderController.createOrder(req, res, next).catch((err: unknown) => {
+    next(err);
+  });
+});
 
 router.post(
   '/create-return-Job',
