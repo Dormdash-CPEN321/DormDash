@@ -44,7 +44,6 @@ const mockStripeService = stripeService as jest.Mocked<typeof stripeService>;
 
 beforeAll(async () => {
   // Suppress all console output during tests for clean test output
-  console.log = jest.fn();
   console.warn = jest.fn();
   console.error = jest.fn();
   console.info = jest.fn();

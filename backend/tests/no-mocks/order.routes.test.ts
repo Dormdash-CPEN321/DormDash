@@ -19,7 +19,6 @@ const testUserId = new mongoose.Types.ObjectId(); // Generate unique ID
 
 beforeAll(async () => {
   // Suppress all console output during tests
-  console.log = jest.fn();
   console.warn = jest.fn();
   console.info = jest.fn();
   // Connect to test database

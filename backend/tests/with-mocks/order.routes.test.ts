@@ -39,6 +39,13 @@ jest.mock('../../src/models/order.model', () => ({
   }
 }));
 
+// Mock the job model
+jest.mock('../../src/models/job.model', () => ({
+  jobModel: {
+    findByOrderId: jest.fn(),
+  }
+}));
+
 // Mock the event emitter
 jest.mock('../../src/utils/eventEmitter.util', () => ({
   EventEmitter: {
@@ -52,6 +59,7 @@ import app from '../../src/app';
 import { jobService } from '../../src/services/job.service';
 import { paymentService } from '../../src/services/payment.service';
 import { orderModel } from '../../src/models/order.model';
+import { jobModel } from '../../src/models/job.model';
 import { EventEmitter } from '../../src/utils/eventEmitter.util';
 
 // Suppress console logs during tests
@@ -69,6 +77,7 @@ const testUserId = new mongoose.Types.ObjectId(); // Generate unique ID
 const mockJobService = jobService as jest.Mocked<typeof jobService>;
 const mockPaymentService = paymentService as jest.Mocked<typeof paymentService>;
 const mockOrderModel = orderModel as jest.Mocked<typeof orderModel>;
+const mockJobModel = jobModel as jest.Mocked<typeof jobModel>;
 const mockEventEmitter = EventEmitter as jest.Mocked<typeof EventEmitter>;
 
 beforeAll(async () => {
@@ -402,14 +411,12 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       returnTime: '2025-11-15T10:00:00.000Z'
     };
 
-    // Mock no existing return job
-    const mockJobModel = {
-      findByOrderId: jest.fn().mockResolvedValue([])
-    };
-
     // Mock order model
     mockOrderModel.findActiveOrder.mockResolvedValue(mockActiveOrder);
     mockOrderModel.update.mockResolvedValue(mockActiveOrder);
+    
+    // Mock no existing return job
+    mockJobModel.findByOrderId.mockResolvedValue([]);
 
     // Mock job service
     mockJobService.createJob.mockResolvedValue({
@@ -476,13 +483,16 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       returnTime: '2025-11-15T10:00:00.000Z'
     };
 
-    // Mock existing return job
+    // Mock existing return job linked to the order
     const mockExistingJobs = [{
       jobType: 'RETURN',
-      status: 'PENDING'
+      status: 'PENDING',
+      orderId: mockActiveOrder._id
     }];
 
     mockOrderModel.findActiveOrder.mockResolvedValue(mockActiveOrder);
+    // Mock jobModel to return the existing return job
+    mockJobModel.findByOrderId.mockResolvedValue(mockExistingJobs as any);
 
     const response = await request(app)
       .post('/api/order/create-return-Job')
@@ -523,7 +533,15 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
 
     mockOrderModel.findActiveOrder.mockResolvedValue(mockActiveOrder);
     mockOrderModel.update.mockResolvedValue(mockActiveOrder);
-    mockJobService.createJob.mockResolvedValue(undefined);
+    
+    // Mock no existing return job
+    mockJobModel.findByOrderId.mockResolvedValue([]);
+    
+    mockJobService.createJob.mockResolvedValue({
+      success: true,
+      id: 'job_mock_return_late',
+      message: 'RETURN job created successfully'
+    });
 
     const response = await request(app)
       .post('/api/order/create-return-Job')
@@ -543,6 +561,7 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
     // Mock orders data
     const mockOrders = [
       {
+        _id: new mongoose.Types.ObjectId(),
         studentId: testUserId.toString(),
         volume: 2.5,
         totalPrice: 150.0,
@@ -777,4 +796,6 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
   });
+
+  
 });
