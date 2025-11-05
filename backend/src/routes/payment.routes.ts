@@ -19,9 +19,4 @@ router.post(
     (req, res, next) => paymentController.processPayment(req, res, next)
 );
 
-router.get(
-    '/status/:paymentIntentId',
-    (req: any, res, next) => paymentController.getPaymentStatus(req, res, next)
-);
-
 export default router;
