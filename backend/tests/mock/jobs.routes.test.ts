@@ -83,7 +83,7 @@ jest.mock('../../src/models/user.model', () => ({
 // Import app after mocking dependencies (but NOT the service itself)
 import app from '../../src/app';
 
-describe('POST /api/jobs - Mock Tests', () => {
+describe('POST /api/jobs', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -135,7 +135,7 @@ describe('POST /api/jobs - Mock Tests', () => {
     });
 });
 
-describe('GET /api/jobs - Mock Tests', () => {
+describe('GET /api/jobs', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -161,9 +161,20 @@ describe('GET /api/jobs - Mock Tests', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findAllJobs).toHaveBeenCalled();
     });
+
+    test('should handle database error in getAllJobs (lines 154-155)', async () => {
+        mockJobModel.findAllJobs.mockRejectedValue(new Error('Database error') as any);
+
+        const response = await request(app)
+            .get('/api/jobs')
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(mockJobModel.findAllJobs).toHaveBeenCalled();
+    });
 });
 
-describe('GET /api/jobs/available - Mock Tests', () => {
+describe('GET /api/jobs/available', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -178,9 +189,20 @@ describe('GET /api/jobs/available - Mock Tests', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findAvailableJobs).toHaveBeenCalled();
     });
+
+    test('should handle database error (lines 167-168)', async () => {
+        mockJobModel.findAvailableJobs.mockRejectedValue(new Error('Database error') as any);
+
+        const response = await request(app)
+            .get('/api/jobs/available')
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(mockJobModel.findAvailableJobs).toHaveBeenCalled();
+    });
 });
 
-describe('GET /api/jobs/mover - Mock Tests', () => {
+describe('GET /api/jobs/mover', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -195,9 +217,20 @@ describe('GET /api/jobs/mover - Mock Tests', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findByMoverId).toHaveBeenCalled();
     });
+
+    test('should handle database error (lines 180-181)', async () => {
+        mockJobModel.findByMoverId.mockRejectedValue(new Error('Database error') as any);
+
+        const response = await request(app)
+            .get('/api/jobs/mover')
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(mockJobModel.findByMoverId).toHaveBeenCalled();
+    });
 });
 
-describe('GET /api/jobs/student - Mock Tests', () => {
+describe('GET /api/jobs/student', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -212,9 +245,20 @@ describe('GET /api/jobs/student - Mock Tests', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findByStudentId).toHaveBeenCalled();
     });
+
+    test('should handle database error (lines 193-194)', async () => {
+        mockJobModel.findByStudentId.mockRejectedValue(new Error('Database error') as any);
+
+        const response = await request(app)
+            .get('/api/jobs/student')
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(mockJobModel.findByStudentId).toHaveBeenCalled();
+    });
 });
 
-describe('GET /api/jobs/:id - Mock Tests', () => {
+describe('GET /api/jobs/:id', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -244,7 +288,7 @@ describe('GET /api/jobs/:id - Mock Tests', () => {
     });
 });
 
-describe('PATCH /api/jobs/:id/status - Mock Tests', () => {
+describe('PATCH /api/jobs/:id/status', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -274,179 +318,8 @@ describe('PATCH /api/jobs/:id/status - Mock Tests', () => {
         expect(response.status).toBe(404);
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
-});
 
-describe('POST /api/jobs/:id/arrived - Mock Tests', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    test('should handle database error in requestPickupConfirmation (triggers controller catch block)', async () => {
-        mockJobModel.findById.mockRejectedValue(new Error('Database error during pickup confirmation'));
-
-        const jobId = new mongoose.Types.ObjectId().toString();
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/arrived`)
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-
-    test('should handle JobNotFoundError in requestPickupConfirmation', async () => {
-        const jobId = new mongoose.Types.ObjectId().toString();
-        mockJobModel.findById.mockResolvedValue(null as any);
-
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/arrived`)
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBe(404);
-        expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-});
-
-describe('POST /api/jobs/:id/confirm-pickup - Mock Tests', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    test('should handle database error in confirmPickup (triggers controller catch block)', async () => {
-        mockJobModel.findById.mockRejectedValue(new Error('Database error during pickup confirmation'));
-
-        const jobId = new mongoose.Types.ObjectId().toString();
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/confirm-pickup`)
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-
-    test('should handle JobNotFoundError in confirmPickup', async () => {
-        const jobId = new mongoose.Types.ObjectId().toString();
-        mockJobModel.findById.mockResolvedValue(null as any);
-
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/confirm-pickup`)
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBe(404);
-        expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-});
-
-describe('POST /api/jobs/:id/delivered - Mock Tests', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    test('should handle database error in requestDeliveryConfirmation (triggers controller catch block)', async () => {
-        mockJobModel.findById.mockRejectedValue(new Error('Database error during delivery confirmation'));
-
-        const jobId = new mongoose.Types.ObjectId().toString();
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/delivered`)
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-
-    test('should handle JobNotFoundError in requestDeliveryConfirmation', async () => {
-        const jobId = new mongoose.Types.ObjectId().toString();
-        mockJobModel.findById.mockResolvedValue(null as any);
-
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/delivered`)
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBe(404);
-        expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-});
-
-describe('POST /api/jobs/:id/confirm-delivery - Mock Tests', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    test('should handle database error in confirmDelivery (triggers controller catch block)', async () => {
-        mockJobModel.findById.mockRejectedValue(new Error('Database error during delivery confirmation'));
-
-        const jobId = new mongoose.Types.ObjectId().toString();
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/confirm-delivery`)
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-
-    test('should handle JobNotFoundError in confirmDelivery', async () => {
-        const jobId = new mongoose.Types.ObjectId().toString();
-        mockJobModel.findById.mockResolvedValue(null as any);
-
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/confirm-delivery`)
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBe(404);
-        expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-});
-
-// Service-level tests - Mock dependencies to test service code via Express routes
-describe('JobService - Service-level Mock Tests via Routes', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    test('GET /api/jobs - should handle database error in getAllJobs (lines 154-155)', async () => {
-        mockJobModel.findAllJobs.mockRejectedValue(new Error('Database error') as any);
-
-        const response = await request(app)
-            .get('/api/jobs')
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockJobModel.findAllJobs).toHaveBeenCalled();
-    });
-
-    test('GET /api/jobs/available - should handle database error (lines 167-168)', async () => {
-        mockJobModel.findAvailableJobs.mockRejectedValue(new Error('Database error') as any);
-
-        const response = await request(app)
-            .get('/api/jobs/available')
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockJobModel.findAvailableJobs).toHaveBeenCalled();
-    });
-
-    test('GET /api/jobs/mover - should handle database error (lines 180-181)', async () => {
-        mockJobModel.findByMoverId.mockRejectedValue(new Error('Database error') as any);
-
-        const response = await request(app)
-            .get('/api/jobs/mover')
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockJobModel.findByMoverId).toHaveBeenCalled();
-    });
-
-    test('GET /api/jobs/student - should handle database error (lines 193-194)', async () => {
-        mockJobModel.findByStudentId.mockRejectedValue(new Error('Database error') as any);
-
-        const response = await request(app)
-            .get('/api/jobs/student')
-            .set('Authorization', `Bearer fake-token`);
-
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockJobModel.findByStudentId).toHaveBeenCalled();
-    });
-
-    test('PATCH /api/jobs/:id/status - should handle missing jobId (lines 220-221)', async () => {
+    test('should handle missing jobId (lines 220-221)', async () => {
         const response = await request(app)
             .patch('/api/jobs//status')
             .set('Authorization', `Bearer fake-token`)
@@ -455,7 +328,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(response.status).toBeGreaterThanOrEqual(400);
     });
 
-    test('PATCH /api/jobs/:id/status - should handle missing status (lines 225-226)', async () => {
+    test('should handle missing status (lines 225-226)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         mockJobModel.findById.mockResolvedValue({
             _id: new mongoose.Types.ObjectId(jobId),
@@ -477,7 +350,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(response.status).toBeGreaterThanOrEqual(400);
     });
 
-    test('PATCH /api/jobs/:id/status - should handle job not found (line 245)', async () => {
+    test('should handle job not found (line 245)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         mockJobModel.findById.mockResolvedValue(null as any);
 
@@ -490,7 +363,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle job already accepted (line 253)', async () => {
+    test('should handle job already accepted (line 253)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -520,7 +393,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockJobModel.tryAcceptJob).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle invalid orderId in ACCEPTED flow (lines 261-262)', async () => {
+    test('should handle invalid orderId in ACCEPTED flow (lines 261-262)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
@@ -556,7 +429,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockJobModel.tryAcceptJob).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle orderService error in ACCEPTED flow (lines 271-272)', async () => {
+    test('should handle orderService error in ACCEPTED flow (lines 271-272)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -593,7 +466,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle EventEmitter error in ACCEPTED flow (line 278)', async () => {
+    test('should handle EventEmitter error in ACCEPTED flow (line 278)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -635,7 +508,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle RETURN job PICKED_UP flow (lines 286-326)', async () => {
+    test('should handle RETURN job PICKED_UP flow (lines 286-326)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -676,7 +549,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle job not found in else branch (line 338)', async () => {
+    test('should handle job not found in else branch (line 338)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -705,7 +578,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockJobModel.update).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle EventEmitter error in else branch (line 345)', async () => {
+    test('should handle EventEmitter error in else branch (line 345)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -743,7 +616,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle job not found in COMPLETED flow (line 353)', async () => {
+    test('should handle job not found in COMPLETED flow (line 353)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -781,7 +654,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle invalid orderId in COMPLETED flow (lines 361-362)', async () => {
+    test('should handle invalid orderId in COMPLETED flow (lines 361-362)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         
@@ -815,7 +688,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockJobModel.update).toHaveBeenCalled();
     });
 
-    test('PATCH /api/jobs/:id/status - should handle orderService error in COMPLETED flow (lines 384-385)', async () => {
+    test('should handle orderService error in COMPLETED flow (lines 384-385)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -851,8 +724,38 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
+});
 
-    test('POST /api/jobs/:id/arrived - should handle EventEmitter error (line 440)', async () => {
+describe('POST /api/jobs/:id/arrived', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('should handle database error in requestPickupConfirmation (triggers controller catch block)', async () => {
+        mockJobModel.findById.mockRejectedValue(new Error('Database error during pickup confirmation'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/arrived`)
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should handle JobNotFoundError in requestPickupConfirmation', async () => {
+        const jobId = new mongoose.Types.ObjectId().toString();
+        mockJobModel.findById.mockResolvedValue(null as any);
+
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/arrived`)
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBe(404);
+        expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should handle EventEmitter error (line 440)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -891,8 +794,38 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(response.status).toBe(200);
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
+});
 
-    test('POST /api/jobs/:id/confirm-pickup - should handle invalid orderId (line 480)', async () => {
+describe('POST /api/jobs/:id/confirm-pickup', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('should handle database error in confirmPickup (triggers controller catch block)', async () => {
+        mockJobModel.findById.mockRejectedValue(new Error('Database error during pickup confirmation'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/confirm-pickup`)
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should handle JobNotFoundError in confirmPickup', async () => {
+        const jobId = new mongoose.Types.ObjectId().toString();
+        mockJobModel.findById.mockResolvedValue(null as any);
+
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/confirm-pickup`)
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBe(404);
+        expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should handle invalid orderId (line 480)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         
@@ -924,7 +857,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('POST /api/jobs/:id/confirm-pickup - should handle orderService error (lines 486-487)', async () => {
+    test('should handle orderService error (lines 486-487)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -958,7 +891,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
 
-    test('POST /api/jobs/:id/confirm-pickup - should handle EventEmitter error (line 494)', async () => {
+    test('should handle EventEmitter error (line 494)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -995,8 +928,38 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(response.status).toBe(200);
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
+});
 
-    test('POST /api/jobs/:id/delivered - should handle EventEmitter error (line 534)', async () => {
+describe('POST /api/jobs/:id/delivered', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('should handle database error in requestDeliveryConfirmation (triggers controller catch block)', async () => {
+        mockJobModel.findById.mockRejectedValue(new Error('Database error during delivery confirmation'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/delivered`)
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should handle JobNotFoundError in requestDeliveryConfirmation', async () => {
+        const jobId = new mongoose.Types.ObjectId().toString();
+        mockJobModel.findById.mockResolvedValue(null as any);
+
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/delivered`)
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBe(404);
+        expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should handle EventEmitter error (line 534)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -1035,8 +998,38 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(response.status).toBe(200);
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
+});
 
-    test('POST /api/jobs/:id/confirm-delivery - should handle invalid orderId (line 577)', async () => {
+describe('POST /api/jobs/:id/confirm-delivery', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('should handle database error in confirmDelivery (triggers controller catch block)', async () => {
+        mockJobModel.findById.mockRejectedValue(new Error('Database error during delivery confirmation'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/confirm-delivery`)
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should handle JobNotFoundError in confirmDelivery', async () => {
+        const jobId = new mongoose.Types.ObjectId().toString();
+        mockJobModel.findById.mockResolvedValue(null as any);
+
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/confirm-delivery`)
+            .set('Authorization', `Bearer fake-token`);
+
+        expect(response.status).toBe(404);
+        expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should handle invalid orderId (line 577)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         
@@ -1069,7 +1062,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('POST /api/jobs/:id/confirm-delivery - should handle orderService error (lines 583-584)', async () => {
+    test('should handle orderService error (lines 583-584)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -1104,7 +1097,7 @@ describe('JobService - Service-level Mock Tests via Routes', () => {
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
 
-    test('POST /api/jobs/:id/confirm-delivery - should handle EventEmitter error (line 591)', async () => {
+    test('should handle EventEmitter error (line 591)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
