@@ -123,6 +123,7 @@ private fun AvailableJobsControls(
 
         // Filter switch
         Row(
+            modifier = Modifier.testTag("availability_toggle"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -132,7 +133,8 @@ private fun AvailableJobsControls(
             )
             Switch(
                 checked = showOnlyAvailable,
-                onCheckedChange = onFilterChange
+                onCheckedChange = onFilterChange,
+                modifier = Modifier.testTag("availability_switch")
             )
         }
     }

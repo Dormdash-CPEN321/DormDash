@@ -8,7 +8,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.cpen321.usermanagement.data.repository.AuthRepository
+import com.cpen321.usermanagement.data.repository.JobRepository
 import com.cpen321.usermanagement.fakes.FakeAuthRepository
+import com.cpen321.usermanagement.fakes.FakeJobRepository
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
@@ -35,6 +37,9 @@ abstract class FindJobsTestBase {
     @Inject
     lateinit var authRepository: AuthRepository
 
+    @Inject
+    lateinit var jobRepository: JobRepository
+
     protected lateinit var device: UiDevice
     protected lateinit var scenario: ActivityScenario<MainActivity>
 
@@ -48,6 +53,11 @@ abstract class FindJobsTestBase {
             runBlocking {
                 (authRepository as FakeAuthRepository).resetToSignedIn()
             }
+        }
+
+        // Reset job repository to default state
+        if (jobRepository is FakeJobRepository) {
+            (jobRepository as FakeJobRepository).resetToDefaultJobs()
         }
 
         // Now launch the activity with signed-in state
