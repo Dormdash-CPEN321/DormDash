@@ -15,11 +15,10 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.runner.RunWith
-import kotlin.math.sign
 
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
-class OrderTestBase {
+abstract class OrderTestBase {
 
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
@@ -55,49 +54,61 @@ class OrderTestBase {
     }
 
     fun signIn(){
-        // Click the sign-in button
-        composeTestRule.onNodeWithText("Sign in with Google", useUnmergedTree = true)
-            .assertExists()
-            .performClick()
-
-        // Wait for Google account picker dialog to appear
-        val accountPickerAppeared = device.wait(
-            Until.hasObject(By.pkg("com.google.android.gms")),
-            10_000
-        )
-
-        if (accountPickerAppeared) {
-            // Wait briefly for account items to become clickable
-            device.wait(Until.hasObject(By.clickable(true)), 3_000)
-
-            // Choose the first clickable object (account entry)
-            val firstClickable = device.findObject(By.clickable(true))
-            firstClickable?.click()
-        }
-
-        // Wait for sign-in flow to complete
         composeTestRule.waitForIdle()
 
-        // Check if "Complete Your Profile" popup appears and skip it if present
-        val completeProfileNodes = composeTestRule
-            .onAllNodesWithText("Complete Your Profile", useUnmergedTree = true)
+        val isNotAuthenticated = composeTestRule
+            .onAllNodesWithText("Sign in with Google")
             .fetchSemanticsNodes()
+            .isNotEmpty()
 
-        if (completeProfileNodes.isNotEmpty()) {
-            // Try to find and click "Skip" or "Later" button
-            composeTestRule
-                .onNodeWithText("Skip", useUnmergedTree = true)
+        if (isNotAuthenticated) {
+            // Click the sign-in button
+            composeTestRule.onNodeWithText("Sign in with Google", useUnmergedTree = true)
+                .assertExists("Sign in button should exist (OrderTestBase)")
                 .performClick()
-        }
 
-        composeTestRule.waitForIdle()
+            // Wait for Google account picker dialog to appear
+            val accountPickerAppeared = device.wait(
+                Until.hasObject(By.pkg("com.google.android.gms")),
+                10_000
+            )
 
-        // Wait for main screen to appear
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule
-                .onAllNodesWithText("DormDash", useUnmergedTree = true)
+            if (accountPickerAppeared) {
+                // Wait briefly for account items to become clickable
+                device.wait(Until.hasObject(By.clickable(true)), 3_000)
+
+                // Choose the first clickable object (account entry)
+                val firstClickable = device.findObject(By.clickable(true))
+                firstClickable?.click()
+            }
+
+            // Wait for sign-in flow to complete
+            composeTestRule.waitForIdle()
+
+            // Check if "Complete Your Profile" popup appears and skip it if present
+            val completeProfileNodes = composeTestRule
+                .onAllNodesWithText("Complete Your Profile", useUnmergedTree = true)
                 .fetchSemanticsNodes()
-                .isNotEmpty()
+
+            if (completeProfileNodes.isNotEmpty()) {
+                // Try to find and click "Skip" or "Later" button
+                composeTestRule
+                    .onNodeWithText("Skip", useUnmergedTree = true)
+                    .performClick()
+            }
+
+            composeTestRule.waitForIdle()
+
+            // Wait for main screen to appear
+            composeTestRule.waitUntil(timeoutMillis = 5000) {
+                composeTestRule
+                    .onAllNodesWithText("DormDash", useUnmergedTree = true)
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }
+        } else {
+            // authenticated already
+            return
         }
     }
 }

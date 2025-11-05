@@ -1,6 +1,7 @@
 package com.cpen321.usermanagement.features.auth
 
 import android.content.Intent
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -27,13 +28,12 @@ abstract class AuthTestBase {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     @Inject
     lateinit var authRepository: AuthRepository
 
     protected lateinit var device: UiDevice
-    protected lateinit var scenario: ActivityScenario<MainActivity>
 
     /**
      * Override this in subclasses to start signed out (for auth flow tests)
@@ -53,10 +53,6 @@ abstract class AuthTestBase {
             }
         }
 
-        // Now launch the activity with the correct auth state
-        val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
-        scenario = ActivityScenario.launch(intent)
-
         // Wait for the app to settle after launching
         composeTestRule.waitForIdle()
 
@@ -75,49 +71,61 @@ abstract class AuthTestBase {
     }
 
     fun signIn(){
-        // Click the sign-in button
-        composeTestRule.onNodeWithText("Sign in with Google", useUnmergedTree = true)
-            .assertExists()
-            .performClick()
-
-        // Wait for Google account picker dialog to appear
-        val accountPickerAppeared = device.wait(
-            Until.hasObject(By.pkg("com.google.android.gms")),
-            10_000
-        )
-
-        if (accountPickerAppeared) {
-            // Wait briefly for account items to become clickable
-            device.wait(Until.hasObject(By.clickable(true)), 3_000)
-
-            // Choose the first clickable object (account entry)
-            val firstClickable = device.findObject(By.clickable(true))
-            firstClickable?.click()
-        }
-
-        // Wait for sign-in flow to complete
         composeTestRule.waitForIdle()
 
-        // Check if "Complete Your Profile" popup appears and skip it if present
-        val completeProfileNodes = composeTestRule
-            .onAllNodesWithText("Complete Your Profile", useUnmergedTree = true)
+        val isNotAuthenticated = composeTestRule
+            .onAllNodesWithText("Sign in with Google")
             .fetchSemanticsNodes()
+            .isNotEmpty()
 
-        if (completeProfileNodes.isNotEmpty()) {
-            // Try to find and click "Skip" or "Later" button
-            composeTestRule
-            .onNodeWithText("Skip", useUnmergedTree = true)
+        if (isNotAuthenticated) {
+            // Click the sign-in button
+            composeTestRule.onNodeWithText("Sign in with Google", useUnmergedTree = true)
+                .assertExists("Sign in button should exist (OrderTestBase)")
                 .performClick()
+
+            // Wait for Google account picker dialog to appear
+            val accountPickerAppeared = device.wait(
+                Until.hasObject(By.pkg("com.google.android.gms")),
+                10_000
+            )
+
+            if (accountPickerAppeared) {
+                // Wait briefly for account items to become clickable
+                device.wait(Until.hasObject(By.clickable(true)), 3_000)
+
+                // Choose the first clickable object (account entry)
+                val firstClickable = device.findObject(By.clickable(true))
+                firstClickable?.click()
             }
 
-        composeTestRule.waitForIdle()
+            // Wait for sign-in flow to complete
+            composeTestRule.waitForIdle()
 
-        // Wait for main screen to appear
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule
-                .onAllNodesWithText("DormDash", useUnmergedTree = true)
+            // Check if "Complete Your Profile" popup appears and skip it if present
+            val completeProfileNodes = composeTestRule
+                .onAllNodesWithText("Complete Your Profile", useUnmergedTree = true)
                 .fetchSemanticsNodes()
-                .isNotEmpty()
+
+            if (completeProfileNodes.isNotEmpty()) {
+                // Try to find and click "Skip" or "Later" button
+                composeTestRule
+                    .onNodeWithText("Skip", useUnmergedTree = true)
+                    .performClick()
+            }
+
+            composeTestRule.waitForIdle()
+
+            // Wait for main screen to appear
+            composeTestRule.waitUntil(timeoutMillis = 5000) {
+                composeTestRule
+                    .onAllNodesWithText("DormDash", useUnmergedTree = true)
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }
+        } else {
+            // authenticated already
+            return
         }
     }
 }

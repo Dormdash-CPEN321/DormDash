@@ -49,8 +49,7 @@ class SignUpTest: AuthTestBase() {
         }
 
         // Wait for sign-up flow to complete
-        // Wait for sign-in flow to complete and main screen to appear
-        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+        composeTestRule.waitUntil(timeoutMillis = 3000) {
             composeTestRule
                 .onAllNodesWithText("I'm a Student", useUnmergedTree = true)
                 .fetchSemanticsNodes()

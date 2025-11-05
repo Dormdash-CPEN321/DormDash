@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import com.cpen321.usermanagement.BuildConfig
@@ -115,12 +116,12 @@ private fun AddressAutocompleteContent(
     controller: AutocompleteController,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
+    Column(modifier = Modifier) {
         AddressTextField(
             value = value,
             onValueChange = controller.onValueChange,
             isLoading = isLoading,
-            modifier = Modifier.fillMaxWidth()
+            modifier = modifier.fillMaxWidth()
         )
 
         if (showSuggestions && suggestions.isNotEmpty()) {

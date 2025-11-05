@@ -37,6 +37,8 @@ import kotlinx.coroutines.TimeoutCancellationException
 import java.text.SimpleDateFormat
 import java.util.*
 import android.content.Context
+import androidx.compose.ui.modifier.modifierLocalConsumer
+import androidx.compose.ui.platform.testTag
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -404,7 +406,8 @@ private fun AddressCaptureStep(
                 selectedAddress = address
                 addressInput = address.formattedAddress
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().testTag("Address Field")
+
         )
         
         Spacer(modifier = Modifier.height(8.dp))
