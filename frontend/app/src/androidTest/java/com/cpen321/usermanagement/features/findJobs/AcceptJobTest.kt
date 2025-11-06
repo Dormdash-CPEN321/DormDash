@@ -14,9 +14,7 @@ import org.junit.Test
  * Before running tests, ensure the following setup is complete:
  *
  * 1. Backend must be running (npm run dev)
- * 2. Database must have at least 1 unassigned job
- *    Run: npm run seed-availability-test-jobs (creates 2 jobs)
- * 3. Test mover account must be signed in (handled automatically by FindJobsTestBase)
+ * 2. Database must have at least 1 unassigned job created by a student
  *
  * Main Success Scenario:
  * 1. Mover clicks "Accept" button for a job
@@ -54,9 +52,20 @@ class AcceptJobTest : FindJobsTestBase() {
         // Verify job list is displayed
         composeTestRule.onNodeWithTag("find_jobs_list").assertIsDisplayed()
 
+        // Count initial number of jobs
+        val initialJobCount = composeTestRule.onAllNodesWithTag("job_card")
+            .fetchSemanticsNodes().size
+
         // Get the first job's details for verification later
         val firstJobCard = composeTestRule.onAllNodesWithTag("job_card").onFirst()
         firstJobCard.assertIsDisplayed()
+
+        // Verify Accept button exists and is enabled
+        composeTestRule.onAllNodesWithTag("job_accept_button")
+            .onFirst()
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .assertHasClickAction()
 
         // Step 1: Mover clicks "Accept" button for the first job
         composeTestRule.onAllNodesWithTag("job_accept_button")
@@ -86,43 +95,15 @@ class AcceptJobTest : FindJobsTestBase() {
         composeTestRule.onAllNodesWithTag("current_job_card")
             .onFirst()
             .assertIsDisplayed()
-    }
-    
-    /**
-     * Test: Job disappears from Find Jobs after acceptance
-     */
-    @Test
-    fun testAcceptJob_removesJobFromFindJobsList() {
-        // Wait for app to load
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
-        }
 
-        // Navigate to Find Jobs
-        composeTestRule.onNodeWithText("Find Jobs").performClick()
-        
-        // Wait for jobs to load
-        composeTestRule.waitForIdle()
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithTag("job_card").fetchSemanticsNodes().isNotEmpty()
-        }
-
-        // Count initial number of jobs
-        val initialJobCount = composeTestRule.onAllNodesWithTag("job_card")
-            .fetchSemanticsNodes().size
-        
-        // Accept the first job using the accept button
-        composeTestRule.onAllNodesWithTag("job_accept_button")
+        // Verify job has status displayed
+        composeTestRule.onAllNodesWithTag("current_job_status")
             .onFirst()
-            .performClick()
-        
-        // Wait for acceptance to complete
-        composeTestRule.waitForIdle()
-        Thread.sleep(2000) // Wait for backend to process
+            .assertIsDisplayed()
 
         // Go back to Find Jobs
         composeTestRule.onNodeWithText("Find Jobs").performClick()
-        
+
         // Wait for list to refresh
         composeTestRule.waitForIdle()
         Thread.sleep(1000)
@@ -130,38 +111,12 @@ class AcceptJobTest : FindJobsTestBase() {
         // Verify job count decreased by 1
         val newJobCount = composeTestRule.onAllNodesWithTag("job_card")
             .fetchSemanticsNodes().size
-        
+
         assert(newJobCount == initialJobCount - 1) {
             "Job should be removed from list after acceptance"
         }
     }
-    
-    /**
-     * Test: Accept button is enabled and clickable
-     */
-    @Test
-    fun testAcceptButton_isEnabledAndClickable() {
-        // Wait for app to load
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
-        }
 
-        composeTestRule.onNodeWithText("Find Jobs").performClick()
-        
-        // Wait for jobs to load
-        composeTestRule.waitForIdle()
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithTag("job_card").fetchSemanticsNodes().isNotEmpty()
-        }
-
-        // Verify Accept button exists and is enabled
-        composeTestRule.onAllNodesWithTag("job_accept_button")
-            .onFirst()
-            .assertIsDisplayed()
-            .assertIsEnabled()
-            .assertHasClickAction()
-    }
-    
     /**
      * Test: Loading state during job acceptance
      * TODO: This test requires specific loading UI implementation
@@ -292,45 +247,4 @@ class AcceptJobTest : FindJobsTestBase() {
     //         "Should have at least 2 jobs in Current Jobs after accepting 2 jobs"
     //     }
     // }
-
-    /**
-     * Test: Accepted job shows correct status
-     * Simplified version - just verify job appears in Current Jobs with a status
-     */
-    @Test
-    fun testAcceptedJob_displaysInCurrentJobsWithStatus() {
-        // Wait for app to load
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
-        }
-
-        composeTestRule.onNodeWithText("Find Jobs").performClick()
-
-        // Wait for jobs to load
-        composeTestRule.waitForIdle()
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithTag("job_card").fetchSemanticsNodes().isNotEmpty()
-        }
-
-        // Accept a job
-        composeTestRule.onAllNodesWithTag("job_accept_button").onFirst().performClick()
-
-        // Wait for acceptance to complete
-        composeTestRule.waitForIdle()
-        Thread.sleep(2000)
-
-        // Navigate to Current Jobs
-        composeTestRule.onNodeWithText("Current Jobs").performClick()
-
-        // Wait for current jobs to load
-        composeTestRule.waitForIdle()
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithTag("current_job_card").fetchSemanticsNodes().isNotEmpty()
-        }
-
-        // Verify job has a status displayed (using the test tag we know exists)
-        composeTestRule.onAllNodesWithTag("current_job_status")
-            .onFirst()
-            .assertIsDisplayed()
-    }
 }
