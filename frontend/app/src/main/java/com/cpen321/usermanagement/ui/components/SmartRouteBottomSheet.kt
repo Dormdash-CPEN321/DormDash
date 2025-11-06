@@ -310,9 +310,7 @@ private fun SmartRouteStateContent(
 
         is SmartRouteUiState.Loading -> {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("route_loading"),
+                modifier = Modifier.fillMaxWidth().testTag("route_loading"),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 CircularProgressIndicator(modifier = Modifier.padding(spacing.large))
@@ -390,9 +388,7 @@ private fun RouteContent(
     val spacing = LocalSpacing.current
     
     LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("route_jobs_list"),
+        modifier = Modifier.fillMaxWidth().testTag("route_jobs_list"),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         // Metrics summary card
@@ -456,11 +452,8 @@ private fun RouteContent(
 @Composable
 private fun RouteMetricsCard(metrics: RouteMetrics) {
     val spacing = LocalSpacing.current
-    
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("route_summary"),
+        modifier = Modifier.fillMaxWidth().testTag("route_summary"),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
@@ -474,9 +467,7 @@ private fun RouteMetricsCard(metrics: RouteMetrics) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-            
             Spacer(modifier = Modifier.height(spacing.small))
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -500,9 +491,7 @@ private fun RouteMetricsCard(metrics: RouteMetrics) {
                     testTag = "route_total_distance"
                 )
             }
-            
             Spacer(modifier = Modifier.height(spacing.small))
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -568,9 +557,7 @@ private fun RouteJobCard(
     val spacing = LocalSpacing.current
     
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("route_job_card")
+        modifier = Modifier.fillMaxWidth().testTag("route_job_card")
     ) {
         Column(modifier = Modifier.padding(spacing.medium)) {
             // Header with job index, type, and price
@@ -613,9 +600,7 @@ private fun RouteJobCard(
             
             Button(
                 onClick = onJobClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("route_job_accept_button"),
+                modifier = Modifier.fillMaxWidth().testTag("route_job_accept_button"),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -632,7 +617,7 @@ private fun RouteJobCard(
     }
 }
 
-@Composable
+@ComposableRouteJobCard
 private fun TextWithIndex(index: Int) {
     Text(
         text = "${index + 1}",
