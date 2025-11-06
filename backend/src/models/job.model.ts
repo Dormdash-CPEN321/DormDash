@@ -13,7 +13,7 @@ const addressSubSchema = new Schema(
 );
 
 // Mongoose Job schema
-const jobSchema = new Schema<Job>(
+export const jobSchema = new Schema<Job>(
   {
     _id: { type: Schema.Types.ObjectId, required: true },
     orderId: {

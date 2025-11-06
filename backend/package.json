@@ -8,6 +8,8 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "seed-jobs": "node scripts/seed-test-jobs.js",
     "seed-jobs:ts": "ts-node scripts/seed-test-jobs.ts",
+    "seed-availability-test-jobs": "ts-node scripts/seed-availability-test-jobs.ts",
+    "clear-jobs": "ts-node scripts/clear-jobs.ts",
     "format": "prettier --check \"src/**/*.{ts,js,json}\"",
     "format:fix": "prettier --write \"src/**/*.{ts,js,json}\""
   },
