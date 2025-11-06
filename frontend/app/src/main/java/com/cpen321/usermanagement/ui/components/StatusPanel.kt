@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.cpen321.usermanagement.utils.TimeUtils
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import com.cpen321.usermanagement.data.local.models.Order
 import com.cpen321.usermanagement.data.local.models.OrderStatus
 import com.cpen321.usermanagement.data.local.models.displayText
@@ -393,7 +394,7 @@ private fun PickupJobStatus(order: Order, onCreateReturnJob: () -> Unit) {
         Spacer(modifier = Modifier.height(4.dp))
         Button(
             onClick = onCreateReturnJob,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("return-delivery-button"),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.tertiary
             )
@@ -421,6 +422,7 @@ private fun ReturnJobStatus() {
         text = "✅ Return delivery scheduled",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onPrimaryContainer
+
     )
 }
 
