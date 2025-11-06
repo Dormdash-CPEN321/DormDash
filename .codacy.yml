@@ -1,0 +1,4 @@
+---
+exclude_paths:
+  - "frontend/app/src/androidTest/**"
+  - "backend/tests/**"
