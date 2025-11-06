@@ -16,6 +16,8 @@
     "test:mock:order:coverage": "node test-runner.js",
     "test:mock:payment": "node test-runner.js",
     "test:mock:payment:coverage": "node test-runner.js",
+    "test:mock:user": "node test-runner.js",
+    "test:mock:user:coverage": "node test-runner.js",
     "test:nomock:jobs": "node test-runner.js",
     "test:nomock:jobs:coverage": "node test-runner.js",
     "test:nomock:order": "node test-runner.js",
