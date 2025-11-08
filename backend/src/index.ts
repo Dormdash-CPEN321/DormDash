@@ -21,6 +21,16 @@ const io = initSocket(server);
 
 logger.info(`Socket.io ${io ? 'initialized' : 'failed to initialize'}`);
 
+// Graceful shutdown handling
+process.on('SIGINT', () => {
+  console.log('\nSIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
+
 // Global error handlers for graceful shutdown
 process.on('unhandledRejection', (reason: unknown) => {
   logger.error('Unhandled Rejection:', reason);
