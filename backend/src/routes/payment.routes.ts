@@ -1,4 +1,4 @@
-import { Router, Request } from 'express';
+import { Router } from 'express';
 import { PaymentController } from '../controllers/payment.controller';
 import { paymentService } from '../services/payment.service';
 import {
