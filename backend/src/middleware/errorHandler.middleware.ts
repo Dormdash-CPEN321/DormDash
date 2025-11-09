@@ -13,21 +13,36 @@ export const notFoundHandler = (req: Request, res: Response) => {
 };
 
 export const errorHandler = (
-  error: any,
-  req: Request,
+  error: unknown,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ) => {
-  // Log the error for diagnostics
-  logger.error('Error:', error);
+  // Log the raw error for diagnostics
+  logger.error('Error:', error as any);
 
-  // If the error contains a statusCode use it, otherwise default to 500
-  const status = error?.statusCode || 500;
-  const message = error?.message || 'Internal server error';
+  // Default values
+  const defaultStatus = 500;
+  let status: number = defaultStatus;
+  let message = 'Internal server error';
+  let stack: string | undefined;
+
+  // Narrow unknown to an object and safely read known properties
+  if (typeof error === 'object' && error !== null) {
+    const errObj = error as Record<string, unknown>;
+    if (typeof errObj.statusCode === 'number') {
+      status = errObj.statusCode;
+    }
+    if (typeof errObj.message === 'string') {
+      message = errObj.message;
+    }
+    if (typeof errObj.stack === 'string') {
+      stack = errObj.stack;
+    }
+  }
 
   res.status(status).json({
     message,
     // provide a bit more context in non-production environments
-    ...(process.env.NODE_ENV !== 'production' && { stack: error?.stack }),
+    ...(process.env.NODE_ENV !== 'production' && { stack }),
   });
 };
