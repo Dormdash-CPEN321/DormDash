@@ -425,6 +425,27 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
       .send(updateData)
       .expect(401);
   });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    // Get reference to the UserController class
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.updateProfile;
+    // Mock the updateProfile method to reject
+    controllerProto.updateProfile = jest.fn().mockRejectedValue(new Error('Mocked controller error'));
+    const updateData = {
+        name: 'Should Trigger Error'
+        };
+    const response = await request(app)
+        .post('/api/user/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData);
+    // Verify the error was handled by the error middleware
+    expect(response.status).toBe(500);
+    expect(controllerProto.updateProfile).toHaveBeenCalled();
+    // Restore the original method
+    controllerProto.updateProfile = originalMethod;
+  });
 });
 
 describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
@@ -556,6 +577,25 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
     // Restore original method
     (userModel as any).update = originalUpdate;
   });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    // Get reference to the UserController class
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.cashOut;
+    // Mock the cashOut method to reject
+    controllerProto.cashOut = jest.fn().mockRejectedValue(new Error('Mocked controller error'));
+    
+    const response = await request(app)
+      .post('/api/user/cash-out')
+      .set('Authorization', `Bearer ${moverAuthToken}`);
+    // Verify the error was handled by the error middleware
+    expect(response.status).toBe(500);
+    expect(controllerProto.cashOut).toHaveBeenCalled();
+    // Restore the original method
+    controllerProto.cashOut = originalMethod;
+  });
+  
 });
 
 describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
@@ -677,5 +717,27 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
     // Verify user and their FCM token are deleted
     const deletedUser = await (userModel as any).user.findById(tempUserId);
     expect(deletedUser).toBeNull();
+  });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    // Get reference to the UserController class
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.deleteProfile;
+
+    // Mock the controller method to throw an error that will be caught by .catch()
+    controllerProto.deleteProfile = jest.fn().mockRejectedValue(new Error('Controller promise rejection'));
+
+    // Make the API request - this will trigger the .catch((err) => next(err)) block in the route
+    const response = await request(app)
+      .delete('/api/user/profile')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    // Verify the error was handled by the error middleware
+    expect(response.status).toBe(500);
+    expect(controllerProto.deleteProfile).toHaveBeenCalled();
+
+    // Restore the original method
+    controllerProto.deleteProfile = originalMethod;
   });
 });
