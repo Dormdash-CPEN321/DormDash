@@ -6,16 +6,8 @@ import { connectDB, disconnectDB } from '../../src/config/database';
 import { userModel } from '../../src/models/user.model';
 import { IUser } from '../../src/types/user.types';
 
-// Mock the media service to test delete profile
-jest.mock('../../src/services/media.service', () => ({
-  deleteAllUserImages: jest.fn(),
-}));
-
 // Import app after mocks are set up
 import app from '../../src/app';
-import { deleteAllUserImages } from '../../src/services/media.service';
-
-const mockDeleteAllUserImages = deleteAllUserImages as jest.MockedFunction<typeof deleteAllUserImages>;
 
 let authToken: string;
 let moverAuthToken: string;
@@ -595,11 +587,11 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
     // Restore the original method
     controllerProto.cashOut = originalMethod;
   });
-  
+
 });
 
 describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
-  test('should successfully delete user profile and call image deletion service', async () => {
+  test('should successfully delete user profile', async () => {
     // Create a temporary user for deletion
     const tempUserId = new mongoose.Types.ObjectId();
     await (userModel as any).user.create({
@@ -618,8 +610,6 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('message', 'User deleted successfully');
-    expect(mockDeleteAllUserImages).toHaveBeenCalledWith(tempUserId.toString());
-    expect(mockDeleteAllUserImages).toHaveBeenCalledTimes(1);
 
     // Verify user was actually deleted
     const deletedUser = await (userModel as any).user.findById(tempUserId);
@@ -648,7 +638,6 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('message', 'User deleted successfully');
-    expect(mockDeleteAllUserImages).toHaveBeenCalledWith(tempMoverId.toString());
 
     // Verify mover was actually deleted
     const deletedMover = await (userModel as any).user.findById(tempMoverId);
@@ -666,31 +655,6 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
       .delete('/api/user/profile')
       .set('Authorization', 'Bearer invalid-token')
       .expect(401);
-  });
-
-  test('should handle case when media service throws error but user deletion succeeds', async () => {
-    // Mock the media service to throw an error
-    mockDeleteAllUserImages.mockRejectedValueOnce(new Error('Media service error'));
-
-    // Create a temporary user for deletion
-    const tempUserId = new mongoose.Types.ObjectId();
-    await (userModel as any).user.create({
-      _id: tempUserId,
-      googleId: `temp-error-google-id-${tempUserId.toString()}`,
-      email: `temperror${tempUserId.toString()}@example.com`,
-      name: 'Temp Error User',
-      userRole: 'STUDENT'
-    });
-
-    const tempToken = jwt.sign({ id: tempUserId }, process.env.JWT_SECRET || 'default-secret');
-
-    // The delete should fail because media service failed
-    await request(app)
-      .delete('/api/user/profile')
-      .set('Authorization', `Bearer ${tempToken}`)
-      .expect(500);
-
-    expect(mockDeleteAllUserImages).toHaveBeenCalled();
   });
 
   test('should successfully delete user with FCM token', async () => {

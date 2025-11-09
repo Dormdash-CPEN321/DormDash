@@ -49,7 +49,6 @@ object RetrofitClient {
         .build()
 
     val authInterface: AuthInterface = retrofit.create(AuthInterface::class.java)
-    val imageInterface: ImageInterface = retrofit.create(ImageInterface::class.java)
     val userInterface: UserInterface = retrofit.create(UserInterface::class.java)
     val orderInterface: OrderInterface = retrofit.create(OrderInterface::class.java)
     val jobApiService: JobApiService = retrofit.create(JobApiService::class.java)

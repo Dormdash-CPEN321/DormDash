@@ -1,6 +1,5 @@
 package com.cpen321.usermanagement.ui.viewmodels
 
-import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -76,58 +75,6 @@ class ProfileViewModel @Inject constructor(
     fun setLoadingPhoto(isLoading: Boolean) {
         _uiState.value = _uiState.value.copy(isLoadingPhoto = isLoading)
     }
-
-    fun uploadProfilePicture(pictureUri: Uri) {
-
-        val user = _uiState.value.user
-        if (user == null) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "You must be logged in to update your profile picture."
-            )
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isLoadingPhoto = true,
-                errorMessage = null,
-                successMessage = null
-            )
-
-            try {
-                val upload = runCatching { profileRepository.uploadProfilePicture(pictureUri).getOrThrow() }
-                    .onFailure {
-                        _uiState.value = _uiState.value.copy(
-                            errorMessage = it.message ?: "Failed to upload picture"
-                        )
-                    }.getOrNull()
-
-                if (upload != null) {
-                    val save = runCatching {
-                        profileRepository.updateProfile(
-                            name = user.name,
-                            bio = user.bio ?: "",
-                            profilePicture = upload
-                        ).getOrThrow()
-                    }
-
-                    save.onSuccess { savedUser ->
-                        _uiState.value = _uiState.value.copy(
-                            user = savedUser,
-                            successMessage = "Profile picture updated successfully!"
-                        )
-                    }.onFailure {
-                        _uiState.value = _uiState.value.copy(
-                            errorMessage = it.message ?: "Failed to save picture"
-                        )
-                    }
-                }
-            } finally {
-                _uiState.value = _uiState.value.copy(isLoadingPhoto = false)
-            }
-        }
-    }
-
 
     fun updateProfile(name: String, bio: String, profilePicture: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {

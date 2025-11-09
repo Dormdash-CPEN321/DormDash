@@ -617,7 +617,7 @@ private fun RouteJobCard(
     }
 }
 
-@ComposableRouteJobCard
+@Composable
 private fun TextWithIndex(index: Int) {
     Text(
         text = "${index + 1}",
