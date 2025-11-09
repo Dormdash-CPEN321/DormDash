@@ -186,6 +186,32 @@ describe('POST /api/order/quote - Get Quote (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message');
   });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    const { OrderController } = require('../../src/controllers/order.controller');
+    const controllerProto = OrderController.prototype;
+    const originalMethod = controllerProto.getQuote;
+
+    controllerProto.getQuote = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+    const response = await request(app)
+      .post('/api/order/quote')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        studentId: testUserId.toString(),
+        studentAddress: {
+          lat: 49.2606,
+          lon: -123.1133,
+          formattedAddress: '123 Student Ave, Vancouver, BC'
+        }
+      });
+
+    expect(response.status).toBe(500);
+    expect(controllerProto.getQuote).toHaveBeenCalled();
+
+    // Restore original method
+    controllerProto.getQuote = originalMethod;
+  });
 });
 
 describe('POST /api/order - Create Order (Mocked)', () => {
@@ -381,6 +407,41 @@ describe('POST /api/order - Create Order (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message');
   });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    const { OrderController } = require('../../src/controllers/order.controller');
+    const controllerProto = OrderController.prototype;
+    const originalMethod = controllerProto.createOrder;
+
+    controllerProto.createOrder = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+    const response = await request(app)
+      .post('/api/order')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        studentId: testUserId.toString(),
+        volume: 2.5,
+        totalPrice: 150.0,
+        studentAddress: {
+          lat: 49.2606,
+          lon: -123.1133,
+          formattedAddress: '123 Student Ave, Vancouver, BC'
+        },
+        warehouseAddress: {
+          lat: 49.2827,
+          lon: -123.1207,
+          formattedAddress: '123 Warehouse St, Vancouver, BC'
+        },
+        pickupTime: '2025-11-10T10:00:00.000Z',
+        returnTime: '2025-11-15T10:00:00.000Z'
+      });
+
+    expect(response.status).toBe(500);
+    expect(controllerProto.createOrder).toHaveBeenCalled();
+
+    // Restore original method
+    controllerProto.createOrder = originalMethod;
+  });
 });
 
 describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () => {
@@ -554,6 +615,31 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('lateFee'); // Should have late fee
   });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    const { OrderController } = require('../../src/controllers/order.controller');
+    const controllerProto = OrderController.prototype;
+    const originalMethod = controllerProto.createReturnJob;
+
+    controllerProto.createReturnJob = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+    const response = await request(app)
+      .post('/api/order/create-return-Job')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        returnAddress: {
+          lat: 49.2606,
+          lon: -123.1133,
+          formattedAddress: '123 Return St, Vancouver, BC'
+        }
+      });
+
+    expect(response.status).toBe(500);
+    expect(controllerProto.createReturnJob).toHaveBeenCalled();
+
+    // Restore original method
+    controllerProto.createReturnJob = originalMethod;
+  });
 });
 
 describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
@@ -609,6 +695,24 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message');
   });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    const { OrderController } = require('../../src/controllers/order.controller');
+    const controllerProto = OrderController.prototype;
+    const originalMethod = controllerProto.getAllOrders;
+
+    controllerProto.getAllOrders = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+    const response = await request(app)
+      .get('/api/order/all-orders')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(response.status).toBe(500);
+    expect(controllerProto.getAllOrders).toHaveBeenCalled();
+
+    // Restore original method
+    controllerProto.getAllOrders = originalMethod;
+  });
 });
 
 describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
@@ -660,6 +764,24 @@ describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
       .expect(404);
 
     expect(response.body).toBeNull();
+  });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    const { OrderController } = require('../../src/controllers/order.controller');
+    const controllerProto = OrderController.prototype;
+    const originalMethod = controllerProto.getActiveOrder;
+
+    controllerProto.getActiveOrder = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+    const response = await request(app)
+      .get('/api/order/active-order')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(response.status).toBe(500);
+    expect(controllerProto.getActiveOrder).toHaveBeenCalled();
+
+    // Restore original method
+    controllerProto.getActiveOrder = originalMethod;
   });
 });
 
@@ -795,6 +917,24 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     // Should still succeed even if refund fails
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
+  });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    const { OrderController } = require('../../src/controllers/order.controller');
+    const controllerProto = OrderController.prototype;
+    const originalMethod = controllerProto.cancelOrder;
+
+    controllerProto.cancelOrder = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+    const response = await request(app)
+      .delete('/api/order/cancel-order')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(response.status).toBe(500);
+    expect(controllerProto.cancelOrder).toHaveBeenCalled();
+
+    // Restore original method
+    controllerProto.cancelOrder = originalMethod;
   });
 
   
