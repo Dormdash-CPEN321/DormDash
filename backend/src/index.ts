@@ -26,7 +26,7 @@ process.on('SIGINT', () => {
   console.log('\nSIGINT received. Shutting down gracefully...');
   server.close(() => {
     console.log('✅ Server closed');
-    process.exit(0);
+    process.exitCode = 0;
   });
 });
 
@@ -37,7 +37,7 @@ process.on('unhandledRejection', (reason: unknown) => {
   // Gracefully close server and exit
   server.close(() => {
     logger.info('Server closed due to unhandled rejection');
-    process.exit(1)
+    process.exitCode = 1;
   });
 });
 
@@ -46,6 +46,6 @@ process.on('uncaughtException', (error: Error) => {
   // Gracefully close server and exit
   server.close(() => {
     logger.info('Server closed due to uncaught exception');
-    process.exit(1);
+    process.exitCode = 1;
   });
 });

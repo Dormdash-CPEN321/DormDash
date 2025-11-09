@@ -1,4 +1,4 @@
-import { Request, Response} from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 import logger from '../utils/logger.util';
 
@@ -12,10 +12,22 @@ export const notFoundHandler = (req: Request, res: Response) => {
   });
 };
 
-export const errorHandler = (error: Error, res: Response) => {
+export const errorHandler = (
+  error: any,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  // Log the error for diagnostics
   logger.error('Error:', error);
 
-  return res.status(500).json({
-    message: 'Internal server error',
+  // If the error contains a statusCode use it, otherwise default to 500
+  const status = error?.statusCode || 500;
+  const message = error?.message || 'Internal server error';
+
+  res.status(status).json({
+    message,
+    // provide a bit more context in non-production environments
+    ...(process.env.NODE_ENV !== 'production' && { stack: error?.stack }),
   });
 };
