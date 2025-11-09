@@ -565,4 +565,30 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
 
         expect(response.body).toHaveProperty('message', 'Failed to calculate smart route');
     });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        // Get reference to the actual controller instance used by the route
+        const controllerModule = require('../../src/controllers/routePlanner.controller');
+        const controller = controllerModule.routeController;
+        const originalMethod = controller.getSmartRoute;
+        
+        // Mock the controller method to throw an error that will be caught by .catch()
+        controller.getSmartRoute = jest.fn().mockRejectedValue(new Error('Controller promise rejection'));
+
+        // Make the API request - this will trigger the .catch((err) => next(err)) block in the route
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: testLocation.lat,
+                currentLon: testLocation.lon,
+            })
+            .set('Authorization', `Bearer fake-token`);
+
+        // Verify the error was handled by the error middleware
+        expect(response.status).toBe(500);
+        expect(controller.getSmartRoute).toHaveBeenCalled();
+
+        // Restore the original method
+        controller.getSmartRoute = originalMethod;
+    });
 });
