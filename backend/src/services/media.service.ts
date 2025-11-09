@@ -35,10 +35,22 @@ async function safeRename(sourcePath: string, destPath: string): Promise<void> {
  * to prevent path traversal attacks. 
  */
 async function safeUnlink(filePath: string): Promise<void> {
-  const resolved = path.resolve(filePath);
+  // Prefer to treat the input as a basename if it looks safe. This
+  // guarantees that the removed path is constructed under IMAGES_DIR
+  // and avoids any accidental path traversal.
+  const base = path.basename(filePath);
   const resolvedImagesDir = path.resolve(IMAGES_DIR);
 
-  // Validate path is within IMAGES_DIR
+  if (/^[a-zA-Z0-9._-]+$/.test(base)) {
+    const resolved = path.join(resolvedImagesDir, base);
+    await fs.promises.unlink(resolved);
+    return;
+  }
+
+  // Fallback: if the input is not a simple basename, resolve and
+  // strictly validate it's inside IMAGES_DIR before unlinking.
+  const resolved = path.resolve(filePath);
+
   if (
     !resolved.startsWith(resolvedImagesDir + path.sep) &&
     resolved !== resolvedImagesDir
@@ -46,13 +58,7 @@ async function safeUnlink(filePath: string): Promise<void> {
     throw new Error('File path is outside allowed directory');
   }
 
-  // Validate basename doesn't contain path traversal
-  const base = path.basename(filePath);
-  if (!/^[a-zA-Z0-9._-]+$/.test(base)) {
-    throw new Error('Filename contains invalid characters');
-  }
-
-  await fs.promises.unlink(resolved);
+  throw new Error('Filename contains invalid characters');
 }
 
 export async function saveImage(filePath: string, userId: string): Promise<string> {
