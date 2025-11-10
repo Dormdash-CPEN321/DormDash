@@ -420,7 +420,7 @@ describe('POST /api/payment/process - Process Payment (Mocked)', () => {
     expect(controllerProto.processPayment).toHaveBeenCalled();
     // Restore original method
     controllerProto.processPayment = originalMethod;
-    });
+  });
 });
 
 // Additional test suites for edge cases and error scenarios
