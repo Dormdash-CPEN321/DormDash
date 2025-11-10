@@ -133,6 +133,33 @@ describe('POST /api/jobs', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.create).toHaveBeenCalled();
     });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.createJob;
+
+        controllerProto.createJob = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const response = await request(app)
+            .post('/api/jobs')
+            .set('Authorization', 'Bearer fake-token')
+            .send({
+                orderId: new mongoose.Types.ObjectId().toString(),
+                studentId: new mongoose.Types.ObjectId().toString(),
+                jobType: JobType.STORAGE,
+                volume: 10,
+                price: 50,
+                pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+                dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            });
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.createJob).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.createJob = originalMethod;
+    });
 });
 
 describe('GET /api/jobs', () => {
@@ -172,6 +199,24 @@ describe('GET /api/jobs', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findAllJobs).toHaveBeenCalled();
     });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.getAllJobs;
+
+        controllerProto.getAllJobs = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const response = await request(app)
+            .get('/api/jobs')
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.getAllJobs).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.getAllJobs = originalMethod;
+    });
 });
 
 describe('GET /api/jobs/available', () => {
@@ -199,6 +244,24 @@ describe('GET /api/jobs/available', () => {
 
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findAvailableJobs).toHaveBeenCalled();
+    });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.getAllAvailableJobs;
+
+        controllerProto.getAllAvailableJobs = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const response = await request(app)
+            .get('/api/jobs/available')
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.getAllAvailableJobs).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.getAllAvailableJobs = originalMethod;
     });
 });
 
@@ -228,6 +291,24 @@ describe('GET /api/jobs/mover', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findByMoverId).toHaveBeenCalled();
     });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.getMoverJobs;
+
+        controllerProto.getMoverJobs = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const response = await request(app)
+            .get('/api/jobs/mover')
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.getMoverJobs).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.getMoverJobs = originalMethod;
+    });
 });
 
 describe('GET /api/jobs/student', () => {
@@ -255,6 +336,24 @@ describe('GET /api/jobs/student', () => {
 
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findByStudentId).toHaveBeenCalled();
+    });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.getStudentJobs;
+
+        controllerProto.getStudentJobs = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const response = await request(app)
+            .get('/api/jobs/student')
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.getStudentJobs).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.getStudentJobs = originalMethod;
     });
 });
 
@@ -285,6 +384,25 @@ describe('GET /api/jobs/:id', () => {
 
         expect(response.status).toBe(404);
         expect(mockJobModel.findById).toHaveBeenCalled();
+    });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.getJobById;
+
+        controllerProto.getJobById = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .get(`/api/jobs/${jobId}`)
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.getJobById).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.getJobById = originalMethod;
     });
 });
 
@@ -724,6 +842,26 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.updateJobStatus;
+
+        controllerProto.updateJobStatus = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .patch(`/api/jobs/${jobId}/status`)
+            .set('Authorization', 'Bearer fake-token')
+            .send({ status: JobStatus.ACCEPTED });
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.updateJobStatus).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.updateJobStatus = originalMethod;
+    });
 });
 
 describe('POST /api/jobs/:id/arrived', () => {
@@ -793,6 +931,25 @@ describe('POST /api/jobs/:id/arrived', () => {
 
         expect(response.status).toBe(200);
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
+    });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.send_arrival_confirmation;
+
+        controllerProto.send_arrival_confirmation = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/arrived`)
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.send_arrival_confirmation).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.send_arrival_confirmation = originalMethod;
     });
 });
 
@@ -928,6 +1085,25 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
         expect(response.status).toBe(200);
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.confirmPickup;
+
+        controllerProto.confirmPickup = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/confirm-pickup`)
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.confirmPickup).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.confirmPickup = originalMethod;
+    });
 });
 
 describe('POST /api/jobs/:id/delivered', () => {
@@ -997,6 +1173,25 @@ describe('POST /api/jobs/:id/delivered', () => {
 
         expect(response.status).toBe(200);
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
+    });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.delivered;
+
+        controllerProto.delivered = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/delivered`)
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.delivered).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.delivered = originalMethod;
     });
 });
 
@@ -1134,6 +1329,25 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
 
         expect(response.status).toBe(200);
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
+    });
+
+    test('should call next(err) when controller promise rejects', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.confirmDelivery;
+
+        controllerProto.confirmDelivery = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const response = await request(app)
+            .post(`/api/jobs/${jobId}/confirm-delivery`)
+            .set('Authorization', 'Bearer fake-token');
+
+        expect(response.status).toBe(500);
+        expect(controllerProto.confirmDelivery).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.confirmDelivery = originalMethod;
     });
 });
 

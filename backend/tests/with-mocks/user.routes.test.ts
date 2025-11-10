@@ -6,16 +6,8 @@ import { connectDB, disconnectDB } from '../../src/config/database';
 import { userModel } from '../../src/models/user.model';
 import { IUser } from '../../src/types/user.types';
 
-// Mock the media service to test delete profile
-jest.mock('../../src/services/media.service', () => ({
-  deleteAllUserImages: jest.fn(),
-}));
-
 // Import app after mocks are set up
 import app from '../../src/app';
-import { deleteAllUserImages } from '../../src/services/media.service';
-
-const mockDeleteAllUserImages = deleteAllUserImages as jest.MockedFunction<typeof deleteAllUserImages>;
 
 let authToken: string;
 let moverAuthToken: string;
@@ -425,6 +417,27 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
       .send(updateData)
       .expect(401);
   });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    // Get reference to the UserController class
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.updateProfile;
+    // Mock the updateProfile method to reject
+    controllerProto.updateProfile = jest.fn().mockRejectedValue(new Error('Mocked controller error'));
+    const updateData = {
+        name: 'Should Trigger Error'
+        };
+    const response = await request(app)
+        .post('/api/user/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(updateData);
+    // Verify the error was handled by the error middleware
+    expect(response.status).toBe(500);
+    expect(controllerProto.updateProfile).toHaveBeenCalled();
+    // Restore the original method
+    controllerProto.updateProfile = originalMethod;
+  });
 });
 
 describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
@@ -556,10 +569,29 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
     // Restore original method
     (userModel as any).update = originalUpdate;
   });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    // Get reference to the UserController class
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.cashOut;
+    // Mock the cashOut method to reject
+    controllerProto.cashOut = jest.fn().mockRejectedValue(new Error('Mocked controller error'));
+    
+    const response = await request(app)
+      .post('/api/user/cash-out')
+      .set('Authorization', `Bearer ${moverAuthToken}`);
+    // Verify the error was handled by the error middleware
+    expect(response.status).toBe(500);
+    expect(controllerProto.cashOut).toHaveBeenCalled();
+    // Restore the original method
+    controllerProto.cashOut = originalMethod;
+  });
+
 });
 
 describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
-  test('should successfully delete user profile and call image deletion service', async () => {
+  test('should successfully delete user profile', async () => {
     // Create a temporary user for deletion
     const tempUserId = new mongoose.Types.ObjectId();
     await (userModel as any).user.create({
@@ -578,8 +610,6 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('message', 'User deleted successfully');
-    expect(mockDeleteAllUserImages).toHaveBeenCalledWith(tempUserId.toString());
-    expect(mockDeleteAllUserImages).toHaveBeenCalledTimes(1);
 
     // Verify user was actually deleted
     const deletedUser = await (userModel as any).user.findById(tempUserId);
@@ -608,7 +638,6 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('message', 'User deleted successfully');
-    expect(mockDeleteAllUserImages).toHaveBeenCalledWith(tempMoverId.toString());
 
     // Verify mover was actually deleted
     const deletedMover = await (userModel as any).user.findById(tempMoverId);
@@ -626,31 +655,6 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
       .delete('/api/user/profile')
       .set('Authorization', 'Bearer invalid-token')
       .expect(401);
-  });
-
-  test('should handle case when media service throws error but user deletion succeeds', async () => {
-    // Mock the media service to throw an error
-    mockDeleteAllUserImages.mockRejectedValueOnce(new Error('Media service error'));
-
-    // Create a temporary user for deletion
-    const tempUserId = new mongoose.Types.ObjectId();
-    await (userModel as any).user.create({
-      _id: tempUserId,
-      googleId: `temp-error-google-id-${tempUserId.toString()}`,
-      email: `temperror${tempUserId.toString()}@example.com`,
-      name: 'Temp Error User',
-      userRole: 'STUDENT'
-    });
-
-    const tempToken = jwt.sign({ id: tempUserId }, process.env.JWT_SECRET || 'default-secret');
-
-    // The delete should fail because media service failed
-    await request(app)
-      .delete('/api/user/profile')
-      .set('Authorization', `Bearer ${tempToken}`)
-      .expect(500);
-
-    expect(mockDeleteAllUserImages).toHaveBeenCalled();
   });
 
   test('should successfully delete user with FCM token', async () => {
@@ -677,5 +681,27 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
     // Verify user and their FCM token are deleted
     const deletedUser = await (userModel as any).user.findById(tempUserId);
     expect(deletedUser).toBeNull();
+  });
+
+  test('should call next(err) when controller promise rejects', async () => {
+    // Get reference to the UserController class
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.deleteProfile;
+
+    // Mock the controller method to throw an error that will be caught by .catch()
+    controllerProto.deleteProfile = jest.fn().mockRejectedValue(new Error('Controller promise rejection'));
+
+    // Make the API request - this will trigger the .catch((err) => next(err)) block in the route
+    const response = await request(app)
+      .delete('/api/user/profile')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    // Verify the error was handled by the error middleware
+    expect(response.status).toBe(500);
+    expect(controllerProto.deleteProfile).toHaveBeenCalled();
+
+    // Restore the original method
+    controllerProto.deleteProfile = originalMethod;
   });
 });

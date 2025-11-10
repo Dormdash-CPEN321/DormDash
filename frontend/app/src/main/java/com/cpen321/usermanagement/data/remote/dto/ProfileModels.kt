@@ -33,7 +33,3 @@ data class User(
     val plateNumber: String? = null,
     val credits: Float? = null // Credits earned from completed jobs (mover only)
 )
-
-data class UploadImageData(
-    val image: String
-)
