@@ -201,5 +201,44 @@ export class LoadTestController {
       next(error);
     }
   }
+
+  async deleteAllData(req: Request, res: Response, next: NextFunction) {
+    try {
+      const db = mongoose.connection.db;
+      if (!db) {
+        throw new Error('Database connection not available');
+      }
+
+      // Delete all orders
+      const ordersCollection = db.collection('orders');
+      const orderResult = await ordersCollection.deleteMany({});
+
+      // Delete all jobs
+      const jobsCollection = db.collection('jobs');
+      const jobResult = await jobsCollection.deleteMany({});
+
+      // Delete all users
+      const usersCollection = db.collection('users');
+      const userResult = await usersCollection.deleteMany({});
+
+      res.status(200).json({
+        message: 'All data deleted successfully',
+        data: {
+          users: {
+            deleted: userResult.deletedCount,
+          },
+          orders: {
+            deleted: orderResult.deletedCount,
+          },
+          jobs: {
+            deleted: jobResult.deletedCount,
+          },
+        },
+      });
+    } catch (error) {
+      logger.error('Error deleting all data:', error);
+      next(error);
+    }
+  }
 }
 

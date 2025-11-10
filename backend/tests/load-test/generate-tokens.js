@@ -2,70 +2,21 @@
 
 /**
  * Generate JWT tokens for load testing
- * Queries the database for students and movers, then generates tokens for them
- * Outputs them as a JavaScript file that can be imported by k6
+ * Uses API endpoints to get user IDs, then generates tokens
+ * Works with deployed servers - no database access required!
  */
 
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-const mongoose = require('mongoose');
 
 // Load environment variables
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
-const MONGODB_URI = process.env.MONGODB_URI;
+const JWT_SECRET = process.env.JWT_SECRET;
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
-if (!MONGODB_URI) {
-  console.error('Error: MONGODB_URI is not set in .env file');
-  process.exit(1);
-}
-
-// Connect to database
-async function connectDB() {
-  try {
-    await mongoose.connect(MONGODB_URI);
-    console.log('✓ Connected to database');
-  } catch (error) {
-    console.error('Error connecting to database:', error);
-    process.exit(1);
-  }
-}
-
-// Disconnect from database
-async function disconnectDB() {
-  try {
-    await mongoose.connection.close();
-    console.log('✓ Disconnected from database');
-  } catch (error) {
-    console.error('Error disconnecting from database:', error);
-  }
-}
-
-// Get or create User model 
-function getUserModel() {
-  try {
-    return mongoose.model('User');
-  } catch {
-    // Model doesn't exist yet, create it
-    return mongoose.model('User', new mongoose.Schema({}, { strict: false }));
-  }
-}
-
-// Get students from database
-async function getStudents(limit = 2000) {
-  const User = getUserModel();
-  const students = await User.find({ userRole: 'STUDENT' }).limit(limit).select('_id').lean();
-  return students.map((s) => s._id.toString());
-}
-
-// Get movers from database
-async function getMovers(limit = 300) {
-  const User = getUserModel();
-  const movers = await User.find({ userRole: 'MOVER' }).limit(limit).select('_id').lean();
-  return movers.map((m) => m._id.toString());
-}
+console.log(`Using BASE_URL: ${BASE_URL}`);
 
 // Generate tokens for user IDs
 function generateTokens(userIds, secret) {
@@ -75,24 +26,55 @@ function generateTokens(userIds, secret) {
   });
 }
 
+// Get student IDs from API
+async function getStudentIdsFromAPI() {
+  try {
+    const response = await fetch(`${BASE_URL}/api/load-test/student-ids`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.data?.studentIds || [];
+  } catch (error) {
+    console.error('Error fetching student IDs from API:', error.message);
+    return [];
+  }
+}
+
+// Get mover IDs from API
+async function getMoverIdsFromAPI() {
+  try {
+    const response = await fetch(`${BASE_URL}/api/load-test/mover-ids`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.data?.moverIds || [];
+  } catch (error) {
+    console.error('Error fetching mover IDs from API:', error.message);
+    return [];
+  }
+}
+
 async function main() {
   try {
-    await connectDB();
-
-    console.log('\nFetching students and movers from database...');
+    console.log(`\nFetching user IDs from API: ${BASE_URL}`);
+    console.log('Using API endpoints - no database access required!\n');
     
-    const studentIds = await getStudents(2000);
-    const moverIds = await getMovers(300);
+    const studentIds = await getStudentIdsFromAPI();
+    const moverIds = await getMoverIdsFromAPI();
 
     if (studentIds.length === 0) {
-      console.warn('\n⚠ No students found in database!');
-      console.warn('Please run: npm run load-test:seed-users');
+      console.warn('\n⚠ No students found!');
+      console.warn('Please run: POST /api/load-test/seed-users first');
+      console.warn('Or run: npm run load-test:seed-users (if you have DB access)');
       console.warn('Creating empty tokens.js file...');
     }
 
     if (moverIds.length === 0) {
-      console.warn('\n⚠ No movers found in database!');
-      console.warn('Please run: npm run load-test:seed-users');
+      console.warn('\n⚠ No movers found!');
+      console.warn('Please run: POST /api/load-test/seed-users first');
+      console.warn('Or run: npm run load-test:seed-users (if you have DB access)');
       console.warn('Creating empty tokens.js file...');
     }
 
@@ -136,7 +118,7 @@ export const moverIds = ${JSON.stringify(moverIds, null, 2)};
     if (studentTokens.length === 0 && moverTokens.length === 0) {
       console.warn('\n⚠ WARNING: No tokens generated!');
       console.warn('The load test will fail without tokens.');
-      console.warn('Please run: npm run load-test:seed-users');
+      console.warn('Please run: POST /api/load-test/seed-users first');
     } else {
       console.log('\nTokens are ready for use in load-test.js');
     }
@@ -144,8 +126,6 @@ export const moverIds = ${JSON.stringify(moverIds, null, 2)};
   } catch (error) {
     console.error('Error generating tokens:', error);
     process.exit(1);
-  } finally {
-    await disconnectDB();
   }
 }
 

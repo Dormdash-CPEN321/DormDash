@@ -25,5 +25,11 @@ router.get('/mover-ids', (req, res, next) => {
   });
 });
 
-export default router;
+// DELETE /api/load-test/delete-all - Delete all users, orders, and jobs
+router.delete('/delete-all', (req, res, next) => {
+  loadTestController.deleteAllData(req, res, next).catch((err: unknown) => {
+    next(err);
+  });
+});
 
+export default router;
