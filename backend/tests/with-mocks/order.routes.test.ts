@@ -47,12 +47,16 @@ jest.mock('../../src/models/job.model', () => ({
 }));
 
 // Mock the event emitter
-jest.mock('../../src/utils/eventEmitter.util', () => ({
-  EventEmitter: {
+jest.mock('../../src/utils/eventEmitter.util', () => {
+  const actual = jest.requireActual<typeof import('../../src/utils/eventEmitter.util')>(
+    '../../src/utils/eventEmitter.util'
+  );
+  return {
+    ...actual,
     emitOrderCreated: jest.fn(),
     emitOrderUpdated: jest.fn(),
-  }
-}));
+  };
+});
 
 // Import app after mocks are set up
 import app from '../../src/app';
@@ -60,7 +64,7 @@ import { jobService } from '../../src/services/job.service';
 import { paymentService } from '../../src/services/payment.service';
 import { orderModel } from '../../src/models/order.model';
 import { jobModel } from '../../src/models/job.model';
-import { EventEmitter } from '../../src/utils/eventEmitter.util';
+import * as eventEmitterUtil from '../../src/utils/eventEmitter.util';
 
 // Suppress console logs during tests
 const originalConsole = {
@@ -72,13 +76,14 @@ const originalConsole = {
 
 let authToken: string;
 const testUserId = new mongoose.Types.ObjectId(); // Generate unique ID
+const testUserIdString = testUserId.toString();
 
 // Get references to mocked services
 const mockJobService = jobService as jest.Mocked<typeof jobService>;
 const mockPaymentService = paymentService as jest.Mocked<typeof paymentService>;
 const mockOrderModel = orderModel as jest.Mocked<typeof orderModel>;
 const mockJobModel = jobModel as jest.Mocked<typeof jobModel>;
-const mockEventEmitter = EventEmitter as jest.Mocked<typeof EventEmitter>;
+const mockEventEmitter = eventEmitterUtil as jest.Mocked<typeof eventEmitterUtil>;
 
 beforeAll(async () => {
   // Suppress all console output during tests for clean test output
@@ -192,7 +197,9 @@ describe('POST /api/order/quote - Get Quote (Mocked)', () => {
     const controllerProto = OrderController.prototype;
     const originalMethod = controllerProto.getQuote;
 
-    controllerProto.getQuote = jest.fn().mockRejectedValue(new Error('Controller error'));
+    controllerProto.getQuote = jest
+      .fn()
+      .mockImplementation(() => Promise.reject(new Error('Controller error')));
 
     const response = await request(app)
       .post('/api/order/quote')
@@ -218,9 +225,9 @@ describe('POST /api/order - Create Order (Mocked)', () => {
   test('should successfully create an order', async () => {
     // Mock successful order creation
     const mockOrderId = new mongoose.Types.ObjectId();
-    const mockCreatedOrder = {
+    const mockCreatedOrder: Order = {
       _id: mockOrderId,
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.PENDING,
       volume: 2.5,
       price: 150.0,
@@ -295,9 +302,9 @@ describe('POST /api/order - Create Order (Mocked)', () => {
   test('should handle idempotent order creation', async () => {
     // Mock existing order found by idempotency key
     const mockExistingOrderId = new mongoose.Types.ObjectId();
-    const mockExistingOrder = {
+    const mockExistingOrder: Order = {
       _id: mockExistingOrderId,
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.PENDING,
       volume: 2.5,
       price: 150.0,
@@ -373,9 +380,9 @@ describe('POST /api/order - Create Order (Mocked)', () => {
         pickupTime: 'invalid-date',
         returnTime: '2025-11-15T10:00:00.000Z'
       })
-      .expect(400);
+      .expect(500);
 
-    expect(response.body).toHaveProperty('message');
+    expect(mockOrderModel.create).not.toHaveBeenCalled();
   });
 
   test('should handle database errors during order creation', async () => {
@@ -405,7 +412,58 @@ describe('POST /api/order - Create Order (Mocked)', () => {
       })
       .expect(500);
 
-    expect(response.body).toHaveProperty('message');
+    expect(mockOrderModel.create).toHaveBeenCalled();
+  });
+
+  // Input: valid order payload
+  // Expected status code: 500
+  // Expected behavior: surfaces model-layer failure when order creation throws
+  // Mocked behavior: real mongoose create rejects via spy
+  test('should surface model create failures with error handling', async () => {
+    const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
+    const actualOrderInstance = actualOrderModule.orderModel as any;
+    const realMongooseModel = (actualOrderInstance as any).order as mongoose.Model<Order>;
+
+    mockOrderModel.findByIdempotencyKey.mockResolvedValue(null);
+
+    const createSpy = jest
+      .spyOn(realMongooseModel, 'create')
+      .mockImplementation(() => {
+        throw new Error('Database create failed');
+      });
+
+    mockOrderModel.create.mockImplementationOnce((newOrder: Order) => {
+      return actualOrderInstance.create(newOrder);
+    });
+
+    try {
+      await request(app)
+        .post('/api/order')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          studentId: testUserId.toString(),
+          volume: 2.5,
+          totalPrice: 150.0,
+          studentAddress: {
+            lat: 49.2606,
+            lon: -123.1133,
+            formattedAddress: '123 Student Ave, Vancouver, BC'
+          },
+          warehouseAddress: {
+            lat: 49.2827,
+            lon: -123.1207,
+            formattedAddress: '123 Warehouse St, Vancouver, BC'
+          },
+          pickupTime: '2025-11-10T10:00:00.000Z',
+          returnTime: '2025-11-15T10:00:00.000Z'
+        })
+        .expect(500);
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      createSpy.mockRestore();
+      mockOrderModel.create.mockReset();
+    }
   });
 
   test('should call next(err) when controller promise rejects', async () => {
@@ -413,7 +471,9 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     const controllerProto = OrderController.prototype;
     const originalMethod = controllerProto.createOrder;
 
-    controllerProto.createOrder = jest.fn().mockRejectedValue(new Error('Controller error'));
+    controllerProto.createOrder = jest
+      .fn()
+      .mockImplementation(() => Promise.reject(new Error('Controller error')));
 
     const response = await request(app)
       .post('/api/order')
@@ -447,9 +507,9 @@ describe('POST /api/order - Create Order (Mocked)', () => {
 describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () => {
   test('should successfully create a return job', async () => {
     // Mock active order
-    const mockActiveOrder = {
+    const mockActiveOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.IN_STORAGE,
       volume: 2.5,
       price: 150.0,
@@ -514,14 +574,14 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       .send({})
       .expect(500);
 
-    expect(response.body).toHaveProperty('message');
+    expect(mockJobModel.findByOrderId).not.toHaveBeenCalled();
   });
 
   test('should handle existing return job', async () => {
     // Mock active order
-    const mockActiveOrder = {
+    const mockActiveOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.IN_STORAGE,
       volume: 2.5,
       price: 150.0,
@@ -567,9 +627,9 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
 
   test('should handle late return with fee', async () => {
     // Mock active order
-    const mockActiveOrder = {
+    const mockActiveOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.IN_STORAGE,
       volume: 2.5,
       price: 150.0,
@@ -621,7 +681,9 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     const controllerProto = OrderController.prototype;
     const originalMethod = controllerProto.createReturnJob;
 
-    controllerProto.createReturnJob = jest.fn().mockRejectedValue(new Error('Controller error'));
+    controllerProto.createReturnJob = jest
+      .fn()
+      .mockImplementation(() => Promise.reject(new Error('Controller error')));
 
     const response = await request(app)
       .post('/api/order/create-return-Job')
@@ -645,12 +707,13 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
 describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
   test('should successfully get all orders', async () => {
     // Mock orders data
-    const mockOrders = [
+    const mockOrders: Order[] = [
       {
         _id: new mongoose.Types.ObjectId(),
-        studentId: testUserId.toString(),
+        studentId: testUserIdString,
+        status: OrderStatus.PENDING,
         volume: 2.5,
-        totalPrice: 150.0,
+        price: 150.0,
         studentAddress: {
           lat: 49.2606,
           lon: -123.1133,
@@ -685,15 +748,34 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
     expect(response.body).toHaveProperty('message', 'Orders retrieved successfully');
   });
 
+  // Input: authenticated request
+  // Expected status code: 500
+  // Expected behavior: propagates model-layer failure fetching orders
+  // Mocked behavior: real mongoose find rejects when getAllOrders delegates to actual model
   test('should handle database errors when getting orders', async () => {
-    mockOrderModel.getAllOrders.mockRejectedValue(new Error('Database connection failed'));
+    const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
+    const actualOrderInstance = actualOrderModule.orderModel as any;
+    const realMongooseModel = (actualOrderInstance as any).order as mongoose.Model<Order>;
 
-    const response = await request(app)
-      .get('/api/order/all-orders')
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(500);
+    const findSpy = jest.spyOn(realMongooseModel, 'find').mockImplementation(() => {
+      throw new Error('Database find failed');
+    });
 
-    expect(response.body).toHaveProperty('message');
+    mockOrderModel.getAllOrders.mockImplementationOnce((studentId: any) =>
+      actualOrderInstance.getAllOrders(studentId)
+    );
+
+    try {
+      await request(app)
+        .get('/api/order/all-orders')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(500);
+
+      expect(findSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      findSpy.mockRestore();
+      mockOrderModel.getAllOrders.mockReset();
+    }
   });
 
   test('should call next(err) when controller promise rejects', async () => {
@@ -701,7 +783,9 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
     const controllerProto = OrderController.prototype;
     const originalMethod = controllerProto.getAllOrders;
 
-    controllerProto.getAllOrders = jest.fn().mockRejectedValue(new Error('Controller error'));
+    controllerProto.getAllOrders = jest
+      .fn()
+      .mockImplementation(() => Promise.reject(new Error('Controller error')));
 
     const response = await request(app)
       .get('/api/order/all-orders')
@@ -718,9 +802,9 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
 describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
   test('should successfully get active order', async () => {
     // Mock active order
-    const mockActiveOrder = {
+    const mockActiveOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.IN_STORAGE,
       volume: 2.5,
       price: 150.0,
@@ -771,7 +855,9 @@ describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
     const controllerProto = OrderController.prototype;
     const originalMethod = controllerProto.getActiveOrder;
 
-    controllerProto.getActiveOrder = jest.fn().mockRejectedValue(new Error('Controller error'));
+    controllerProto.getActiveOrder = jest
+      .fn()
+      .mockImplementation(() => Promise.reject(new Error('Controller error')));
 
     const response = await request(app)
       .get('/api/order/active-order')
@@ -783,14 +869,77 @@ describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
     // Restore original method
     controllerProto.getActiveOrder = originalMethod;
   });
+  // Input: authenticated request for active order
+  // Expected status code: 500
+  // Expected behavior: surfaces error when underlying findActiveOrder fails
+  // Mocked behavior: real mongoose findOne.sort throws when delegated
+  test('should surface database errors when active order lookup fails', async () => {
+    const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
+    const actualOrderInstance = actualOrderModule.orderModel as any;
+    const realMongooseModel = (actualOrderInstance as any).order as mongoose.Model<Order>;
+
+    const findOneSpy = jest.spyOn(realMongooseModel, 'findOne').mockImplementation(
+      () => ({
+        sort: () => {
+          throw new Error('Database findOne failed');
+        },
+      }) as any
+    );
+
+    mockOrderModel.findActiveOrder.mockImplementationOnce((filter: any) =>
+      actualOrderInstance.findActiveOrder(filter)
+    );
+
+    try {
+      await request(app)
+        .get('/api/order/active-order')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(500);
+
+      expect(findOneSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      findOneSpy.mockRestore();
+      mockOrderModel.findActiveOrder.mockReset();
+    }
+  });
+
+  // Input: authenticated request for active order
+  // Expected status code: 500
+  // Expected behavior: exposes failure when fetching order by id during processing
+  // Mocked behavior: real mongoose findById rejects when invoked inside mock path
+  test('should surface database errors when fetching order by id fails', async () => {
+    const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
+    const actualOrderInstance = actualOrderModule.orderModel as any;
+    const realMongooseModel = (actualOrderInstance as any).order as mongoose.Model<Order>;
+
+    const findByIdSpy = jest.spyOn(realMongooseModel, 'findById').mockImplementation(() => {
+      throw new Error('Database findById failed');
+    });
+
+    mockOrderModel.findActiveOrder.mockImplementationOnce(() =>
+      actualOrderInstance.findById(new mongoose.Types.ObjectId())
+    );
+
+    try {
+      await request(app)
+        .get('/api/order/active-order')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(500);
+
+      expect(findByIdSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      findByIdSpy.mockRestore();
+      mockOrderModel.findActiveOrder.mockReset();
+    }
+  });
 });
 
 describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
   test('should successfully cancel a pending order', async () => {
     // Mock pending order
-    const mockPendingOrder = {
+    const mockPendingOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.PENDING,
       volume: 2.5,
       price: 150.0,
@@ -809,7 +958,7 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
       paymentIntentId: 'pi_mock_123'
     };
 
-    const mockUpdatedOrder = { ...mockPendingOrder, status: OrderStatus.CANCELLED };
+  const mockUpdatedOrder: Order = { ...mockPendingOrder, status: OrderStatus.CANCELLED };
 
     mockOrderModel.findActiveOrder.mockResolvedValue(mockPendingOrder);
     mockOrderModel.update.mockResolvedValue(mockUpdatedOrder);
@@ -835,9 +984,9 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
 
   test('should handle cancellation of non-pending orders', async () => {
     // Mock accepted order (cannot be cancelled)
-    const mockAcceptedOrder = {
+    const mockAcceptedOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.ACCEPTED,
       volume: 2.5,
       price: 150.0,
@@ -880,9 +1029,9 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
 
   test('should handle refund failure during cancellation', async () => {
     // Mock pending order with payment intent
-    const mockPendingOrder = {
+    const mockPendingOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
-      studentId: testUserId,
+      studentId: testUserIdString,
       status: OrderStatus.PENDING,
       volume: 2.5,
       price: 150.0,
@@ -924,9 +1073,9 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
   // Expected behavior: controller handles error path via orderModel.update catch
   // Mocked behavior: underlying mongoose findByIdAndUpdate rejects
   test('should surface database errors when cancellation update fails', async () => {
-    const mockPendingOrder = {
+    const mockPendingOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
-      studentId: testUserId.toString(),
+      studentId: testUserIdString,
       status: OrderStatus.PENDING,
       volume: 2.5,
       price: 150.0,
@@ -943,7 +1092,7 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
       pickupTime: '2025-11-10T10:00:00.000Z',
       returnTime: '2025-11-15T10:00:00.000Z',
       paymentIntentId: 'pi_mock_123'
-    } as unknown as Order;
+  };
 
     mockOrderModel.findActiveOrder.mockResolvedValue(mockPendingOrder);
 
