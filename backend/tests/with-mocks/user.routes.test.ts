@@ -1044,4 +1044,93 @@ describe('UserModel - Database Error Handling', () => {
       );
     });
   });
+
+  describe('create', () => {
+    test('should handle database error when creating user', async () => {
+      const actualUserModel = (userModel as any).user;
+      const createSpy = jest.spyOn(actualUserModel, 'create').mockImplementation(() => {
+        throw new Error('Database creation error');
+      });
+
+      try {
+        await expect(userModel.create({
+          googleId: 'test-google-id',
+          email: 'test@example.com',
+          name: 'Test User',
+        })).rejects.toThrow('Failed to update user');
+      } finally {
+        createSpy.mockRestore();
+      }
+    });
+
+    test('should handle validation error when creating user with invalid data', async () => {
+      await expect(userModel.create({
+        googleId: '', // Invalid: empty googleId
+        email: 'invalid-email', // Invalid: not a proper email
+        name: '',
+      } as any)).rejects.toThrow('Invalid update data');
+    });
+
+    test('should successfully create user with valid data', async () => {
+      const newUserId = new mongoose.Types.ObjectId();
+      const userData = {
+        googleId: `create-test-${newUserId.toString()}`,
+        email: `createtest${newUserId.toString()}@example.com`,
+        name: 'Create Test User',
+      };
+
+      const createdUser = await userModel.create(userData);
+      expect(createdUser).toBeDefined();
+      expect(createdUser.googleId).toBe(userData.googleId);
+      expect(createdUser.email).toBe(userData.email);
+      expect(createdUser.name).toBe(userData.name);
+
+      // Clean up
+      await (userModel as any).user.findByIdAndDelete(createdUser._id);
+    });
+  });
+
+  describe('delete', () => {
+    test('should handle database error when deleting user', async () => {
+      const actualUserModel = (userModel as any).user;
+      const deleteSpy = jest.spyOn(actualUserModel, 'findByIdAndDelete').mockImplementation(() => {
+        throw new Error('Database deletion error');
+      });
+
+      try {
+        await expect(userModel.delete(testUserId)).rejects.toThrow('Failed to delete user');
+      } finally {
+        deleteSpy.mockRestore();
+      }
+    });
+
+    test('should successfully delete user', async () => {
+      // Create a temporary user to delete
+      const tempUserId = new mongoose.Types.ObjectId();
+      await (userModel as any).user.create({
+        _id: tempUserId,
+        googleId: `delete-test-${tempUserId.toString()}`,
+        email: `deletetest${tempUserId.toString()}@example.com`,
+        name: 'Delete Test User',
+      });
+
+      // Verify user exists
+      const userBefore = await userModel.findById(tempUserId);
+      expect(userBefore).not.toBeNull();
+
+      // Delete the user
+      await userModel.delete(tempUserId);
+
+      // Verify user is deleted
+      const userAfter = await userModel.findById(tempUserId);
+      expect(userAfter).toBeNull();
+    });
+
+    test('should handle deleting non-existent user gracefully', async () => {
+      const nonExistentId = new mongoose.Types.ObjectId();
+      
+      // Should not throw an error even if user doesn't exist
+      await expect(userModel.delete(nonExistentId)).resolves.not.toThrow();
+    });
+  });
 });
