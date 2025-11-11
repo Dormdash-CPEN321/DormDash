@@ -28,6 +28,13 @@ jest.mock('../../src/services/payment.service', () => ({
   }
 }));
 
+// Mock the stripe service (underlying service used by payment service)
+jest.mock('../../src/services/stripe.service', () => ({
+  stripeService: {
+    refundPayment: jest.fn(),
+  }
+}));
+
 // Mock the order model
 jest.mock('../../src/models/order.model', () => ({
   orderModel: {
@@ -62,6 +69,7 @@ jest.mock('../../src/utils/eventEmitter.util', () => {
 import app from '../../src/app';
 import { jobService } from '../../src/services/job.service';
 import { paymentService } from '../../src/services/payment.service';
+import { stripeService } from '../../src/services/stripe.service';
 import { orderModel } from '../../src/models/order.model';
 import { jobModel } from '../../src/models/job.model';
 import * as eventEmitterUtil from '../../src/utils/eventEmitter.util';
@@ -81,6 +89,7 @@ const testUserIdString = testUserId.toString();
 // Get references to mocked services
 const mockJobService = jobService as jest.Mocked<typeof jobService>;
 const mockPaymentService = paymentService as jest.Mocked<typeof paymentService>;
+const mockStripeService = stripeService as jest.Mocked<typeof stripeService>;
 const mockOrderModel = orderModel as jest.Mocked<typeof orderModel>;
 const mockJobModel = jobModel as jest.Mocked<typeof jobModel>;
 const mockEventEmitter = eventEmitterUtil as jest.Mocked<typeof eventEmitterUtil>;
@@ -1571,6 +1580,181 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
       .expect(200);
 
     // Should still succeed even if refund fails
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
+  });
+
+  test('should handle stripeService.refundPayment error during cancellation', async () => {
+    // Mock pending order with payment intent
+    const mockPendingOrder: Order = {
+      _id: new mongoose.Types.ObjectId(),
+      studentId: testUserIdString,
+      status: OrderStatus.PENDING,
+      volume: 2.5,
+      price: 150.0,
+      studentAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '123 Student Ave, Vancouver, BC'
+      },
+      warehouseAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '123 Warehouse St, Vancouver, BC'
+      },
+      pickupTime: '2025-11-10T10:00:00.000Z',
+      returnTime: '2025-11-15T10:00:00.000Z',
+      paymentIntentId: 'pi_mock_456'
+    };
+
+    mockOrderModel.findActiveOrder.mockResolvedValue(mockPendingOrder);
+    mockOrderModel.update.mockResolvedValue({ ...mockPendingOrder, status: OrderStatus.CANCELLED });
+    
+    // Mock the REAL payment service to execute (not mock it entirely)
+    // But mock stripeService.refundPayment to throw an error
+    // This tests the error handling INSIDE payment.service.ts
+    const actualPaymentService = jest.requireActual('../../src/services/payment.service') as typeof import('../../src/services/payment.service');
+    mockPaymentService.refundPayment.mockImplementation((paymentIntentId: string, amount?: number) => {
+      return actualPaymentService.paymentService.refundPayment(paymentIntentId, amount);
+    });
+    
+    // Mock stripeService to throw error - this will be caught by payment.service.ts
+    mockStripeService.refundPayment.mockRejectedValue(new Error('Stripe API error: Refund failed'));
+    
+    mockJobService.cancelJobsForOrder.mockResolvedValue({
+      cancelledJobs: []
+    });
+    mockEventEmitter.emitOrderUpdated.mockImplementation(() => {});
+
+    const response = await request(app)
+      .delete('/api/order/cancel-order')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    // Verify stripeService.refundPayment was called
+    expect(mockStripeService.refundPayment).toHaveBeenCalledWith('pi_mock_456', undefined);
+    
+    // Should still succeed even if stripe refund fails
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
+  });
+
+  test('should handle successful stripeService.refundPayment during cancellation without amount', async () => {
+    // Mock pending order with payment intent
+    const mockPendingOrder: Order = {
+      _id: new mongoose.Types.ObjectId(),
+      studentId: testUserIdString,
+      status: OrderStatus.PENDING,
+      volume: 2.5,
+      price: 150.0,
+      studentAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '123 Student Ave, Vancouver, BC'
+      },
+      warehouseAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '123 Warehouse St, Vancouver, BC'
+      },
+      pickupTime: '2025-11-10T10:00:00.000Z',
+      returnTime: '2025-11-15T10:00:00.000Z',
+      paymentIntentId: 'pi_mock_789'
+    };
+
+    mockOrderModel.findActiveOrder.mockResolvedValue(mockPendingOrder);
+    mockOrderModel.update.mockResolvedValue({ ...mockPendingOrder, status: OrderStatus.CANCELLED });
+    
+    // Mock the REAL payment service to execute
+    const actualPaymentService = jest.requireActual('../../src/services/payment.service') as typeof import('../../src/services/payment.service');
+    mockPaymentService.refundPayment.mockImplementation((paymentIntentId: string, amount?: number) => {
+      return actualPaymentService.paymentService.refundPayment(paymentIntentId, amount);
+    });
+    
+  
+    const mockRefundResult = {
+      paymentId: 'pi_mock_789',
+      status: 'succeeded' as any,
+      amount: 150.0,
+      currency: 'CAD' as const
+    };
+    mockStripeService.refundPayment.mockResolvedValue(mockRefundResult);
+    
+    mockJobService.cancelJobsForOrder.mockResolvedValue({
+      cancelledJobs: []
+    });
+    mockEventEmitter.emitOrderUpdated.mockImplementation(() => {});
+
+    const response = await request(app)
+      .delete('/api/order/cancel-order')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    // Verify stripeService.refundPayment was called with undefined amount
+    expect(mockStripeService.refundPayment).toHaveBeenCalledWith('pi_mock_789', undefined);
+    
+    // Should succeed with refund processed
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
+  });
+
+  test('should handle successful stripeService.refundPayment with partial amount', async () => {
+    // Mock pending order with payment intent
+    const mockPendingOrder: Order = {
+      _id: new mongoose.Types.ObjectId(),
+      studentId: testUserIdString,
+      status: OrderStatus.PENDING,
+      volume: 2.5,
+      price: 150.0,
+      studentAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '123 Student Ave, Vancouver, BC'
+      },
+      warehouseAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '123 Warehouse St, Vancouver, BC'
+      },
+      pickupTime: '2025-11-10T10:00:00.000Z',
+      returnTime: '2025-11-15T10:00:00.000Z',
+      paymentIntentId: 'pi_mock_999'
+    };
+
+    mockOrderModel.findActiveOrder.mockResolvedValue(mockPendingOrder);
+    mockOrderModel.update.mockResolvedValue({ ...mockPendingOrder, status: OrderStatus.CANCELLED });
+    
+    // Mock the REAL payment service to execute
+    const actualPaymentService = jest.requireActual('../../src/services/payment.service') as typeof import('../../src/services/payment.service');
+    
+    mockPaymentService.refundPayment.mockImplementation((paymentIntentId: string, amount?: number) => {
+      // Call the real payment service with the specific amount
+      return actualPaymentService.paymentService.refundPayment(paymentIntentId, 75.0);
+    });
+    
+    // Mock stripeService to return success with partial refund amount
+    const mockRefundResult = {
+      paymentId: 'pi_mock_999',
+      status: 'succeeded' as any,
+      amount: 75.0, // Partial refund
+      currency: 'CAD' as const
+    };
+    mockStripeService.refundPayment.mockResolvedValue(mockRefundResult);
+    
+    mockJobService.cancelJobsForOrder.mockResolvedValue({
+      cancelledJobs: []
+    });
+    mockEventEmitter.emitOrderUpdated.mockImplementation(() => {});
+
+    const response = await request(app)
+      .delete('/api/order/cancel-order')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    // Verify stripeService.refundPayment was called with specific amount
+    expect(mockStripeService.refundPayment).toHaveBeenCalledWith('pi_mock_999', 75.0);
+    
+    // Should succeed with partial refund processed
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
   });

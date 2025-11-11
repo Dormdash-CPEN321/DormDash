@@ -60,8 +60,6 @@ export class PaymentService {
     }
   }
 
-  
-
   /**
    * Refund a payment
    */
