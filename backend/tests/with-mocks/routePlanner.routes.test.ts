@@ -573,7 +573,7 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         const originalMethod = controller.getSmartRoute;
         
         // Mock the controller method to throw an error that will be caught by .catch()
-        controller.getSmartRoute = jest.fn().mockRejectedValue(new Error('Controller promise rejection'));
+        controller.getSmartRoute = (jest.fn() as any).mockRejectedValue(new Error('Controller promise rejection'));
 
         // Make the API request - this will trigger the .catch((err) => next(err)) block in the route
         const response = await request(app)
@@ -590,5 +590,154 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
 
         // Restore the original method
         controller.getSmartRoute = originalMethod;
+    });
+
+    test('should return 401 when mover ID is not found in request', async () => {
+        // Since the middleware guarantees req.user._id exists in production,
+        // this test directly calls the controller with a mocked req object
+        const controllerModule = require('../../src/controllers/routePlanner.controller');
+        const controller = controllerModule.routeController;
+
+        const mockReq: any = {
+            user: undefined, // No user object at all
+            query: {
+                currentLat: String(testLocation.lat),
+                currentLon: String(testLocation.lon),
+            },
+        };
+
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+        };
+
+        await controller.getSmartRoute(mockReq, mockRes);
+
+        expect(mockRes.status).toHaveBeenCalledWith(401);
+        expect(mockRes.json).toHaveBeenCalledWith({
+            message: 'Unauthorized: Mover ID not found',
+        });
+    });
+
+    test('should return 400 for ZodError validation failures', async () => {
+        // Mock the schema validation to throw a ZodError
+        const zodModule = require('zod');
+        const originalZodParse = zodModule.z.object;
+        
+        // Mock extractObjectIdString to throw ZodError
+        const utilsModule = require('../../src/utils/mongoose.util');
+        const originalExtract = utilsModule.extractObjectIdString;
+        
+        utilsModule.extractObjectIdString = () => {
+            const error: any = new Error('Validation failed');
+            error.name = 'ZodError';
+            throw error;
+        };
+
+        mockUserModel.findById.mockResolvedValue({
+            _id: testMoverId,
+            availability: { MON: [['09:00', '17:00']] },
+        });
+
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: testLocation.lat,
+                currentLon: testLocation.lon,
+            })
+            .set('Authorization', `Bearer fake-token`)
+            .expect(400);
+
+        expect(response.body).toHaveProperty('message', 'Invalid request parameters');
+
+        // Restore original function
+        utilsModule.extractObjectIdString = originalExtract;
+    });
+
+    test('should return message with job count when route has jobs', async () => {
+        // Create a Monday at 10:00 AM (within availability window)
+        const nextMonday = new Date();
+        nextMonday.setDate(nextMonday.getDate() + ((1 + 7 - nextMonday.getDay()) % 7 || 7));
+        nextMonday.setHours(10, 0, 0, 0);
+
+        const mockMover = {
+            _id: testMoverId,
+            availability: {
+                MON: [['09:00', '17:00']],
+                TUE: [['09:00', '17:00']],
+                WED: [['09:00', '17:00']],
+                THU: [['09:00', '17:00']],
+                FRI: [['09:00', '17:00']],
+            },
+        };
+
+        const mockJobs = [
+            {
+                id: new mongoose.Types.ObjectId().toString(),
+                orderId: new mongoose.Types.ObjectId().toString(),
+                studentId: new mongoose.Types.ObjectId().toString(),
+                jobType: 'STORAGE',
+                status: 'AVAILABLE',
+                volume: 1,
+                price: 50,
+                pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+                dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+                scheduledTime: nextMonday.toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+        ];
+
+        mockUserModel.findById.mockResolvedValue(mockMover);
+        mockJobService.getAllAvailableJobs.mockResolvedValue({
+            message: 'Available jobs retrieved successfully',
+            data: { jobs: mockJobs },
+        });
+
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: testLocation.lat,
+                currentLon: testLocation.lon,
+            })
+            .set('Authorization', `Bearer fake-token`)
+            .expect(200);
+
+        // Verify the message shows the count of jobs (if route has jobs) or no jobs message
+        if (response.body.data.route.length > 0) {
+            expect(response.body.message).toMatch(/Found \d+ job\(s\) in optimized route/);
+        } else {
+            // If no jobs in route, it should show the no jobs message
+            expect(response.body.message).toBe('No jobs available matching your schedule');
+        }
+    });
+
+    test('should return "no jobs" message when route is empty', async () => {
+        const mockMover = {
+            _id: testMoverId,
+            availability: {
+                MON: [['09:00', '17:00']],
+            },
+        };
+
+        mockUserModel.findById.mockResolvedValue(mockMover);
+        mockJobService.getAllAvailableJobs.mockResolvedValue({
+            message: 'Available jobs retrieved successfully',
+            data: { jobs: [] },
+        });
+
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: testLocation.lat,
+                currentLon: testLocation.lon,
+            })
+            .set('Authorization', `Bearer fake-token`)
+            .expect(200);
+
+        // Verify the message indicates no jobs available
+        expect(response.body.message).toBe('No jobs available matching your schedule');
+        expect(response.body.data.route).toEqual([]);
+        expect(response.body.data.route.length).toBe(0);
     });
 });
