@@ -53,6 +53,8 @@ const mockJobMapper: any = {
 
 const mockUserModel: any = {
     findByIdAndUpdate: jest.fn(),
+    findById: jest.fn(),
+    update: jest.fn(),
 };
 
 // Mock all external dependencies
@@ -62,6 +64,9 @@ jest.mock('../../src/models/job.model', () => ({
 
 jest.mock('../../src/services/order.service', () => ({
     orderService: mockOrderService,
+    OrderService: {
+        getInstance: jest.fn(() => mockOrderService),
+    },
 }));
 
 jest.mock('../../src/services/notification.service', () => ({
@@ -70,6 +75,8 @@ jest.mock('../../src/services/notification.service', () => ({
 
 jest.mock('../../src/utils/eventEmitter.util', () => ({
     EventEmitter: mockEventEmitter,
+    emitJobUpdated: mockEventEmitter.emitJobUpdated,
+    emitJobCreated: mockEventEmitter.emitJobCreated,
 }));
 
 jest.mock('../../src/mappers/job.mapper', () => ({
@@ -189,7 +196,7 @@ describe('GET /api/jobs', () => {
         expect(mockJobModel.findAllJobs).toHaveBeenCalled();
     });
 
-    test('should handle database error in getAllJobs (lines 154-155)', async () => {
+    test('should handle database error in getAllJobs ', async () => {
         mockJobModel.findAllJobs.mockRejectedValue(new Error('Database error') as any);
 
         const response = await request(app)
@@ -235,7 +242,7 @@ describe('GET /api/jobs/available', () => {
         expect(mockJobModel.findAvailableJobs).toHaveBeenCalled();
     });
 
-    test('should handle database error (lines 167-168)', async () => {
+    test('should handle database error', async () => {
         mockJobModel.findAvailableJobs.mockRejectedValue(new Error('Database error') as any);
 
         const response = await request(app)
@@ -281,7 +288,7 @@ describe('GET /api/jobs/mover', () => {
         expect(mockJobModel.findByMoverId).toHaveBeenCalled();
     });
 
-    test('should handle database error (lines 180-181)', async () => {
+    test('should handle database error ', async () => {
         mockJobModel.findByMoverId.mockRejectedValue(new Error('Database error') as any);
 
         const response = await request(app)
@@ -309,6 +316,25 @@ describe('GET /api/jobs/mover', () => {
         // Restore original method
         controllerProto.getMoverJobs = originalMethod;
     });
+
+    test('should call next with error when user is not authenticated ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+
+        const mockReq: any = { user: undefined };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.getMoverJobs(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0] as Error;
+        expect(error.message).toBe('User not authenticated');
+    });
 });
 
 describe('GET /api/jobs/student', () => {
@@ -327,7 +353,7 @@ describe('GET /api/jobs/student', () => {
         expect(mockJobModel.findByStudentId).toHaveBeenCalled();
     });
 
-    test('should handle database error (lines 193-194)', async () => {
+    test('should handle database error ', async () => {
         mockJobModel.findByStudentId.mockRejectedValue(new Error('Database error') as any);
 
         const response = await request(app)
@@ -354,6 +380,25 @@ describe('GET /api/jobs/student', () => {
 
         // Restore original method
         controllerProto.getStudentJobs = originalMethod;
+    });
+
+    test('should call next with error when user is not authenticated ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+
+        const mockReq: any = { user: undefined };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.getStudentJobs(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0] as Error;
+        expect(error.message).toBe('User not authenticated');
     });
 });
 
@@ -437,7 +482,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle missing jobId (lines 220-221)', async () => {
+    test('should handle missing jobId ', async () => {
         const response = await request(app)
             .patch('/api/jobs//status')
             .set('Authorization', `Bearer fake-token`)
@@ -446,7 +491,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(response.status).toBeGreaterThanOrEqual(400);
     });
 
-    test('should handle missing status (lines 225-226)', async () => {
+    test('should handle missing status ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         mockJobModel.findById.mockResolvedValue({
             _id: new mongoose.Types.ObjectId(jobId),
@@ -468,7 +513,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(response.status).toBeGreaterThanOrEqual(400);
     });
 
-    test('should handle job not found (line 245)', async () => {
+    test('should handle job not found ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         mockJobModel.findById.mockResolvedValue(null as any);
 
@@ -481,7 +526,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle job already accepted (line 253)', async () => {
+    test('should handle job already accepted', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -511,7 +556,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockJobModel.tryAcceptJob).toHaveBeenCalled();
     });
 
-    test('should handle invalid orderId in ACCEPTED flow (lines 261-262)', async () => {
+    test('should handle invalid orderId in ACCEPTED flow ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
@@ -547,7 +592,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockJobModel.tryAcceptJob).toHaveBeenCalled();
     });
 
-    test('should handle orderService error in ACCEPTED flow (lines 271-272)', async () => {
+    test('should handle orderService error in ACCEPTED flow ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -584,7 +629,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
 
-    test('should handle EventEmitter error in ACCEPTED flow (line 278)', async () => {
+    test('should handle EventEmitter error in ACCEPTED flow ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -626,7 +671,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
 
-    test('should handle RETURN job PICKED_UP flow (lines 286-326)', async () => {
+    test('should handle RETURN job PICKED_UP flow ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -667,7 +712,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
 
-    test('should handle job not found in else branch (line 338)', async () => {
+    test('should handle job not found in else branch ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -696,7 +741,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockJobModel.update).toHaveBeenCalled();
     });
 
-    test('should handle EventEmitter error in else branch (line 345)', async () => {
+    test('should handle EventEmitter error in else branch ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -734,7 +779,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
 
-    test('should handle job not found in COMPLETED flow (line 353)', async () => {
+    test('should handle job not found in COMPLETED flow ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -772,7 +817,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle invalid orderId in COMPLETED flow (lines 361-362)', async () => {
+    test('should handle invalid orderId in COMPLETED flow', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         
@@ -806,7 +851,7 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockJobModel.update).toHaveBeenCalled();
     });
 
-    test('should handle orderService error in COMPLETED flow (lines 384-385)', async () => {
+    test('should handle orderService error in COMPLETED flow ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -893,7 +938,7 @@ describe('POST /api/jobs/:id/arrived', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle EventEmitter error (line 440)', async () => {
+    test('should handle EventEmitter error', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -951,6 +996,26 @@ describe('POST /api/jobs/:id/arrived', () => {
         // Restore original method
         controllerProto.send_arrival_confirmation = originalMethod;
     });
+
+    test('should call next with error when user is not authenticated ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const mockReq: any = { user: undefined, params: { id: jobId } };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.send_arrival_confirmation(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0] as Error;
+        expect(error.message).toBe('User not authenticated');
+    });
 });
 
 describe('POST /api/jobs/:id/confirm-pickup', () => {
@@ -982,7 +1047,7 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle invalid orderId (line 480)', async () => {
+    test('should handle invalid orderId ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         
@@ -1014,7 +1079,7 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle orderService error (lines 486-487)', async () => {
+    test('should handle orderService error ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -1048,7 +1113,7 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
 
-    test('should handle EventEmitter error (line 494)', async () => {
+    test('should handle EventEmitter error ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -1104,6 +1169,26 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
         // Restore original method
         controllerProto.confirmPickup = originalMethod;
     });
+
+    test('should call next with error when user is not authenticated ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const mockReq: any = { user: undefined, params: { id: jobId } };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0] as Error;
+        expect(error.message).toBe('User not authenticated');
+    });
 });
 
 describe('POST /api/jobs/:id/delivered', () => {
@@ -1135,7 +1220,7 @@ describe('POST /api/jobs/:id/delivered', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle EventEmitter error (line 534)', async () => {
+    test('should handle EventEmitter error ', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -1193,6 +1278,26 @@ describe('POST /api/jobs/:id/delivered', () => {
         // Restore original method
         controllerProto.delivered = originalMethod;
     });
+
+    test('should call next with error when user is not authenticated ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const mockReq: any = { user: undefined, params: { id: jobId } };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.delivered(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0] as Error;
+        expect(error.message).toBe('User not authenticated');
+    });
 });
 
 describe('POST /api/jobs/:id/confirm-delivery', () => {
@@ -1224,7 +1329,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle invalid orderId (line 577)', async () => {
+    test('should handle invalid orderId in confirmDelivery', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         
@@ -1257,7 +1362,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
 
-    test('should handle orderService error (lines 583-584)', async () => {
+    test('should handle orderService error in confirmDelivery', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -1292,7 +1397,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
         expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
     });
 
-    test('should handle EventEmitter error (line 591)', async () => {
+    test('should handle EventEmitter error in confirmDelivery', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -1348,6 +1453,1253 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
 
         // Restore original method
         controllerProto.confirmDelivery = originalMethod;
+    });
+
+    test('should call next with error when user is not authenticated ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const mockReq: any = { user: undefined, params: { id: jobId } };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0] as Error;
+        expect(error.message).toBe('User not authenticated');
+    });
+
+    test('should successfully confirm delivery with notification and event emission ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const moverId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.COMPLETED,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockUserModel.findById.mockResolvedValue({
+            _id: moverId,
+            userRole: 'MOVER',
+            credits: 100,
+        } as any);
+        mockUserModel.update.mockResolvedValue({} as any);
+        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
+        mockEventEmitter.emitJobUpdated.mockReturnValue(undefined);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockRes.status).toHaveBeenCalledWith(200);
+        const jsonArg = mockRes.json.mock.calls[0][0];
+        expect(jsonArg.success).toBe(true);
+        expect(jsonArg.data.status).toBe(JobStatus.COMPLETED);
+        expect(mockOrderService.updateOrderStatus).toHaveBeenCalledWith(
+            orderId,
+            expect.any(String),
+            expect.any(String)
+        );
+        expect(mockUserModel.findById).toHaveBeenCalledWith(moverId);
+        expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
+    });
+
+    test('should handle invalid orderId during confirmDelivery ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const moverId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: null, // Invalid orderId
+            studentId: studentId,
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.COMPLETED,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockUserModel.findById.mockResolvedValue({
+            _id: moverId,
+            userRole: 'MOVER',
+            credits: 100,
+        } as any);
+        mockUserModel.update.mockResolvedValue({} as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+    });
+
+    test('should handle orderService error in confirmDelivery', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const moverId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.COMPLETED,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockUserModel.findById.mockResolvedValue({
+            _id: moverId,
+            userRole: 'MOVER',
+            credits: 100,
+        } as any);
+        mockUserModel.update.mockResolvedValue({} as any);
+        mockOrderService.updateOrderStatus.mockRejectedValue(new Error('Order update failed'));
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
+    });
+
+    test('should handle EventEmitter error gracefully during confirmDelivery ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const moverId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.COMPLETED,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockUserModel.findById.mockResolvedValue({
+            _id: moverId,
+            userRole: 'MOVER',
+            credits: 100,
+        } as any);
+        mockUserModel.update.mockResolvedValue({} as any);
+        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        mockEventEmitter.emitJobUpdated.mockImplementation(() => {
+            throw new Error('Event emitter failed');
+        });
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        // Should still succeed despite emitter error
+        expect(mockRes.status).toHaveBeenCalledWith(200);
+        const jsonArg = mockRes.json.mock.calls[0][0];
+        expect(jsonArg.success).toBe(true);
+        expect(jsonArg.data.status).toBe(JobStatus.COMPLETED);
+    });
+
+    test('should return completed job details successfully ', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const moverId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.COMPLETED,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockUserModel.findById.mockResolvedValue({
+            _id: moverId,
+            userRole: 'MOVER',
+            credits: 100,
+        } as any);
+        mockUserModel.update.mockResolvedValue({} as any);
+        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        mockEventEmitter.emitJobUpdated.mockReturnValue(undefined);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockRes.status).toHaveBeenCalledWith(200);
+        const jsonCall = mockRes.json.mock.calls[0][0];
+        expect(jsonCall.success).toBe(true);
+        expect(jsonCall.data).toHaveProperty('id');
+        expect(jsonCall.data).toHaveProperty('status');
+        expect(jsonCall.data.status).toBe(JobStatus.COMPLETED);
+        expect(jsonCall.data.id).toBe(mockUpdatedJob._id.toString());
+    });
+});
+
+describe('POST /api/jobs/:id/delivered - requestDeliveryConfirmation', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('should successfully request delivery confirmation with notification', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: new mongoose.Types.ObjectId(),
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.PICKED_UP,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            verificationRequestedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
+        mockEventEmitter.emitJobUpdated.mockReturnValue(undefined);
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.delivered(mockReq, mockRes, mockNext);
+
+        expect(mockRes.status).toHaveBeenCalledWith(200);
+        const jsonArg = mockRes.json.mock.calls[0][0];
+        expect(jsonArg.success).toBe(true);
+        expect(jsonArg.data.status).toBe(JobStatus.AWAITING_STUDENT_CONFIRMATION);
+        expect(mockNotificationService.sendJobStatusNotification).toHaveBeenCalledWith(
+            expect.any(mongoose.Types.ObjectId),
+            JobStatus.AWAITING_STUDENT_CONFIRMATION
+        );
+        expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
+    });
+
+    test('should handle EventEmitter error gracefully in requestDeliveryConfirmation', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: new mongoose.Types.ObjectId(),
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.PICKED_UP,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            verificationRequestedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
+        mockEventEmitter.emitJobUpdated.mockImplementation(() => {
+            throw new Error('Event emitter error');
+        });
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.delivered(mockReq, mockRes, mockNext);
+
+        // Should still succeed despite emitter error
+        expect(mockRes.status).toHaveBeenCalledWith(200);
+        const jsonArg = mockRes.json.mock.calls[0][0];
+        expect(jsonArg.success).toBe(true);
+        expect(jsonArg.data.status).toBe(JobStatus.AWAITING_STUDENT_CONFIRMATION);
+    });
+
+    test('should handle missing jobId in requestDeliveryConfirmation', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const moverId = new mongoose.Types.ObjectId();
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: '' }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.delivered(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('jobId and moverId are required');
+    });
+
+    test('should handle non-RETURN job type in requestDeliveryConfirmation', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: new mongoose.Types.ObjectId(),
+            moverId: moverId,
+            jobType: JobType.STORAGE, // Not RETURN
+            status: JobStatus.PICKED_UP,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.delivered(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Delivery confirmation only valid for return jobs');
+    });
+
+    test('should handle wrong job status in requestDeliveryConfirmation', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: new mongoose.Types.ObjectId(),
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.ACCEPTED, // Not PICKED_UP
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.delivered(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Job must be PICKED_UP');
+    });
+});
+
+describe('POST /api/jobs/:id/confirm-delivery - Additional error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('should handle missing parameters in confirmDelivery', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const studentId = new mongoose.Types.ObjectId();
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: '' } // Missing jobId
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('jobId and studentId are required');
+    });
+
+    test('should handle non-RETURN job type in confirmDelivery', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.STORAGE, // Not RETURN
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Confirm delivery only valid for return jobs');
+    });
+
+    test('should handle wrong job status in confirmDelivery', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.RETURN,
+            status: JobStatus.PICKED_UP, // Not AWAITING_STUDENT_CONFIRMATION
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Job must be awaiting student confirmation');
+    });
+
+    test('should handle null updatedJob in confirmDelivery', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const moverId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(null as any); // Return null
+        mockUserModel.findById.mockResolvedValue({
+            _id: moverId,
+            userRole: 'MOVER',
+            credits: 100,
+        } as any);
+        mockUserModel.update.mockResolvedValue({} as any);
+        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmDelivery(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0] as Error;
+        // The error occurs when trying to extract orderId from null updatedJob
+        expect(error.message).toContain('Invalid orderId');
+    });
+});
+
+describe('POST /api/jobs/:id/arrived - requestPickupConfirmation error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('should handle missing parameters in requestPickupConfirmation', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const moverId = new mongoose.Types.ObjectId();
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: '' } // Missing jobId
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.send_arrival_confirmation(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('jobId and moverId are required');
+    });
+
+    test('should handle non-STORAGE job type in requestPickupConfirmation', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: new mongoose.Types.ObjectId(),
+            moverId: moverId,
+            jobType: JobType.RETURN, // Not STORAGE
+            status: JobStatus.ACCEPTED,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.send_arrival_confirmation(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Arrival confirmation only valid for storage jobs');
+    });
+
+    test('should handle wrong mover in requestPickupConfirmation', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId();
+        const wrongMoverId = new mongoose.Types.ObjectId(); // Different mover
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: new mongoose.Types.ObjectId(),
+            moverId: wrongMoverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.ACCEPTED,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.send_arrival_confirmation(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Only assigned mover can request confirmation');
+    });
+
+    test('should handle wrong job status in requestPickupConfirmation', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: new mongoose.Types.ObjectId(),
+            moverId: moverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.AVAILABLE, // Not ACCEPTED
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: moverId, userRole: 'MOVER' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.send_arrival_confirmation(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Job must be ACCEPTED to request confirmation');
+    });
+});
+
+describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('should handle missing parameters in confirmPickup', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const studentId = new mongoose.Types.ObjectId();
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: '' } // Missing jobId
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('jobId and studentId are required');
+    });
+
+    test('should handle non-STORAGE job type in confirmPickup', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.RETURN, // Not STORAGE
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Confirm pickup only valid for storage jobs');
+    });
+
+    test('should handle wrong student in confirmPickup', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const wrongStudentId = new mongoose.Types.ObjectId(); // Different student
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: wrongStudentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.STORAGE,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Only the student can confirm pickup');
+    });
+
+    test('should handle wrong job status in confirmPickup', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: new mongoose.Types.ObjectId(),
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.STORAGE,
+            status: JobStatus.ACCEPTED, // Not AWAITING_STUDENT_CONFIRMATION
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Job must be awaiting student confirmation');
+    });
+
+    test('should handle invalid orderId in confirmPickup', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: null, // Invalid orderId
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.STORAGE,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.PICKED_UP,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0];
+        expect(error.message).toContain('Invalid orderId');
+    });
+
+    test('should handle orderService error in confirmPickup', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.STORAGE,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.PICKED_UP,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockOrderService.updateOrderStatus.mockRejectedValue(new Error('Order service failed'));
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
+    });
+
+    test('should handle EventEmitter error in confirmPickup', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.STORAGE,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.PICKED_UP,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        mockEventEmitter.emitJobUpdated.mockImplementation(() => {
+            throw new Error('Event emitter failed');
+        });
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        // Should still succeed despite emitter error
+        expect(mockRes.status).toHaveBeenCalledWith(200);
+        const jsonArg = mockRes.json.mock.calls[0][0];
+        expect(jsonArg.success).toBe(true);
+        expect(jsonArg.data.status).toBe(JobStatus.PICKED_UP);
+    });
+
+    test('should handle null updatedJob in confirmPickup', async () => {
+        const { JobController } = require('../../src/controllers/job.controller');
+        const { JobService } = require('../../src/services/job.service');
+        const controller = new JobController(new JobService());
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.STORAGE,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(null as any); // Return null
+        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+
+        const mockReq: any = {
+            user: { _id: studentId, userRole: 'STUDENT' },
+            params: { id: jobId }
+        };
+        const mockRes: any = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn()
+        };
+        const mockNext = jest.fn();
+
+        await controller.confirmPickup(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+        const error = mockNext.mock.calls[0][0] as Error;
+        // The error occurs when trying to extract orderId from null updatedJob
+        expect(error.message).toContain('Invalid orderId');
     });
 });
 
