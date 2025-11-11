@@ -60,24 +60,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Get payment status
-   */
-  async getPaymentStatus(paymentIntentId: string): Promise<PaymentResult> {
-    try {
-      logger.info(`Getting payment status for: ${paymentIntentId}`);
-
-      const result = await stripeService.getPaymentIntent(paymentIntentId);
-
-      logger.info(
-        `Payment status retrieved: ${result.paymentId} - Status: ${result.status}`
-      );
-      return result;
-    } catch (error) {
-      logger.error('Error in PaymentService.getPaymentStatus:', error);
-      throw error;
-    }
-  }
+  
 
   /**
    * Refund a payment
