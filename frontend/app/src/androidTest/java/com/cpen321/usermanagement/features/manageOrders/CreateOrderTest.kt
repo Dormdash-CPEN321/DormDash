@@ -117,20 +117,28 @@ class CreateOrderTest : OrderTestBase() {
         composeTestRule.waitForIdle()
 
         // Fill in customer information
+        // Fill in customer name
         composeTestRule.onNodeWithTag("customer_name_field", useUnmergedTree = true)
             .performClick()
+        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("customer_name_field", useUnmergedTree = true)
             .performTextInput("John Doe")
 
-        composeTestRule.onNodeWithTag("customer_email_field", useUnmergedTree = true)
-            .performClick()
-        composeTestRule.onNodeWithTag("customer_email_field", useUnmergedTree = true)
-            .performTextInput("john.doe@example.com")
+        composeTestRule.waitForIdle()
+        Thread.sleep(500)
 
-        //close keyboard if needed
-        val uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        uiDevice.waitForIdle()
-        uiDevice.pressBack()
+        // Fill in customer email - scroll to it first if needed
+        val emailField = composeTestRule.onNodeWithTag("customer_email_field", useUnmergedTree = true)
+        emailField.assertExists("Email field should exist")
+        emailField.performClick()
+        
+        composeTestRule.waitForIdle()
+        Thread.sleep(500)
+        
+        emailField.performTextInput("john.doe@example.com")
+        
+        composeTestRule.waitForIdle()
+        Thread.sleep(500)
 
         composeTestRule.waitForIdle()
 

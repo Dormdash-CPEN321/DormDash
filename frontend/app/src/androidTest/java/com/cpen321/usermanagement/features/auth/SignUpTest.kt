@@ -27,32 +27,8 @@ class SignUpTest: AuthTestBase() {
 
     @Test
     fun test_SignUp_NavigateToMainScreen() {
-        // Use setupTestAccount() which looks for test account and adds it if needed
+        // Use setupTestAccount() which looks for test account and adds it if needed, and signs up
         setupTestAccount()
-
-        // Wait for role selection
-        composeTestRule.waitUntil(timeoutMillis = 3000) {
-            composeTestRule
-                .onAllNodesWithText("I'm a Student", useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-
-        // Choose student role
-        composeTestRule.onNodeWithText("I'm a Student", useUnmergedTree = true)
-            .assertExists("Role button should exist")
-            .performClick()
-
-        // Skip bio
-        composeTestRule.waitUntil(timeoutMillis = 10_000) {
-            composeTestRule
-                .onAllNodesWithText("Skip", useUnmergedTree = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-        }
-        composeTestRule.onNodeWithText("Skip", useUnmergedTree = true)
-            .assertExists("Skip button should exist")
-            .performClick()
 
         // Verify we're on main screen
         composeTestRule.onNodeWithText("DormDash", useUnmergedTree = true)
