@@ -464,6 +464,58 @@ describe('POST /api/order - Create Order (Mocked)', () => {
       createSpy.mockRestore();
       mockOrderModel.create.mockReset();
     }
+
+  // Input: valid order with idempotency key
+  // Expected status code: 500
+  // Expected behavior: surfaces model-layer failure when findByIdempotencyKey throws
+  // Mocked behavior: real mongoose findOne rejects via spy on order model
+  test('should surface database errors when checking idempotency key', async () => {
+    const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
+    const actualOrderInstance = actualOrderModule.orderModel as any;
+    const realMongooseModel = (actualOrderInstance as any).order as mongoose.Model<Order>;
+
+    const findOneSpy = jest
+      .spyOn(realMongooseModel, 'findOne')
+      .mockImplementation(() => {
+        throw new Error('Database findOne failed');
+      });
+
+    mockOrderModel.findByIdempotencyKey.mockImplementationOnce((key: string) => {
+      return actualOrderInstance.findByIdempotencyKey(key);
+    });
+
+    try {
+      await request(app)
+        .post('/api/order')
+        .set('Authorization', `Bearer ${authToken}`)
+        .set('Idempotency-Key', 'test-key-fail-123')
+        .send({
+          studentId: testUserId.toString(),
+          volume: 2.5,
+          totalPrice: 150.0,
+          studentAddress: {
+            lat: 49.2606,
+            lon: -123.1133,
+            formattedAddress: '123 Student Ave, Vancouver, BC'
+          },
+          warehouseAddress: {
+            lat: 49.2827,
+            lon: -123.1207,
+            formattedAddress: '123 Warehouse St, Vancouver, BC'
+          },
+          pickupTime: '2025-11-10T10:00:00.000Z',
+          returnTime: '2025-11-15T10:00:00.000Z',
+          paymentIntentId: 'pi_mock_123'
+        })
+        .expect(500);
+
+      expect(findOneSpy).toHaveBeenCalledTimes(1);
+      expect(mockOrderModel.findByIdempotencyKey).toHaveBeenCalledWith('test-key-fail-123');
+    } finally {
+      findOneSpy.mockRestore();
+      mockOrderModel.findByIdempotencyKey.mockReset();
+    }
+  });
   });
 
   test('should call next(err) when controller promise rejects', async () => {
@@ -501,6 +553,58 @@ describe('POST /api/order - Create Order (Mocked)', () => {
 
     // Restore original method
     controllerProto.createOrder = originalMethod;
+  });
+
+  // Input: valid order with idempotency key
+  // Expected status code: 500
+  // Expected behavior: surfaces model-layer failure when findByIdempotencyKey throws
+  // Mocked behavior: real mongoose findOne rejects via spy on order model
+  test('should surface database errors when checking idempotency key', async () => {
+    const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
+    const actualOrderInstance = actualOrderModule.orderModel as any;
+    const realMongooseModel = (actualOrderInstance as any).order as mongoose.Model<Order>;
+
+    const findOneSpy = jest
+      .spyOn(realMongooseModel, 'findOne')
+      .mockImplementation(() => {
+        throw new Error('Database findOne failed');
+      });
+
+    mockOrderModel.findByIdempotencyKey.mockImplementationOnce((key: string) => {
+      return actualOrderInstance.findByIdempotencyKey(key);
+    });
+
+    try {
+      await request(app)
+        .post('/api/order')
+        .set('Authorization', `Bearer ${authToken}`)
+        .set('Idempotency-Key', 'test-key-fail-123')
+        .send({
+          studentId: testUserId.toString(),
+          volume: 2.5,
+          totalPrice: 150.0,
+          studentAddress: {
+            lat: 49.2606,
+            lon: -123.1133,
+            formattedAddress: '123 Student Ave, Vancouver, BC'
+          },
+          warehouseAddress: {
+            lat: 49.2827,
+            lon: -123.1207,
+            formattedAddress: '123 Warehouse St, Vancouver, BC'
+          },
+          pickupTime: '2025-11-10T10:00:00.000Z',
+          returnTime: '2025-11-15T10:00:00.000Z',
+          paymentIntentId: 'pi_mock_123'
+        })
+        .expect(500);
+
+      expect(findOneSpy).toHaveBeenCalledTimes(1);
+      expect(mockOrderModel.findByIdempotencyKey).toHaveBeenCalledWith('test-key-fail-123');
+    } finally {
+      findOneSpy.mockRestore();
+      mockOrderModel.findByIdempotencyKey.mockReset();
+    }
   });
 });
 
