@@ -424,7 +424,7 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.updateProfile;
     // Mock the updateProfile method to reject
-    controllerProto.updateProfile = jest.fn().mockRejectedValue(new Error('Mocked controller error'));
+    controllerProto.updateProfile = (jest.fn() as any).mockRejectedValue(new Error('Mocked controller error'));
     const updateData = {
         name: 'Should Trigger Error'
         };
@@ -437,6 +437,67 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
     expect(controllerProto.updateProfile).toHaveBeenCalled();
     // Restore the original method
     controllerProto.updateProfile = originalMethod;
+  });
+
+  test('should handle user model update returning null', async () => {
+    const originalUpdate = userModel.update;
+    userModel.update = (jest.fn() as any).mockResolvedValue(null);
+
+    const updateData = {
+      name: 'Should Not Find User'
+    };
+
+    const response = await request(app)
+      .post('/api/user/profile')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(updateData)
+      .expect(404);
+
+    expect(response.body).toHaveProperty('message', 'User not found');
+
+    // Restore original method
+    userModel.update = originalUpdate;
+  });
+
+  test('should trigger next(err) for unknown Error types during update', async () => {
+    const originalUpdate = userModel.update;
+    userModel.update = (jest.fn() as any).mockRejectedValue(new Error('Unknown database error'));
+
+    const updateData = {
+      name: 'Should Trigger Unknown Error'
+    };
+
+    const response = await request(app)
+      .post('/api/user/profile')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(updateData)
+      .expect(500);
+
+    expect(response.body).toHaveProperty('message', 'Unknown database error');
+
+    // Restore original method
+    userModel.update = originalUpdate;
+  });
+
+  test('should trigger next(err) for non-Error exceptions during update', async () => {
+    const originalUpdate = userModel.update;
+    userModel.update = (jest.fn() as any).mockRejectedValue('String error from database');
+
+    const updateData = {
+      name: 'Should Trigger Non-Error'
+    };
+
+    const response = await request(app)
+      .post('/api/user/profile')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(updateData)
+      .expect(500);
+
+    // Should be caught by the error handler middleware
+    expect(response.status).toBe(500);
+
+    // Restore original method
+    userModel.update = originalUpdate;
   });
 });
 
@@ -500,7 +561,7 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
   test('should handle cash out with large credit amounts', async () => {
     // Mock a mover with large credits
     const originalUpdate = (userModel as any).update;
-    (userModel as any).update = jest.fn().mockResolvedValue({
+    (userModel as any).update = (jest.fn() as any).mockResolvedValue({
       _id: testMoverId.toString(),
       email: `movermock${testMoverId.toString()}@example.com`,
       name: 'Test Mover Mock',
@@ -524,7 +585,7 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
   test('should handle error when user not found during cash out', async () => {
     // Mock userModel.update to return null
     const originalUpdate = (userModel as any).update;
-    (userModel as any).update = jest.fn().mockResolvedValue(null);
+    (userModel as any).update = (jest.fn() as any).mockResolvedValue(null);
 
     const response = await request(app)
       .post('/api/user/cash-out')
@@ -540,7 +601,7 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
   test('should handle error when update fails during cash out', async () => {
     // Mock userModel.update to throw an error
     const originalUpdate = (userModel as any).update;
-    (userModel as any).update = jest.fn().mockRejectedValue(new Error('Database update failed'));
+    (userModel as any).update = (jest.fn() as any).mockRejectedValue(new Error('Database update failed'));
 
     const response = await request(app)
       .post('/api/user/cash-out')
@@ -556,7 +617,7 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
   test('should handle non-Error exceptions during cash out', async () => {
     // Mock userModel.update to throw a non-Error object
     const originalUpdate = (userModel as any).update;
-    (userModel as any).update = jest.fn().mockRejectedValue({ code: 500, message: 'System error' });
+    (userModel as any).update = (jest.fn() as any).mockRejectedValue({ code: 500, message: 'System error' });
 
     const response = await request(app)
       .post('/api/user/cash-out')
@@ -576,7 +637,7 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.cashOut;
     // Mock the cashOut method to reject
-    controllerProto.cashOut = jest.fn().mockRejectedValue(new Error('Mocked controller error'));
+    controllerProto.cashOut = (jest.fn() as any).mockRejectedValue(new Error('Mocked controller error'));
     
     const response = await request(app)
       .post('/api/user/cash-out')
@@ -690,7 +751,7 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
     const originalMethod = controllerProto.deleteProfile;
 
     // Mock the controller method to throw an error that will be caught by .catch()
-    controllerProto.deleteProfile = jest.fn().mockRejectedValue(new Error('Controller promise rejection'));
+    controllerProto.deleteProfile = (jest.fn() as any).mockRejectedValue(new Error('Controller promise rejection'));
 
     // Make the API request - this will trigger the .catch((err) => next(err)) block in the route
     const response = await request(app)
@@ -703,5 +764,36 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
 
     // Restore the original method
     controllerProto.deleteProfile = originalMethod;
+  });
+
+  test('should trigger next(err) for unknown Error types during delete', async () => {
+    const originalDelete = userModel.delete;
+    userModel.delete = (jest.fn() as any).mockRejectedValue(new Error('Database deletion error'));
+
+    const response = await request(app)
+      .delete('/api/user/profile')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(500);
+
+    expect(response.body).toHaveProperty('message', 'Database deletion error');
+
+    // Restore original method
+    userModel.delete = originalDelete;
+  });
+
+  test('should trigger next(err) for non-Error exceptions during delete', async () => {
+    const originalDelete = userModel.delete;
+    userModel.delete = (jest.fn() as any).mockRejectedValue('String error during deletion');
+
+    const response = await request(app)
+      .delete('/api/user/profile')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(500);
+
+    // Should be caught by the error handler middleware
+    expect(response.status).toBe(500);
+
+    // Restore original method
+    userModel.delete = originalDelete;
   });
 });
