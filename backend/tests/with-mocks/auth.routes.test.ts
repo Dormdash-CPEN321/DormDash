@@ -145,6 +145,225 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     authService.signUpWithGoogle = originalSignUp;
   });
 
+  test('should handle getPayload returning null/undefined', async () => {
+    // Mock OAuth2Client to return ticket with null payload
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => null, // getPayload returns null
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({ idToken: 'test-token' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Invalid Google token');
+    } finally {
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
+
+  test('should handle payload missing email', async () => {
+    // Mock OAuth2Client to return payload without email
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => ({
+        sub: 'google-id-123',
+        name: 'Test User',
+        // email is missing
+        picture: 'http://example.com/pic.jpg',
+      }),
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({ idToken: 'test-token' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Invalid Google token');
+    } finally {
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
+
+  test('should handle payload missing name', async () => {
+    // Mock OAuth2Client to return payload without name
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => ({
+        sub: 'google-id-123',
+        email: 'test@example.com',
+        // name is missing
+        picture: 'http://example.com/pic.jpg',
+      }),
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({ idToken: 'test-token' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Invalid Google token');
+    } finally {
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
+
+  test('should handle getPayload throwing an error', async () => {
+    // Mock OAuth2Client to have getPayload throw error
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => {
+        throw new Error('Failed to extract payload');
+      },
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({ idToken: 'test-token' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Invalid Google token');
+    } finally {
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
+
+  test('should successfully sign up a new user with valid Google token (mocking OAuth2Client)', async () => {
+    // Mock the OAuth2Client to successfully verify token and return valid payload
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    const mockGoogleId = 'google-id-new-user-success-' + Date.now();
+    const mockEmail = `newuser-success-${Date.now()}@example.com`;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => ({
+        sub: mockGoogleId,
+        email: mockEmail,
+        name: 'New Test User Success',
+        picture: 'https://example.com/pic.jpg',
+      }),
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({ idToken: 'mocked-valid-token' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.message).toBe('User signed up successfully');
+      expect(response.body.data.token).toBeDefined();
+      expect(response.body.data.user.email).toBe(mockEmail);
+      expect(response.body.data.user.name).toBe('New Test User Success');
+      expect(response.body.data.user.googleId).toBe(mockGoogleId);
+
+      // Cleanup: delete the created user
+      const db = mongoose.connection.db;
+      if (db) {
+        await db.collection('users').deleteOne({ googleId: mockGoogleId });
+      }
+    } finally {
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
+
+  test('should return 500 when JWT_SECRET is not configured during signup', async () => {
+    // Mock the OAuth2Client to successfully verify token
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    const mockGoogleId = 'google-id-no-jwt-secret-' + Date.now();
+    const mockEmail = `nojwtsecret-${Date.now()}@example.com`;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => ({
+        sub: mockGoogleId,
+        email: mockEmail,
+        name: 'Test User No JWT Secret',
+        picture: 'https://example.com/pic.jpg',
+      }),
+    });
+
+    // Temporarily remove JWT_SECRET
+    const originalSecret = process.env.JWT_SECRET;
+    delete process.env.JWT_SECRET;
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({ idToken: 'mocked-valid-token' });
+
+      // Should return 500 when JWT_SECRET is missing
+      expect(response.status).toBe(500);
+      
+      
+      // Cleanup: delete the user if it was created
+      const db = mongoose.connection.db;
+      if (db) {
+        await db.collection('users').deleteOne({ googleId: mockGoogleId });
+      }
+    } finally {
+      // Restore JWT_SECRET
+      process.env.JWT_SECRET = originalSecret;
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
+
+  test('should return 500 when jwt.sign returns non-string token', async () => {
+    // Mock the OAuth2Client to successfully verify token
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    const mockGoogleId = 'google-id-buffer-token-' + Date.now();
+    const mockEmail = `buffertoken-${Date.now()}@example.com`;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => ({
+        sub: mockGoogleId,
+        email: mockEmail,
+        name: 'Test User Buffer Token',
+        picture: 'https://example.com/pic.jpg',
+      }),
+    });
+
+    // Mock jwt.sign to return a Buffer instead of string
+    const jwt = require('jsonwebtoken');
+    const originalSign = jwt.sign;
+    (jwt.sign as any) = (jest.fn() as any).mockReturnValue(Buffer.from('token-as-buffer'));
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({ idToken: 'mocked-valid-token' });
+
+      // Should return 500 when jwt.sign returns non-string
+      expect(response.status).toBe(500);
+      
+      // Cleanup: delete the user if it was created
+      const db = mongoose.connection.db;
+      if (db) {
+        await db.collection('users').deleteOne({ googleId: mockGoogleId });
+      }
+    } finally {
+      // Restore jwt.sign
+      jwt.sign = originalSign;
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
+
   test('should return 401 for invalid Google token', async () => {
     // Mock the authService to throw invalid token error
     const authService = require('../../src/services/auth.service').authService;
@@ -161,6 +380,32 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
 
     // Restore original method
     authService.signUpWithGoogle = originalSignUp;
+  });
+
+  test('should return 409 if user already exists (mocking OAuth2Client)', async () => {
+    // Mock the OAuth2Client to return a payload that matches an existing user
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => ({
+        sub: `test-google-id-auth-mock-${testUserId.toString()}`, // Existing user's googleId
+        email: `authmock${testUserId.toString()}@example.com`,
+        name: 'Test Auth User Mock',
+        picture: 'https://example.com/pic.jpg',
+      }),
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signup')
+        .send({ idToken: 'mocked-valid-token' });
+
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe('User already exists, please sign in instead.');
+    } finally {
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
   });
 
   test('should return 409 if user already exists', async () => {
@@ -297,6 +542,35 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     authService.signInWithGoogle = originalSignIn;
   });
 
+  test('should successfully sign in an existing user with valid Google token (mocking OAuth2Client)', async () => {
+    // Mock the OAuth2Client to successfully verify token and return valid payload for existing user
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => ({
+        sub: `test-google-id-auth-mock-${testUserId.toString()}`, // Existing user's googleId
+        email: `authmock${testUserId.toString()}@example.com`,
+        name: 'Test Auth User Mock',
+        picture: 'https://example.com/pic.jpg',
+      }),
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/auth/signin')
+        .send({ idToken: 'mocked-valid-token' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('User signed in successfully');
+      expect(response.body.data.token).toBeDefined();
+      expect(response.body.data.user.email).toBe(`authmock${testUserId.toString()}@example.com`);
+      expect(response.body.data.user.googleId).toBe(`test-google-id-auth-mock-${testUserId.toString()}`);
+    } finally {
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
+
   test('should return 401 for invalid Google token', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignIn = authService.signInWithGoogle;
@@ -314,7 +588,33 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     authService.signInWithGoogle = originalSignIn;
   });
 
+  test('should return 404 if user not found (mocking OAuth2Client)', async () => {
+    // Mock the OAuth2Client to return a valid payload but for non-existent user
+    const { OAuth2Client } = require('google-auth-library');
+    const originalVerifyIdToken = OAuth2Client.prototype.verifyIdToken;
+    
+    const nonExistentGoogleId = 'non-existent-google-id-mock-' + Date.now();
+    
+    (OAuth2Client.prototype.verifyIdToken as any) = (jest.fn() as any).mockResolvedValue({
+      getPayload: () => ({
+        sub: nonExistentGoogleId,
+        email: 'nonexistent-mock@example.com',
+        name: 'Non Existent User Mock',
+        picture: 'https://example.com/pic.jpg',
+      }),
+    });
 
+    try {
+      const response = await request(app)
+        .post('/api/auth/signin')
+        .send({ idToken: 'mocked-valid-token' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe('User not found, please sign up first.');
+    } finally {
+      OAuth2Client.prototype.verifyIdToken = originalVerifyIdToken;
+    }
+  });
 
   test('should return 404 if user not found', async () => {
     const authService = require('../../src/services/auth.service').authService;
