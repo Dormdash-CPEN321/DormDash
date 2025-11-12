@@ -45,6 +45,7 @@ const mockNotificationService: any = {
 const mockEventEmitter: any = {
     emitJobUpdated: jest.fn(),
     emitJobCreated: jest.fn(),
+    emitOrderUpdated: jest.fn(),
 };
 
 const mockJobMapper: any = {
@@ -77,6 +78,7 @@ jest.mock('../../src/utils/eventEmitter.util', () => ({
     EventEmitter: mockEventEmitter,
     emitJobUpdated: mockEventEmitter.emitJobUpdated,
     emitJobCreated: mockEventEmitter.emitJobCreated,
+    emitOrderUpdated: mockEventEmitter.emitOrderUpdated,
 }));
 
 jest.mock('../../src/mappers/job.mapper', () => ({
@@ -1126,6 +1128,123 @@ describe('PATCH /api/jobs/:id/status', () => {
         // Restore original method
         controllerProto.updateJobStatus = originalMethod;
     });
+
+    test('should orderModel.update returns null in updateOrderStatus', async () => {
+        
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId().toString();
+        const orderId = new mongoose.Types.ObjectId();
+        const studentId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.AVAILABLE,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            moverId: new mongoose.Types.ObjectId(moverId),
+            status: JobStatus.ACCEPTED,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.tryAcceptJob.mockResolvedValue(mockUpdatedJob as any);
+        
+        // Temporarily restore the real orderService and mock orderModel instead
+        jest.unmock('../../src/services/order.service');
+        const { orderService: realOrderService } = require('../../src/services/order.service');
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        
+        // Mock orderModel.update to return null, triggering line 423
+        orderModel.update = jest.fn(async () => null as any);
+        
+        // Temporarily replace mockOrderService with real one
+        const originalMockUpdate = mockOrderService.updateOrderStatus;
+        mockOrderService.updateOrderStatus = realOrderService.updateOrderStatus.bind(realOrderService);
+
+        try {
+            const response = await request(app)
+                .patch(`/api/jobs/${jobId}/status`)
+                .set('Authorization', `Bearer fake-token`)
+                .send({ status: JobStatus.ACCEPTED, moverId });
+
+            // Should return 500 because updateOrderStatus throws "Order not found"
+            expect(response.status).toBe(500);
+            expect(orderModel.update).toHaveBeenCalled();
+        } finally {
+            // Restore mocks
+            orderModel.update = originalUpdate;
+            mockOrderService.updateOrderStatus = originalMockUpdate;
+        }
+    });
+
+    test('should hit catch block in updateOrderStatus when orderModel.update throws', async () => {
+        // Test to cover the catch block in updateOrderStatus (lines 436-441)
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const moverId = new mongoose.Types.ObjectId().toString();
+        const orderId = new mongoose.Types.ObjectId();
+        const studentId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.AVAILABLE,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            moverId: new mongoose.Types.ObjectId(moverId),
+            status: JobStatus.ACCEPTED,
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.tryAcceptJob.mockResolvedValue(mockUpdatedJob as any);
+        
+        // Temporarily restore the real orderService and mock orderModel instead
+        jest.unmock('../../src/services/order.service');
+        const { orderService: realOrderService } = require('../../src/services/order.service');
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        
+        // Mock orderModel.update to throw error, triggering catch block
+        orderModel.update = jest.fn(async () => {
+            throw new Error('Database update failed');
+        }) as any;
+        
+        // Temporarily replace mockOrderService with real one
+        const originalMockUpdate = mockOrderService.updateOrderStatus;
+        mockOrderService.updateOrderStatus = realOrderService.updateOrderStatus.bind(realOrderService);
+
+        try {
+            const response = await request(app)
+                .patch(`/api/jobs/${jobId}/status`)
+                .set('Authorization', `Bearer fake-token`)
+                .send({ status: JobStatus.ACCEPTED, moverId });
+
+            // Should return 500 because updateOrderStatus catches and rethrows error
+            expect(response.status).toBe(500);
+            expect(orderModel.update).toHaveBeenCalled();
+        } finally {
+            // Restore mocks
+            orderModel.update = originalUpdate;
+            mockOrderService.updateOrderStatus = originalMockUpdate;
+        }
+    });
+
 });
 
 describe('POST /api/jobs/:id/arrived', () => {

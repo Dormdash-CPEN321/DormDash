@@ -528,3 +528,137 @@ describe('Socket.IO - Job Status Updates', () => {
     await (orderModel as any).order.deleteOne({ _id: order._id });
   }, 30000);
 });
+
+describe('Socket.IO - Authentication (verifyTokenString coverage)', () => {
+  test('should reject connection with JWT_SECRET not configured', async () => {
+    const originalSecret = process.env.JWT_SECRET;
+    delete process.env.JWT_SECRET;
+
+    try {
+      await expect(
+        new Promise((resolve, reject) => {
+          const socket = ioClient(`http://localhost:${PORT}`, {
+            auth: { token: `Bearer ${authToken}` },
+            transports: ['websocket'],
+            forceNew: true,
+            reconnection: false
+          });
+
+          socket.on('connect', () => {
+            socket.disconnect();
+            resolve(true);
+          });
+          
+          socket.on('connect_error', (err) => {
+            socket.disconnect();
+            reject(err);
+          });
+
+          setTimeout(() => {
+            socket.disconnect();
+            reject(new Error('Timeout'));
+          }, 5000);
+        })
+      ).rejects.toThrow();
+    } finally {
+      process.env.JWT_SECRET = originalSecret;
+    }
+  }, 10000);
+
+  test('should reject connection with expired token', async () => {
+    const expiredToken = jwt.sign(
+      { id: testUserId },
+      process.env.JWT_SECRET || 'default-secret',
+      { expiresIn: '-1s' }
+    );
+
+    await expect(
+      new Promise((resolve, reject) => {
+        const socket = ioClient(`http://localhost:${PORT}`, {
+          auth: { token: `Bearer ${expiredToken}` },
+          transports: ['websocket'],
+          forceNew: true,
+          reconnection: false
+        });
+
+        socket.on('connect', () => {
+          socket.disconnect();
+          resolve(true);
+        });
+        
+        socket.on('connect_error', (err) => {
+          socket.disconnect();
+          reject(err);
+        });
+
+        setTimeout(() => {
+          socket.disconnect();
+          reject(new Error('Timeout'));
+        }, 5000);
+      })
+    ).rejects.toThrow();
+  }, 10000);
+
+  test('should reject connection with malformed token', async () => {
+    await expect(
+      new Promise((resolve, reject) => {
+        const socket = ioClient(`http://localhost:${PORT}`, {
+          auth: { token: 'Bearer invalid.malformed.token' },
+          transports: ['websocket'],
+          forceNew: true,
+          reconnection: false
+        });
+
+        socket.on('connect', () => {
+          socket.disconnect();
+          resolve(true);
+        });
+        
+        socket.on('connect_error', (err) => {
+          socket.disconnect();
+          reject(err);
+        });
+
+        setTimeout(() => {
+          socket.disconnect();
+          reject(new Error('Timeout'));
+        }, 5000);
+      })
+    ).rejects.toThrow();
+  }, 10000);
+
+  test('should reject connection when database error occurs during user lookup', async () => {
+    const originalFindById = userModel.findById;
+    (userModel.findById as any) = jest.fn().mockRejectedValue(new Error('Socket DB error'));
+
+    try {
+      await expect(
+        new Promise((resolve, reject) => {
+          const socket = ioClient(`http://localhost:${PORT}`, {
+            auth: { token: `Bearer ${authToken}` },
+            transports: ['websocket'],
+            forceNew: true,
+            reconnection: false
+          });
+
+          socket.on('connect', () => {
+            socket.disconnect();
+            resolve(true);
+          });
+          
+          socket.on('connect_error', (err) => {
+            socket.disconnect();
+            reject(err);
+          });
+
+          setTimeout(() => {
+            socket.disconnect();
+            reject(new Error('Timeout'));
+          }, 5000);
+        })
+      ).rejects.toThrow();
+    } finally {
+      userModel.findById = originalFindById;
+    }
+  }, 10000);
+});

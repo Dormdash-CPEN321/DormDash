@@ -55,14 +55,6 @@ export const authenticateToken: RequestHandler = (
         return;
       }
 
-      if (error instanceof jwt.TokenExpiredError) {
-        res.status(401).json({
-          error: 'Token expired',
-          message: 'Please login again',
-        });
-        return;
-      }
-
       next(error);
     }
   })().catch((err: unknown) => {
