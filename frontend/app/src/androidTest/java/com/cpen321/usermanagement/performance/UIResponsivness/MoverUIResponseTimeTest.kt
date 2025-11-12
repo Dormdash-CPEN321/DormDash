@@ -16,7 +16,7 @@ class MoverUIResponseTimeTest : UIResponsivnessTestBase() {
     private val timeout = 100L // 0.1 seconds time out for elements to appear
 
     @Test
-    fun clickFindJobsButton_showsAvailableJobs() {
+    fun availableJobsScreenTest() {
         composeTestRule.waitForIdle()
         Thread.sleep(3000)
 
@@ -31,10 +31,33 @@ class MoverUIResponseTimeTest : UIResponsivnessTestBase() {
             composeTestRule.onAllNodesWithText("Available Jobs", useUnmergedTree = true)
                 .fetchSemanticsNodes().isNotEmpty()
         }
+
+        // Click on the availability switch
+        composeTestRule.onNodeWithTag("availability_switch", useUnmergedTree = true)
+            .assertExists("Availability switch should exist")
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.waitUntil(timeoutMillis = timeout) {
+            composeTestRule.onAllNodesWithText("Within Availability", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeTestRule.onNodeWithText("Get Optimal Route", useUnmergedTree = true)
+            .assertExists("Get Optimal Route button should exist")
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.waitUntil(timeoutMillis = timeout) {
+            composeTestRule.onAllNodesWithText("Smart Route Suggestion", useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     @Test
-    fun clickAvailabilityButton_opensSetAvailabilityScreen() {
+    fun setAvailabilityScreenTest() {
         composeTestRule.waitForIdle()
         Thread.sleep(3000)
 
@@ -45,7 +68,6 @@ class MoverUIResponseTimeTest : UIResponsivnessTestBase() {
 
         composeTestRule.waitForIdle()
 
-        // Assert "Set Availability" text appears within timeout
         composeTestRule.waitUntil(timeoutMillis = timeout) {
             composeTestRule.onAllNodesWithText("Set Availability", useUnmergedTree = true)
                 .fetchSemanticsNodes()
@@ -59,9 +81,42 @@ class MoverUIResponseTimeTest : UIResponsivnessTestBase() {
 
         composeTestRule.waitForIdle()
 
-        // Assert "Add Time Slot" text appears within timeout
         composeTestRule.waitUntil(timeoutMillis = timeout) {
             composeTestRule.onAllNodesWithText("Add Time Slot", useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+    }
+
+    @Test
+    fun profileScreenTest() {
+        composeTestRule.waitForIdle()
+        Thread.sleep(3000)
+
+        // Click on the profile icon to navigate to profile screen
+        composeTestRule
+            .onNodeWithTag("ProfileButton")
+            .assertExists("Profile button should exist")
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.waitUntil(timeoutMillis = timeout) {
+            composeTestRule
+                .onAllNodesWithText("Earned Credits", useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        composeTestRule
+            .onNodeWithText("Manage Profile", useUnmergedTree = true)
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.waitUntil(timeoutMillis = timeout) {
+            composeTestRule
+                .onAllNodesWithText("Name", useUnmergedTree = true)
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
