@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { OrderController } from '../controllers/order.controller';
 import { orderService } from '../services/order.service';
-import { QuoteRequest, quoteSchema } from '../types/order.types';
+import { QuoteRequest, quoteSchema, CreateOrderRequest, createOrderSchema } from '../types/order.types';
 import { validateBody } from '../middleware/validation.middleware';
 
 const router = Router();
@@ -17,11 +17,15 @@ router.post(
   }
 );
 
-router.post('/', (req, res, next) => {
-  orderController.createOrder(req, res, next).catch((err: unknown) => {
-    next(err);
-  });
-});
+router.post(
+  '/',
+  validateBody<CreateOrderRequest>(createOrderSchema),
+  (req, res, next) => {
+    orderController.createOrder(req, res, next).catch((err: unknown) => {
+      next(err);
+    });
+  }
+);
 
 router.post(
   '/create-return-Job',
