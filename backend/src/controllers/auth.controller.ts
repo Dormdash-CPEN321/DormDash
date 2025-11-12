@@ -103,6 +103,12 @@ export class AuthController {
       const user = req.user;
       const { userRole } = req.body;
 
+      if (!user || !user._id) {
+        return res.status(401).json({
+          message: 'Authentication required',
+        });
+      }
+
       // Initialize credits to 0 when selecting MOVER role
       const updateData: Partial<IUser> = { userRole };
       if (userRole === 'MOVER') {
