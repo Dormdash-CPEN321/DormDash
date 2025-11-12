@@ -33,6 +33,8 @@ google-services.json
 # Android Profiling
 *.hprof
 
+# Test credentials
+**/test.properties
 # Node.js
 node_modules/
 npm-debug.log*

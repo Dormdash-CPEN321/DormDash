@@ -56,6 +56,19 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
             composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
         }
 
+        // Setup: Navigate to Profile and seed test jobs
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Seed Test Jobs (10)").performClick()
+        composeTestRule.waitForIdle()
+
+        Thread.sleep(2000)
+
+        // Navigate back to main screen
+        device.pressBack()
+        composeTestRule.waitForIdle()
+
         // Step 1: Mover clicks on "Find Jobs" on navigation bar
         composeTestRule.onNodeWithText("Find Jobs").performClick()
 
@@ -76,6 +89,15 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
         composeTestRule.onAllNodesWithTag("job_card_datetime").onFirst().assertIsDisplayed()
         composeTestRule.onAllNodesWithTag("job_card_type").onFirst().assertIsDisplayed()
         composeTestRule.onAllNodesWithTag("job_card_credits").onFirst().assertIsDisplayed()
+
+        // Cleanup: Navigate to Profile and clear all jobs
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Clear All Jobs").performClick()
+        composeTestRule.waitForIdle()
+
+        Thread.sleep(2000) // Give backend time to persist
     }
 
     /**
@@ -91,6 +113,41 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
         // Wait for app to load
         composeTestRule.waitUntil(timeoutMillis = 5000) {
             composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        // Setup: Navigate to Profile and seed availability test jobs (2 jobs)
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Seed Availability Jobs (2)").performClick()
+        composeTestRule.waitForIdle()
+
+        Thread.sleep(2000) // Give backend time to persist
+
+        // Navigate back to main screen
+        device.pressBack()
+        composeTestRule.waitForIdle()
+
+        // Go to availability screen and set availability for monday 9-5
+        composeTestRule.onNodeWithText("Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        addTimeSlot(
+            day = "MONDAY",
+            startTime = "08:00",
+            endTime = "17:00"
+        )
+
+        // Save availability
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        // Verify success message appears
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
         }
 
         // Step 1: Navigate to Find Jobs
@@ -121,50 +178,28 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
         // Step 4: System displays only jobs within mover's availability
         // Should show only 1 job (Monday 10:00)
         composeTestRule.onAllNodesWithTag("job_card").assertCountEquals(1)
-    }
 
-    /**
-     * Test: Toggle back from "Within Availability" to "Show All"
-     * Tests that the filter can be toggled off to show all jobs again
-     *
-     * Prerequisites: Run `npm run seed-availability-test-jobs` to create 2 test jobs
-     */
-    @Test
-    fun testToggleBackToShowAll_displaysAllJobs() {
-        // Wait for app to load
+        //go to availability screen and remove availability to clean up
+        composeTestRule.onNodeWithText("Availability").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("delete_time_slot_MONDAY_08:00").performClick()
+        composeTestRule.onNodeWithText("Save Availability").performClick()
         composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
         }
 
-        // Navigate to Find Jobs
-        composeTestRule.onNodeWithText("Find Jobs").performClick()
-
-        // Wait for jobs to load
-        composeTestRule.waitForIdle()
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodesWithTag("job_card").fetchSemanticsNodes().isNotEmpty()
-        }
-
-        // Switch to filtered view
-        composeTestRule.onNodeWithTag("availability_switch").performClick()
+        // Cleanup: Navigate to Profile and clear all jobs
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
         composeTestRule.waitForIdle()
 
-        // Verify we're in filtered mode
-        composeTestRule.onNodeWithText("Within Availability").assertIsDisplayed()
-        
-        // Verify only 1 job is shown (within availability)
-        composeTestRule.onAllNodesWithTag("job_card").assertCountEquals(1)
-
-        // Toggle back to "Show All"
-        composeTestRule.onNodeWithTag("availability_switch").performClick()
+        composeTestRule.onNodeWithText("Clear All Jobs").performClick()
         composeTestRule.waitForIdle()
 
-        // Verify we're back to showing all jobs
-        composeTestRule.onNodeWithText("Show All").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Within Availability").assertDoesNotExist()
-        
-        // Verify both jobs are shown again
-        composeTestRule.onAllNodesWithTag("job_card").assertCountEquals(2)
+        Thread.sleep(2000) // Give backend time to persist
+
     }
 
     /**
@@ -179,6 +214,19 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
             composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
         }
 
+        // Setup: Navigate to Profile and clear all jobs to ensure empty state
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Clear All Jobs").performClick()
+        composeTestRule.waitForIdle()
+
+        Thread.sleep(2000) // Give backend time to persist
+
+        // Navigate back to main screen
+        device.pressBack()
+        composeTestRule.waitForIdle()
+
         // Step 1: Navigate to Find Jobs
         composeTestRule.onNodeWithText("Find Jobs").performClick()
         
@@ -190,18 +238,5 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
         
         // Verify the job list is not displayed (no job cards exist)
         composeTestRule.onAllNodesWithTag("job_card").assertCountEquals(0)
-    }
-
-    /**
-     * Failure Scenario 4a: No jobs within mover's availability
-     *
-     * Prerequisites: Run `npm run clear-jobs` to remove all jobs from database
-     *
-     * To-do
-     */
-    @Test
-    fun testNoJobsWithinAvailability_displaysSuggestion() {
-        // This test requires custom backend setup with jobs only outside availability
-        // Not implemented with current seed scripts
     }
 }

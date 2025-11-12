@@ -831,6 +831,7 @@ private fun DurationSliderSection(
     Spacer(modifier = Modifier.height(spacing.small))
 
     Slider(
+        modifier = Modifier.testTag("duration_slider"),
         value = sliderPosition,
         onValueChange = { sliderPosition = it },
         valueRange = 0f..(optionCount - 1).toFloat(),

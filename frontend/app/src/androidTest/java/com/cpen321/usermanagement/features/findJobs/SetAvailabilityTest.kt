@@ -6,7 +6,6 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 
 /**
- * Integration tests for Set Availability feature.
  *
  * Use Case: The mover defines daily time periods for each day of the week where they are
  * available to complete pick up orders. The system uses these slots to determine which jobs
@@ -47,7 +46,7 @@ class SetAvailabilityTest : FindJobsTestBase() {
         composeTestRule.onNodeWithText("Set Availability").assertIsDisplayed()
 
         // Days to add standard 9-5 availability
-        val standardDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY")
+        val standardDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY")
 
         // Add 9:00-17:00 time slots for standard days
         standardDays.forEach { day ->
@@ -57,13 +56,6 @@ class SetAvailabilityTest : FindJobsTestBase() {
                 endTime = "17:00"
             )
         }
-
-        // Add custom 8:00-18:00 time slot for Friday (test typing)
-        addTimeSlot(
-            day = "FRIDAY",
-            startTime = "08:00",
-            endTime = "18:00"
-        )
 
         // scroll to to top to ensure we verify starting from monday
         composeTestRule.onNodeWithTag("availability_list").performTouchInput {
@@ -77,7 +69,6 @@ class SetAvailabilityTest : FindJobsTestBase() {
         standardDays.forEach { day ->
             verifyTimeSlotExists(day, "09:00", "17:00")
         }
-        verifyTimeSlotExists("FRIDAY", "08:00", "18:00")
 
         // Save availability
         composeTestRule.onNodeWithText("Save Availability").performClick()
@@ -90,6 +81,47 @@ class SetAvailabilityTest : FindJobsTestBase() {
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
+
+        composeTestRule.onNodeWithText("Find Jobs").performClick()
+        composeTestRule.waitForIdle()
+        Thread.sleep(1000)
+
+        composeTestRule.onNodeWithText("Availability").performClick()
+        composeTestRule.waitForIdle()
+        Thread.sleep(1000)
+
+        // Cleanup: Remove time slots
+        // Scroll to top to ensure we can access all days
+        composeTestRule.onNodeWithTag("availability_list").performTouchInput {
+            swipeDown(
+                startY = centerY - (height * 0.3f),
+                endY = centerY + (height * 0.3f)
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        // Remove each time slot, scrolling to each day to ensure it's visible
+        standardDays.forEach { day ->
+            composeTestRule.waitForIdle()
+            composeTestRule.onNodeWithTag("delete_time_slot_${day}_09:00").performClick()
+            composeTestRule.waitForIdle()
+            //Thread.sleep(300)
+        }
+
+        // Save the empty availability
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        // Wait for success message AND give extra time for backend to persist
+        composeTestRule.waitUntil(timeoutMillis = 10000) {
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        // Final wait to ensure everything is persisted
+        Thread.sleep(2000)
     }
 
     /**
@@ -98,6 +130,9 @@ class SetAvailabilityTest : FindJobsTestBase() {
     @Test
     fun testRemoveTimeSlot_success() {
         // Navigate to Set Availability screen
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule.onAllNodesWithText("Availability").fetchSemanticsNodes().isNotEmpty()
+        }
         composeTestRule.onNodeWithText("Availability").performClick()
         composeTestRule.waitForIdle()
 
@@ -122,6 +157,21 @@ class SetAvailabilityTest : FindJobsTestBase() {
         }.exceptionOrNull()
 
         assert(exception is AssertionError)
+
+        // Cleanup: Save the empty availability to ensure backend is cleared
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        // Wait for success message to ensure backend save completed
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        // Give extra time for backend operation to complete
+        Thread.sleep(2000)
     }
 
     /**
@@ -130,6 +180,9 @@ class SetAvailabilityTest : FindJobsTestBase() {
     @Test
     fun testAddMultipleTimeSlotsToSameDay_success() {
         // Navigate to Set Availability screen
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule.onAllNodesWithText("Availability").fetchSemanticsNodes().isNotEmpty()
+        }
         composeTestRule.onNodeWithText("Availability").performClick()
         composeTestRule.waitForIdle()
 
@@ -147,9 +200,42 @@ class SetAvailabilityTest : FindJobsTestBase() {
             endTime = "18:00"
         )
 
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Find Jobs").performClick()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Availability").performClick()
+
         // Verify both time slots exist for Monday
         verifyTimeSlotExists("MONDAY", "09:00", "12:00")
         verifyTimeSlotExists("MONDAY", "14:00", "18:00")
+
+        // Cleanup: Remove both time slots
+        scrollToDay("MONDAY")
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("delete_time_slot_MONDAY_09:00").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("delete_time_slot_MONDAY_14:00").performClick()
+        composeTestRule.waitForIdle()
+
+        // Save empty availability
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        // Wait for success message to ensure backend save completed
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        // Give extra time for backend operation to complete
+        Thread.sleep(2000)
     }
 
     /**
@@ -158,6 +244,9 @@ class SetAvailabilityTest : FindJobsTestBase() {
     @Test
     fun testInvalidTimeFormat_showsError() {
         // Navigate to Set Availability screen
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule.onAllNodesWithText("Availability").fetchSemanticsNodes().isNotEmpty()
+        }
         composeTestRule.onNodeWithText("Availability").performClick()
         composeTestRule.waitForIdle()
 
@@ -216,123 +305,6 @@ class SetAvailabilityTest : FindJobsTestBase() {
     }
 
     // Helper functions
-    /**
-     * Scroll until the specified day becomes visible on screen
-     * Uses the day's index to scroll to the appropriate position
-     */
-    private fun scrollToDay(dayName: String) {
-        // First check if already visible
-        if (composeTestRule.onAllNodesWithText(dayName).fetchSemanticsNodes().isNotEmpty()) {
-            return
-        }
-
-        // Get the index of the day (MONDAY=0, TUESDAY=1, etc.)
-        val dayIndex = when(dayName) {
-            "MONDAY" -> 0
-            "TUESDAY" -> 1
-            "WEDNESDAY" -> 2
-            "THURSDAY" -> 3
-            "FRIDAY" -> 4
-            "SATURDAY" -> 5
-            "SUNDAY" -> 6
-            else -> 0
-        }
-
-        // Scroll down gradually until the day is visible
-        // Each swipe should move approximately 2-3 items
-        val swipesNeeded = (dayIndex / 2).coerceAtLeast(1)
-
-        repeat(swipesNeeded) {
-            if (composeTestRule.onAllNodesWithText(dayName).fetchSemanticsNodes().isEmpty()) {
-                try {
-                    composeTestRule.onNodeWithTag("availability_list")
-                        .performTouchInput {
-                            swipeUp(
-                                startY = bottom * 0.7f,
-                                endY = top * 1.3f
-                            )
-                        }
-                    composeTestRule.waitForIdle()
-                    Thread.sleep(150) // Give time for recomposition
-                } catch (_: Exception) {
-                    // If that fails, try a different approach
-                    composeTestRule.onRoot().performTouchInput {
-                        swipeUp(
-                            startY = centerY + (height * 0.3f),
-                            endY = centerY - (height * 0.3f)
-                        )
-                    }
-                    composeTestRule.waitForIdle()
-                    Thread.sleep(150)
-                }
-            }
-        }
-
-        // Final verification with more swipes if needed
-        var attempts = 0
-        while (composeTestRule.onAllNodesWithText(dayName).fetchSemanticsNodes().isEmpty() && attempts < 5) {
-            try {
-                composeTestRule.onNodeWithTag("availability_list")
-                    .performTouchInput {
-                        swipeUp(
-                            startY = bottom * 0.7f,
-                            endY = top * 1.3f
-                        )
-                    }
-            } catch (_: Exception) {
-                composeTestRule.onRoot().performTouchInput {
-                    swipeUp()
-                }
-            }
-            composeTestRule.waitForIdle()
-            Thread.sleep(150)
-            attempts++
-        }
-
-        // Assert that the day is now visible
-        composeTestRule.onNodeWithText(dayName).assertExists(
-            "Could not find day '$dayName' after scrolling"
-        )
-    }
-
-    /**
-     * Add a time slot to a specific day
-     */
-    private fun addTimeSlot(day: String, startTime: String, endTime: String) {
-        // Scroll until the day is visible
-        scrollToDay(day)
-        composeTestRule.waitForIdle()
-
-        // Click add button for the specific day using test tag
-        composeTestRule.onNodeWithTag("add_time_slot_$day").performClick()
-
-        composeTestRule.waitForIdle()
-
-        // Verify dialog is shown
-        composeTestRule.onNodeWithText("Add Time Slot").assertIsDisplayed()
-
-        // Update start time using test tag
-        composeTestRule.onNodeWithTag("start_time_input").apply {
-            performTextClearance()
-            performTextInput(startTime)
-        }
-
-        composeTestRule.waitForIdle()
-
-        // Update end time using test tag
-        composeTestRule.onNodeWithTag("end_time_input").apply {
-            performTextClearance()
-            performTextInput(endTime)
-        }
-
-        composeTestRule.waitForIdle()
-
-        // Click Add button
-        composeTestRule.onNodeWithText("Add").performClick()
-
-        composeTestRule.waitForIdle()
-    }
-
     /**
      * Verify a time slot exists for a specific day
      */

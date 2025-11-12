@@ -7,6 +7,7 @@ import orderRoutes from './order.routes';
 import jobRoutes from './job.routes';
 import paymentRoutes from './payment.routes';
 import routePlannerRoutes from './routePlanner.routes';
+import devRoutes from './dev.routes';
 
 const router = Router();
 
@@ -21,5 +22,8 @@ router.use('/jobs', authenticateToken, jobRoutes);
 router.use('/payment', authenticateToken, paymentRoutes);
 
 router.use('/routePlanner', authenticateToken, routePlannerRoutes);
+
+// Development/testing routes (no auth for easier testing)
+router.use('/dev', devRoutes);
 
 export default router;
