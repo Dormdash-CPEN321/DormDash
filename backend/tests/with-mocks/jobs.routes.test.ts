@@ -167,6 +167,98 @@ describe('POST /api/jobs', () => {
         // Restore original method
         controllerProto.createJob = originalMethod;
     });
+
+    test('should handle validation error with invalid orderId', async () => {
+        // Test the Zod validation for invalid order ID
+        // The jobSchema uses mongoose.isValidObjectId(val) which should fail for invalid format
+        const reqData = {
+            orderId: 'not-a-valid-mongodb-objectid', // Invalid ObjectId - triggers Zod refine validation
+            studentId: new mongoose.Types.ObjectId().toString(),
+            jobType: JobType.STORAGE,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        const response = await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer fake-token`)
+            .send(reqData)
+            .expect(400);
+
+        // Verify the error response contains validation details
+        expect(response.body).toHaveProperty('error', 'Validation error');
+        expect(response.body).toHaveProperty('details');
+        expect(response.body.details[0]).toHaveProperty('field', 'orderId');
+        expect(response.body.details[0]).toHaveProperty('message', 'Invalid order ID');
+        expect(mockJobModel.create).not.toHaveBeenCalled();
+    });
+
+    test('should handle validation error with invalid studentId', async () => {
+        // Test the Zod validation for invalid student ID
+        // The jobSchema uses mongoose.isValidObjectId(val) which should fail for invalid format
+        const reqData = {
+            orderId: new mongoose.Types.ObjectId().toString(),
+            studentId: 'invalid-student-id-format', // Invalid ObjectId - triggers Zod refine validation
+            jobType: JobType.STORAGE,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        const response = await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer fake-token`)
+            .send(reqData)
+            .expect(400);
+
+        // Verify the error response contains validation details
+        expect(response.body).toHaveProperty('error', 'Validation error');
+        expect(response.body).toHaveProperty('details');
+        expect(response.body.details[0]).toHaveProperty('field', 'studentId');
+        expect(response.body.details[0]).toHaveProperty('message', 'Invalid student ID');
+        expect(mockJobModel.create).not.toHaveBeenCalled();
+    });
+
+    test('should trigger catch block and call next(err) when createJob throws after validation', async () => {
+        // This test covers line 52 in job.routes.ts - the .catch((err: unknown) => { next(err); })
+        // Mock the controller to throw an error after validation passes
+        const { JobController } = require('../../src/controllers/job.controller');
+        const controllerProto = JobController.prototype;
+        const originalMethod = controllerProto.createJob;
+
+        // Mock createJob to throw an error, simulating a runtime error after validation
+        controllerProto.createJob = jest.fn().mockImplementation(() => {
+            return Promise.reject(new Error('Async error during job creation'));
+        });
+
+        const reqData = {
+            orderId: new mongoose.Types.ObjectId().toString(),
+            studentId: new mongoose.Types.ObjectId().toString(),
+            jobType: JobType.STORAGE,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date().toISOString()
+        };
+
+        const response = await request(app)
+            .post('/api/jobs')
+            .set('Authorization', `Bearer fake-token`)
+            .send(reqData);
+
+        // Should return 500 error from error handler
+        expect(response.status).toBe(500);
+        expect(controllerProto.createJob).toHaveBeenCalled();
+
+        // Restore original method
+        controllerProto.createJob = originalMethod;
+    });
 });
 
 describe('GET /api/jobs', () => {
