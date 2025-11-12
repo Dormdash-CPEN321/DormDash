@@ -12,10 +12,36 @@ export const notFoundHandler = (req: Request, res: Response) => {
   });
 };
 
-export const errorHandler = (error: Error, req: Request, res: Response) => {
+export const errorHandler = (
+  error: unknown,
+  res: Response,
+) => {
+  // Log the raw error for diagnostics
   logger.error('Error:', error);
 
-  return res.status(500).json({
-    message: 'Internal server error',
+  // Default values
+  const defaultStatus = 500;
+  let status: number = defaultStatus;
+  let message = 'Internal server error';
+  let stack: string | undefined;
+
+  // Narrow unknown to an object and safely read known properties
+  if (typeof error === 'object' && error !== null) {
+    const errObj = error as Record<string, unknown>;
+    if (typeof errObj.statusCode === 'number') {
+      status = errObj.statusCode;
+    }
+    if (typeof errObj.message === 'string') {
+      message = errObj.message;
+    }
+    if (typeof errObj.stack === 'string') {
+      stack = errObj.stack;
+    }
+  }
+
+  res.status(status).json({
+    message,
+    // provide a bit more context in non-production environments
+    ...(process.env.NODE_ENV !== 'production' && { stack }),
   });
 };

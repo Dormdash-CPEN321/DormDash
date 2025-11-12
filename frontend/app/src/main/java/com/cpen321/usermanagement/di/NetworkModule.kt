@@ -2,7 +2,6 @@ package com.cpen321.usermanagement.di
 
 import com.cpen321.usermanagement.data.remote.api.AuthInterface
 import com.cpen321.usermanagement.data.remote.api.DevApiService
-import com.cpen321.usermanagement.data.remote.api.ImageInterface
 import com.cpen321.usermanagement.data.remote.api.JobApiService
 import com.cpen321.usermanagement.data.remote.api.OrderInterface
 import com.cpen321.usermanagement.data.remote.api.PaymentInterface
@@ -30,14 +29,6 @@ object NetworkModule {
     fun provideUserService(): UserInterface {
         return RetrofitClient.userInterface
     }
-
-    @Provides
-    @Singleton
-    fun provideMediaService(): ImageInterface {
-        return RetrofitClient.imageInterface
-    }
-
-   
 
     @Provides
     @Singleton

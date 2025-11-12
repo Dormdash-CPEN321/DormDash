@@ -1,4 +1,4 @@
-import { Router, Request } from 'express';
+import { Router } from 'express';
 import { PaymentController } from '../controllers/payment.controller';
 import { paymentService } from '../services/payment.service';
 import {
@@ -33,11 +33,5 @@ router.post(
     });
   }
 );
-
-router.get('/status/:paymentIntentId', (req: Request<{ paymentIntentId: string }>, res, next) => {
-  paymentController.getPaymentStatus(req, res, next).catch((err: unknown) => {
-    next(err);
-  });
-});
 
 export default router;

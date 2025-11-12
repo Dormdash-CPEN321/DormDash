@@ -1,20 +1,14 @@
 package com.cpen321.usermanagement.data.repository
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import com.cpen321.usermanagement.data.local.preferences.TokenManager
-import com.cpen321.usermanagement.data.remote.api.ImageInterface
 import com.cpen321.usermanagement.data.remote.api.RetrofitClient
 import com.cpen321.usermanagement.data.remote.api.UserInterface
 import com.cpen321.usermanagement.data.remote.dto.UpdateProfileRequest
 import com.cpen321.usermanagement.data.remote.dto.User
 import com.cpen321.usermanagement.utils.JsonUtils.parseErrorMessage
-import com.cpen321.usermanagement.utils.MediaUtils.uriToFile
 import dagger.hilt.android.qualifiers.ApplicationContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,7 +16,6 @@ import javax.inject.Singleton
 class ProfileRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userInterface: UserInterface,
-    private val imageInterface: ImageInterface,
     private val tokenManager: TokenManager
 ) : ProfileRepository {
 
@@ -110,41 +103,6 @@ class ProfileRepositoryImpl @Inject constructor(
             Result.failure(e)
         } catch (e: retrofit2.HttpException) {
             Log.e(TAG, "HTTP error while deleting profile: ${e.code()}", e)
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun uploadProfilePicture(pictureUri: Uri): Result<String> {
-        return try {
-            val file = uriToFile(context, pictureUri)
-            val part = MultipartBody.Part.createFormData(
-                "media", file.name, file.asRequestBody("image/*".toMediaType())
-            )
-            val response = imageInterface.uploadPicture("", part)
-            if (response.isSuccessful && response.body()?.data != null) {
-                Log.e(
-                    TAG,
-                    "Profile picture uploaded successfully: ${response.body()!!.data!!.image}"
-                )
-                Result.success(response.body()!!.data!!.image)
-            } else {
-                val errorBodyString = response.errorBody()?.string()
-                val errorMessage =
-                    parseErrorMessage(errorBodyString, "Failed to upload picture.")
-                Log.e(TAG, "Failed to upload picture: $errorMessage")
-                Result.failure(Exception(errorMessage))
-            }
-        } catch (e: java.net.SocketTimeoutException) {
-            Log.e(TAG, "Network timeout while uploading picture", e)
-            Result.failure(e)
-        } catch (e: java.net.UnknownHostException) {
-            Log.e(TAG, "Network connection failed while uploading picture", e)
-            Result.failure(e)
-        } catch (e: java.io.IOException) {
-            Log.e(TAG, "IO error while uploading picture", e)
-            Result.failure(e)
-        } catch (e: retrofit2.HttpException) {
-            Log.e(TAG, "HTTP error while uploading picture: ${e.code()}", e)
             Result.failure(e)
         }
     }

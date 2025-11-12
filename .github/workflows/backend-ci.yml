@@ -1,0 +1,117 @@
+name: Backend CI - Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+
+    # Add MongoDB as a service container
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env file
+        run: |
+          cat > .env <<EOF
+          PORT=3000
+          MONGODB_URI=${{ secrets.TEST_MONGODB_URI || 'mongodb://localhost:27017/dormdash-test' }}
+          JWT_SECRET=${{ secrets.JWT_SECRET || 'test-jwt-secret-key-for-ci' }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID || 'test-google-client-id' }}
+          STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY || 'sk_test_fake_key' }}
+          STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY || 'pk_test_fake_key' }}
+          EOF
+
+      - name: Create Firebase service account file
+        run: |
+          cat > serviceAccountKey.json <<EOF
+          ${{ secrets.SERVICE_ACCOUNT_KEY }}
+          EOF
+
+      # - name: Run linter (Prettier check)
+      #   run: npm run format
+      #   continue-on-error: true
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Archive test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: backend/coverage/
+          retention-days: 30
+
+  # lint:
+  #   name: Lint Backend Code
+  #   runs-on: ubuntu-latest
+
+  #   defaults:
+  #     run:
+  #       working-directory: backend
+
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20.x'
+  #         cache: 'npm'
+  #         cache-dependency-path: backend/package-lock.json
+
+  #     - name: Install dependencies
+  #       run: npm ci
+
+  #     - name: Run Prettier format check
+  #       run: npm run format

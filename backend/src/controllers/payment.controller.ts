@@ -38,18 +38,4 @@ export class PaymentController {
     }
   }
 
-  async getPaymentStatus(
-    req: Request<{ paymentIntentId: string }>,
-    res: Response<PaymentResult>,
-    next: NextFunction
-  ) {
-    try {
-      const { paymentIntentId } = req.params;
-      const result =
-        await this.paymentService.getPaymentStatus(paymentIntentId);
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
 }

@@ -10,6 +10,7 @@ export enum JobType {
 
 // Job zod Schema
 // ------------------------------------------------------------
+// TODO: check if orderId and studentId exist in DB
 export const jobSchema = z.object({
   orderId: z.string().refine(val => mongoose.isValidObjectId(val), {
     message: 'Invalid order ID',

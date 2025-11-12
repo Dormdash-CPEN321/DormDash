@@ -172,6 +172,15 @@ export class JobModel {
       throw new Error('Failed to accept job');
     }
   }
+
+  async delete(filter: Partial<Job>) {
+    try {
+      return await this.job.deleteMany(filter);
+    } catch (error) {
+      logger.error("Error deleting jobs:", error);
+      throw new Error("Failed to delete jobs");
+    }
+  }
 }
 
 export const jobModel = new JobModel();

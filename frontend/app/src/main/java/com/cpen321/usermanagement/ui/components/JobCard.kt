@@ -3,12 +3,12 @@ package com.cpen321.usermanagement.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.cpen321.usermanagement.data.local.models.Job
 import com.cpen321.usermanagement.utils.TimeUtils
+import androidx.compose.ui.platform.testTag
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,14 +62,10 @@ fun AvailableJobCard(
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("job_card")
+        modifier = modifier.fillMaxWidth().testTag("job_card")
     ) {
         Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
+            modifier = Modifier.padding(16.dp).fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
