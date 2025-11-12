@@ -121,27 +121,6 @@ class NotificationService {
       logger.error('Failed to send job status notification:', String(error));
     }
   }
-
-  // debug notification function to test FCM, call it from controllers or services
-  async sendDebugNotification(studentId: mongoose.Types.ObjectId) {
-    const token = await userModel.getFcmToken(studentId);
-    if (!token) {
-      logger.warn(`No FCM token found for student ${String(studentId)}`);
-      return;
-    } else {
-      // Avoid logging raw FCM tokens (sensitive). Log presence only.
-      logger.info(`Found FCM token for student ${String(studentId)}`);
-    }
-    const notification: NotificationPayload = {
-      fcmToken: token,
-      title: 'Debug Notification',
-      body: 'This is a test notification from NotificationService.',
-      data: {
-        debug: 'true',
-      },
-    };
-    await this.sendNotificationToDevice(notification);
-  }
 }
 
 export const notificationService = new NotificationService();
