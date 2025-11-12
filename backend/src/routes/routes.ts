@@ -2,21 +2,19 @@ import { Router } from 'express';
 
 import { authenticateToken } from '../middleware/auth.middleware';
 import authRoutes from './auth.routes';
-import mediaRoutes from './media.routes';
 import usersRoutes from './user.routes';
 import orderRoutes from './order.routes';
 import jobRoutes from './job.routes';
 import paymentRoutes from './payment.routes';
 import routePlannerRoutes from './routePlanner.routes';
 import loadTestRoutes from './loadTest.routes';
+import devRoutes from './dev.routes';
 
 const router = Router();
 
 router.use('/auth', authRoutes);
 
 router.use('/user', authenticateToken, usersRoutes);
-//TODO: why authenticateToken is called twice both here and in media.routes.ts?
-router.use('/media', authenticateToken, mediaRoutes);
 
 router.use('/order', authenticateToken, orderRoutes);
 
@@ -28,5 +26,8 @@ router.use('/routePlanner', authenticateToken, routePlannerRoutes);
 
 // Load test endpoints (no authentication required - use with caution in production)
 router.use('/load-test', loadTestRoutes);
+
+// Development/testing routes (no auth for easier testing)
+router.use('/dev', devRoutes);
 
 export default router;

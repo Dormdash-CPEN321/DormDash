@@ -73,12 +73,13 @@ private fun DefaultAddressOption(
     onSelect: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag("default-address-radio"),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
             selected = isSelected,
-            onClick = onSelect
+            onClick = onSelect,
+            modifier = Modifier.testTag("default_address_radio_button")
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column {
@@ -98,12 +99,15 @@ private fun DefaultAddressOption(
 @Composable
 private fun CustomAddressOption(isSelected: Boolean, onSelect: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("custom_address_radio"),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
             selected = isSelected,
-            onClick = onSelect
+            onClick = onSelect,
+            modifier = Modifier.testTag("custom_address_radio_button")
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
@@ -131,7 +135,7 @@ private fun CustomAddressInput(
         value = streetAddress,
         onValueChange = onValueChange,
         onAddressSelected = onAddressSelected,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().testTag("return-job-address-field")
     )
 }
 

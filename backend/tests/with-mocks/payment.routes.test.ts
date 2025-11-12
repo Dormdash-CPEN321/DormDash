@@ -189,7 +189,29 @@ describe('POST /api/payment/create-intent - Create Payment Intent (Mocked)', () 
 
     expect(response.body).toHaveProperty('message');
   });
-});
+
+  test('should call next(err) when controller promise rejects', async () => {   
+    const { PaymentController } = require('../../src/controllers/payment.controller');
+    const controllerProto = PaymentController.prototype;
+    const originalMethod = controllerProto.createPaymentIntent;
+
+    controllerProto.createPaymentIntent = jest.fn().mockRejectedValue(new Error('Controller error'));
+    
+    const response = await request(app)
+        .post('/api/payment/create-intent')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          amount: 5000,
+          currency: 'CAD'
+        });
+        
+    expect(response.status).toBe(500);
+    expect(controllerProto.createPaymentIntent).toHaveBeenCalled();
+    
+    // Restore original method
+    controllerProto.createPaymentIntent = originalMethod;
+  });
+}); 
 
 describe('POST /api/payment/process - Process Payment (Mocked)', () => {
   test('should handle insufficient funds error', async () => {
@@ -377,6 +399,27 @@ describe('POST /api/payment/process - Process Payment (Mocked)', () => {
 
     expect(response.body).toHaveProperty('status', PaymentStatus.FAILED);
     expect(response.body.failureReason).toContain('fraud');
+  });
+  
+  test('should call next(err) when controller promise rejects', async () => {
+    const { PaymentController } = require('../../src/controllers/payment.controller');
+    const controllerProto = PaymentController.prototype;
+    const originalMethod = controllerProto.processPayment;
+
+    controllerProto.processPayment = jest.fn().mockRejectedValue(new Error('Controller error'));
+
+    const response = await request(app)
+        .post('/api/payment/process')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          paymentIntentId: 'pi_mock_any',
+          paymentMethodId: 'pm_card_visa'
+        });
+        
+    expect(response.status).toBe(500);
+    expect(controllerProto.processPayment).toHaveBeenCalled();
+    // Restore original method
+    controllerProto.processPayment = originalMethod;
   });
 });
 

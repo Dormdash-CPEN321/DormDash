@@ -10,12 +10,23 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Test suite for the Sign-In functionality.
+ * 
+ * Tests the student sign-in flow using a dedicated test Google account
+ * configured in test.properties. These tests use UI Automator to interact
+ * with the Google Sign-In system UI outside of the app.
+ */
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class SignInTest : AuthTestBase() {
 
-    override val startSignedOut: Boolean = true
-
+    /**
+     * Verifies that the authentication screen displays both sign-in and sign-up buttons.
+     * 
+     * This test ensures the initial auth screen is properly rendered with both
+     * authentication options visible to the user.
+     */
     @Test
     fun authScreen_showsBothButtons() {
         composeTestRule.waitForIdle()
@@ -27,44 +38,26 @@ class SignInTest : AuthTestBase() {
             .assertExists("Sign up button should exist")
     }
 
+    /**
+     * Tests the complete sign-in flow for an existing user.
+     * 
+     * Test Steps:
+     * 1. Calls signIn() helper which:
+     *    - Clicks "Sign in with Google" button
+     *    - Waits for Google account picker
+     *    - Selects the test account from test.properties
+     *    - Handles any consent screens if present
+     * 2. Verifies successful sign-in by checking for the DormDash title
+     * 
+     * Expected Result: User is signed in and main screen is displayed
+     */
     @Test
-    fun test_SignIn(){
-        // Click the sign-in button
-        composeTestRule.onNodeWithText("Sign in with Google", useUnmergedTree = true)
-            .performClick()
+    fun test_SignIn() {
+        // Use the signIn() function which looks for the test account
+        signIn()
 
-        // Wait for Google account picker dialog to appear (timeout: 10 seconds)
-        val accountPickerAppeared = device.wait(
-            Until.hasObject(By.pkg("com.google.android.gms")),
-            10_000
-        )
-
-        if (accountPickerAppeared) {
-            // Wait briefly for account items to become clickable
-            device.wait(Until.hasObject(By.clickable(true)), 3_000)
-
-            // Choose the first clickable object (account entry). You may need to refine selector per device.
-            val firstClickable = device.findObject(By.clickable(true))
-            firstClickable?.click()
-        }
-
-        composeTestRule.waitForIdle()
-
-        // Check if "Complete Your Profile" popup appears and skip it if present
-        val completeProfileNodes = composeTestRule
-            .onAllNodesWithText("Complete Your Profile", useUnmergedTree = true)
-            .fetchSemanticsNodes()
-
-        if (completeProfileNodes.isNotEmpty()) {
-            // Try to find and click "Skip" or "Later" button
-            composeTestRule
-                .onNodeWithText("Skip", useUnmergedTree = true)
-                .performClick()
-        }
-
-        composeTestRule.waitForIdle()
-
-        // title is rendered as two Text nodes (app name + role). Assert both parts separately:
-        composeTestRule.onNodeWithText("DormDash", useUnmergedTree = true).assertExists("Title Should Exist")
+        // Verify we're signed in by checking for the title
+        composeTestRule.onNodeWithText("DormDash", useUnmergedTree = true)
+            .assertExists("Title should exist after sign in")
     }
 }

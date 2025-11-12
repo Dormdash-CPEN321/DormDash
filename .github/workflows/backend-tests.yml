@@ -6,13 +6,13 @@ on:
       - main
     paths:
       - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
+      - '.github/workflows/backend-tests.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
+      - '.github/workflows/backend-tests.yml'
 
 jobs:
   test:

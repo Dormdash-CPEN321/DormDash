@@ -155,15 +155,12 @@ fun ManageProfileScreen(
         onBackClick = onBackClick,
         onNameChange = { formState = formState.copy(name = it) },
         onBioChange = { formState = formState.copy(bio = it) },
-        onEditPictureClick = { showImagePickerDialog = true },
+        onEditPictureClick = { /* Profile picture upload removed */ },
         onSaveClick = {
             profileViewModel.updateProfile(formState.name, formState.bio, formState.profilePicture ?: "")
         },
         onImagePickerDismiss = { showImagePickerDialog = false },
-        onImageSelected = { uri ->
-            showImagePickerDialog = false
-            profileViewModel.uploadProfilePicture(uri)
-        },
+        onImageSelected = { _ -> /* Profile picture upload removed */ },
         onLoadingPhotoChange = profileViewModel::setLoadingPhoto,
         onSuccessMessageShown = profileViewModel::clearSuccessMessage,
         onErrorMessageShown = profileViewModel::clearError

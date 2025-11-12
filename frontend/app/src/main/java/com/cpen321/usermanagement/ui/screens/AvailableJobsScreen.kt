@@ -195,15 +195,20 @@ private fun AvailableJobsList(
     val jobsToShow = remember(jobUiState.availableJobs, showOnlyAvailable, moverAvailabilityUiState.availability) {
         if (showOnlyAvailable) {
             jobUiState.availableJobs.filter { job ->
-                val dt = job.scheduledTime           // LocalDateTime
-                val day = dt.dayOfWeek
-                val t   = dt.toLocalTime()
+                // job.scheduledTime is UTC LocalDateTime - need to convert to Pacific for comparison
+                val utcDateTime = job.scheduledTime
+                val pacificDateTime = utcDateTime.atZone(java.time.ZoneId.of("UTC"))
+                    .withZoneSameInstant(java.time.ZoneId.of("America/Los_Angeles"))
+                    .toLocalDateTime()
+                
+                val day = pacificDateTime.dayOfWeek
+                val time = pacificDateTime.toLocalTime()
 
                 val slots: List<Pair<LocalTime, LocalTime>> = moverAvailabilityUiState.availability[day].orEmpty()
 
                 slots.any { slot: Pair<LocalTime, LocalTime> ->
                     val (start: LocalTime, end: LocalTime) = slot
-                    TimeUtils.isTimeInRange(t, start, end)
+                    TimeUtils.isTimeInRange(time, start, end)
                 }
             }
         } else {

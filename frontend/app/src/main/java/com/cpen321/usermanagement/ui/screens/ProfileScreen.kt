@@ -33,11 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.cpen321.usermanagement.R
 import com.cpen321.usermanagement.data.remote.dto.User
 import com.cpen321.usermanagement.ui.components.MessageSnackbar
 import com.cpen321.usermanagement.ui.components.MessageSnackbarState
 import com.cpen321.usermanagement.ui.viewmodels.AuthViewModel
+import com.cpen321.usermanagement.ui.viewmodels.DevViewModel
 import com.cpen321.usermanagement.ui.viewmodels.ProfileUiState
 import com.cpen321.usermanagement.ui.viewmodels.ProfileViewModel
 import com.cpen321.usermanagement.ui.theme.LocalSpacing
@@ -309,6 +311,13 @@ private fun ProfileMenuItems(
     val spacing = LocalSpacing.current
     val scrollState = rememberScrollState()
     val userRole = user?.userRole
+    val devViewModel: DevViewModel = hiltViewModel()
+    val devUiState by devViewModel.uiState.collectAsState()
+
+    // Show snackbar for dev operations
+    LaunchedEffect(devUiState.message, devUiState.error) {
+        // Messages will be displayed in the dev section itself
+    }
 
     Column(
         modifier = modifier
@@ -336,6 +345,13 @@ private fun ProfileMenuItems(
             isInteractive = isInteractive,
             onSignOutClick =  actions.onSignOutClick,
             onDeleteAccountClick = actions.onDeleteAccountClick
+        )
+
+        // Development tools section
+        DevToolsSection(
+            devViewModel = devViewModel,
+            devUiState = devUiState,
+            isInteractive = isInteractive
         )
     }
 }
@@ -518,6 +534,108 @@ private fun DeleteDialogDismissButton(
     ) {
         Text(stringResource(R.string.cancel))
     }
+}
+
+@Composable
+private fun DevToolsSection(
+    devViewModel: DevViewModel,
+    devUiState: com.cpen321.usermanagement.ui.viewmodels.DevUiState,
+    isInteractive: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(LocalSpacing.current.medium)
+    ) {
+        // Section title
+        Text(
+            text = "🛠️ Development Tools",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        // Status messages
+        DevToolsStatusMessages(devUiState)
+
+        // Action buttons
+        DevToolsActionButtons(
+            devViewModel = devViewModel,
+            isEnabled = isInteractive && !devUiState.isLoading
+        )
+
+        // Loading indicator
+        if (devUiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+    }
+}
+
+@Composable
+private fun DevToolsStatusMessages(devUiState: com.cpen321.usermanagement.ui.viewmodels.DevUiState) {
+    if (devUiState.message != null) {
+        androidx.compose.material3.Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        ) {
+            Text(
+                text = devUiState.message,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(LocalSpacing.current.medium),
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+
+    if (devUiState.error != null) {
+        androidx.compose.material3.Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            )
+        ) {
+            Text(
+                text = "❌ ${devUiState.error}",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(LocalSpacing.current.medium),
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun DevToolsActionButtons(
+    devViewModel: DevViewModel,
+    isEnabled: Boolean
+) {
+    MenuButtonItem(
+        text = "Seed Test Jobs (10)",
+        iconRes = R.drawable.ic_check,
+        onClick = { devViewModel.seedTestJobs() },
+        enabled = isEnabled,
+    )
+
+    MenuButtonItem(
+        text = "Seed Availability Jobs (2)",
+        iconRes = R.drawable.ic_check,
+        onClick = { devViewModel.seedAvailabilityTestJobs() },
+        enabled = isEnabled,
+    )
+
+    MenuButtonItem(
+        text = "Clear All Jobs",
+        iconRes = R.drawable.ic_delete_forever,
+        onClick = { devViewModel.clearJobs() },
+        enabled = isEnabled,
+    )
 }
 
 @Composable

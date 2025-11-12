@@ -1,18 +1,9 @@
 package com.cpen321.usermanagement.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,25 +11,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cpen321.usermanagement.data.local.models.*
-import com.cpen321.usermanagement.business.DynamicPriceCalculator
 import com.cpen321.usermanagement.ui.viewmodels.OrderViewModel
 import com.cpen321.usermanagement.data.repository.PaymentRepository
-import com.cpen321.usermanagement.ui.components.shared.DatePickerDialog
 import com.cpen321.usermanagement.utils.LocationUtils
-import com.cpen321.usermanagement.utils.TimeUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
-import java.text.SimpleDateFormat
-import java.util.*
 import android.content.Context
-import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,10 +36,9 @@ fun CreateOrderBottomSheet(
     modifier: Modifier = Modifier
 ) {
     val state = rememberOrderCreationState()
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
-    Column(modifier = modifier.padding(24.dp)) {
+    Column(modifier = modifier.verticalScroll(rememberScrollState()).imePadding().padding(24.dp)) {
         OrderCreationHeader(
             currentStep = state.currentStep,
             onDismiss = onDismiss,

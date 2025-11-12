@@ -46,7 +46,7 @@ jobs:
             # Give .env permissions
             chmod 600 .env
 
-            # Build and run container
-            docker-compose down
-            docker-compose --env-file .env build
-            docker-compose --env-file .env up -d
+#             # Build and run container
+#             docker-compose down
+#             docker-compose --env-file .env build
+#             docker-compose --env-file .env up -d
