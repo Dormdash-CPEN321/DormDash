@@ -209,6 +209,7 @@ class ViewRecommendedRouteTest : FindJobsTestBase() {
 
         // Verify we're on the Set Availability screen
         composeTestRule.onNodeWithText("Set Availability").assertIsDisplayed()
+        composeTestRule.waitForIdle()
 
         // Days to add unlimited availability
         val allDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
@@ -254,12 +255,14 @@ class ViewRecommendedRouteTest : FindJobsTestBase() {
         waitForRouteCalculation()
 
         // Step 7: Click "Accept all jobs" button
-        composeTestRule.onNodeWithText("Accept all jobs", ignoreCase = true)
+        composeTestRule.onNodeWithTag("accept_all_jobs_button")
             .assertIsDisplayed()
             .performClick()
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+        device.pressBack()
         composeTestRule.waitForIdle()
 
         // Navigate to Find Jobs - need to click retry if error appears
