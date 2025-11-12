@@ -97,6 +97,31 @@ afterAll(async () => {
 });
 
 describe('GET /api/user/profile - Get User Profile (Mocked)', () => {
+  test('should return 401 when req.user is undefined (line 10)', async () => {
+    // Mock the UserController's getProfile to simulate req.user being undefined
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.getProfile;
+    
+    // Create a spy that calls the original but with req.user = undefined
+    controllerProto.getProfile = jest.fn().mockImplementation((req: any, res: any) => {
+      req.user = undefined; // Simulate missing user
+      return originalMethod.call(controllerProto, req, res);
+    });
+
+    try {
+      const response = await request(app)
+        .get('/api/user/profile')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('User not authenticated');
+      expect(controllerProto.getProfile).toHaveBeenCalled();
+    } finally {
+      controllerProto.getProfile = originalMethod;
+    }
+  });
+
   test('should return user profile for authenticated student', async () => {
     const response = await request(app)
       .get('/api/user/profile')
@@ -165,6 +190,32 @@ describe('GET /api/user/profile - Get User Profile (Mocked)', () => {
 });
 
 describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
+  test('should return 401 when req.user is undefined (line 30)', async () => {
+    // Mock the UserController's updateProfile to simulate req.user being undefined
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.updateProfile;
+    
+    // Create a spy that calls the original but with req.user = undefined
+    controllerProto.updateProfile = jest.fn().mockImplementation(async (req: any, res: any, next: any) => {
+      req.user = undefined; // Simulate missing user
+      return originalMethod.call(controllerProto, req, res, next);
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/user/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Should Fail' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('User not authenticated');
+      expect(controllerProto.updateProfile).toHaveBeenCalled();
+    } finally {
+      controllerProto.updateProfile = originalMethod;
+    }
+  });
+
   test('should successfully update user name', async () => {
     const updateData = {
       name: 'Updated Mock User'
@@ -524,6 +575,31 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
 });
 
 describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
+  test('should return 401 when req.user is undefined (line 92)', async () => {
+    // Mock the UserController's cashOut to simulate req.user being undefined
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.cashOut;
+    
+    // Create a spy that calls the original but with req.user = undefined
+    controllerProto.cashOut = jest.fn().mockImplementation(async (req: any, res: any, next: any) => {
+      req.user = undefined; // Simulate missing user
+      return originalMethod.call(controllerProto, req, res, next);
+    });
+
+    try {
+      const response = await request(app)
+        .post('/api/user/cash-out')
+        .set('Authorization', `Bearer ${moverAuthToken}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('User not authenticated');
+      expect(controllerProto.cashOut).toHaveBeenCalled();
+    } finally {
+      controllerProto.cashOut = originalMethod;
+    }
+  });
+
   test('should successfully cash out credits for mover', async () => {
     // First, ensure mover has credits
     await (userModel as any).user.updateOne(
@@ -691,6 +767,31 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
 });
 
 describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
+  test('should return 401 when req.user is undefined (line 65)', async () => {
+    // Mock the UserController's deleteProfile to simulate req.user being undefined
+    const { UserController } = require('../../src/controllers/user.controller');
+    const controllerProto = UserController.prototype;
+    const originalMethod = controllerProto.deleteProfile;
+    
+    // Create a spy that calls the original but with req.user = undefined
+    controllerProto.deleteProfile = jest.fn().mockImplementation(async (req: any, res: any, next: any) => {
+      req.user = undefined; // Simulate missing user
+      return originalMethod.call(controllerProto, req, res, next);
+    });
+
+    try {
+      const response = await request(app)
+        .delete('/api/user/profile')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('User not authenticated');
+      expect(controllerProto.deleteProfile).toHaveBeenCalled();
+    } finally {
+      controllerProto.deleteProfile = originalMethod;
+    }
+  });
+
   test('should successfully delete user profile', async () => {
     // Create a temporary user for deletion
     const tempUserId = new mongoose.Types.ObjectId();
