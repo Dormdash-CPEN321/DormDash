@@ -13,10 +13,8 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class StudentUIResponseTimeTest : UIResponsivnessTestBase() {
 
-    private val timeout = 100L // 0.1 seconds time out for elements to appear
-
     @Test
-    fun clickCreateNewOrderButton_opensBottomSheetWithEnterAddress() {
+    fun createNewOrderButtonTest() {
         composeTestRule.waitForIdle()
         Thread.sleep(3000)
 
@@ -34,7 +32,7 @@ class StudentUIResponseTimeTest : UIResponsivnessTestBase() {
     }
 
     @Test
-    fun clickProfileButton_opensProfileScreen() {
+    fun profileScreenTest() {
         composeTestRule.waitForIdle()
         Thread.sleep(3000)
 
@@ -54,7 +52,6 @@ class StudentUIResponseTimeTest : UIResponsivnessTestBase() {
                 .isNotEmpty()
         }
 
-        // Click on "Manage Profile" button
         composeTestRule
             .onNodeWithText("Manage Profile", useUnmergedTree = true)
             .performClick()

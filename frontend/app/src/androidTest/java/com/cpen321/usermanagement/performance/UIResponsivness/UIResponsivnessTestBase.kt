@@ -27,6 +27,7 @@ abstract class UIResponsivnessTestBase {
     protected lateinit var device: UiDevice
     protected val appPackage = "com.cpen321.usermanagement"
     private val launchTimeout = 5000L
+    protected val timeout = 100L // 0.1 seconds time out for elements to appear
 
     companion object {
         @Volatile

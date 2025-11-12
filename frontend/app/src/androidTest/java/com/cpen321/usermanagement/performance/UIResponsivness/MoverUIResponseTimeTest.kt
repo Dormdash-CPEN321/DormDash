@@ -13,8 +13,6 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class MoverUIResponseTimeTest : UIResponsivnessTestBase() {
 
-    private val timeout = 100L // 0.1 seconds time out for elements to appear
-
     @Test
     fun availableJobsScreenTest() {
         composeTestRule.waitForIdle()
