@@ -39,10 +39,15 @@ class DevViewModel @Inject constructor(
                         //error = "Failed to seed jobs: ${response.code()}"
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 _uiState.value = DevUiState(
                     isLoading = false,
-                    error = "Error: ${e.message}"
+                    error = "Network error: ${e.message}"
+                )
+            } catch (e: retrofit2.HttpException) {
+                _uiState.value = DevUiState(
+                    isLoading = false,
+                    error = "HTTP error: ${e.code()} - ${e.message()}"
                 )
             }
         }
@@ -64,10 +69,15 @@ class DevViewModel @Inject constructor(
                         //error = "Failed to seed availability jobs: ${response.code()}"
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 _uiState.value = DevUiState(
                     isLoading = false,
-                    error = "Error: ${e.message}"
+                    error = "Network error: ${e.message}"
+                )
+            } catch (e: retrofit2.HttpException) {
+                _uiState.value = DevUiState(
+                    isLoading = false,
+                    error = "HTTP error: ${e.code()} - ${e.message()}"
                 )
             }
         }
@@ -89,10 +99,15 @@ class DevViewModel @Inject constructor(
                         //error = "Failed to clear jobs: ${response.code()}"
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: java.io.IOException) {
                 _uiState.value = DevUiState(
                     isLoading = false,
-                    error = "Error: ${e.message}"
+                    error = "Network error: ${e.message}"
+                )
+            } catch (e: retrofit2.HttpException) {
+                _uiState.value = DevUiState(
+                    isLoading = false,
+                    error = "HTTP error: ${e.code()} - ${e.message()}"
                 )
             }
         }
