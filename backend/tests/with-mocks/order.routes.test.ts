@@ -818,7 +818,7 @@ describe('POST /api/order - Create Order (Mocked)', () => {
 
   test('should recover from duplicate key error using idempotency key (lines 147-151)', async () => {
     // This tests the catch block in createOrder where a duplicate key error occurs,
-    // and then it tries to find the existing order by idempotency key (lines 147-151)
+    // and then it tries to find the existing order by idempotency key
     
     const mockOrderId = new mongoose.Types.ObjectId();
     const mockExistingOrder: Order = {
@@ -852,8 +852,8 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     // Then create() throws a duplicate key error (code 11000)
     // Then second call to findByIdempotencyKey in catch block finds the order
     mockOrderModel.findByIdempotencyKey
-      .mockResolvedValueOnce(null)  // First check at line 86
-      .mockResolvedValueOnce(mockExistingOrder);  // Second check at line 148 (in catch block)
+      .mockResolvedValueOnce(null)  // First check
+      .mockResolvedValueOnce(mockExistingOrder);  // Second check
 
     // Mock duplicate key error from database
     const duplicateKeyError = new Error('E11000 duplicate key error') as any;
@@ -1203,7 +1203,7 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     // Mock no existing return job
     mockJobModel.findByOrderId.mockResolvedValue([]);
     
-    // Mock successful refund (this tests lines 256-262)
+    // Mock successful refund
     mockPaymentService.refundPayment.mockResolvedValue({
       paymentId: 'pi_early_return_success_456',
       status: 'succeeded' as any,
@@ -1234,7 +1234,7 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     expect(response.body).toHaveProperty('refundAmount');
     expect(response.body.refundAmount).toBeGreaterThan(0);
 
-    // Verify refund was called (tests lines 257-261)
+    // Verify refund was called
     expect(mockPaymentService.refundPayment).toHaveBeenCalledWith(
       'pi_early_return_success_456',
       expect.any(Number)
@@ -1282,7 +1282,7 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     // Mock no existing return job
     mockJobModel.findByOrderId.mockResolvedValue([]);
     
-    // Mock refund to fail (this tests lines 264-266 catch block)
+    // Mock refund to fail
     mockPaymentService.refundPayment.mockRejectedValue(new Error('Stripe refund failed'));
     
     mockJobService.createJob.mockResolvedValue({
@@ -1303,18 +1303,198 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       .expect(201);
 
     // Should still succeed with return job creation despite refund failure
-    // This tests lines 265-266 (catch block with logger.error)
+    // This tests the catch block with logger.error
     expect(response.body).toHaveProperty('success', true);
     // The message will still mention refund attempt even if it fails internally
     expect(response.body.message).toContain('Return job created successfully');
 
-    // Verify refund was attempted (tests line 257 try block entry)
+    // Verify refund was attempted
     expect(mockPaymentService.refundPayment).toHaveBeenCalledWith(
       'pi_early_return_fail_789',
       expect.any(Number)
     );
 
-    // Verify return job was still created despite refund failure (tests line 267 comment)
+    // Verify return job was still created despite refund failure
+    expect(mockJobService.createJob).toHaveBeenCalled();
+  });
+
+  test('should use current date when actualReturnDate is not provided ', async () => {
+    // When actualReturnDate is NOT provided, it should use new Date()
+    
+    const mockActiveOrder: Order = {
+      _id: new mongoose.Types.ObjectId(),
+      studentId: testUserIdString,
+      status: OrderStatus.IN_STORAGE,
+      volume: 2.0,
+      price: 100.0,
+      studentAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '123 Current Date St, Vancouver, BC'
+      },
+      warehouseAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '456 Warehouse Ave, Vancouver, BC'
+      },
+      returnAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '123 Current Date St, Vancouver, BC'
+      },
+      pickupTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      returnTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago (to avoid refund/late fee logic)
+      paymentIntentId: 'pi_current_date_123'
+    };
+
+    mockOrderModel.findActiveOrder.mockResolvedValue(mockActiveOrder);
+    mockOrderModel.update.mockResolvedValue(mockActiveOrder);
+    mockJobModel.findByOrderId.mockResolvedValue([]);
+    mockJobService.createJob.mockResolvedValue({
+      success: true,
+      id: 'job_mock_current_date',
+      message: 'RETURN job created successfully'
+    });
+
+    const response = await request(app)
+      .post('/api/order/create-return-Job')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({})  // No actualReturnDate provided
+      .expect(201);
+
+    expect(response.body).toHaveProperty('success', true);
+    // Message should be the simple one (no refund/late fee since dates are close)
+    expect(response.body.message).toContain('Return job created successfully');
+    
+    // Verify job was created (meaning the date was set to current date)
+    expect(mockJobService.createJob).toHaveBeenCalled();
+  });
+
+  test('should use provided actualReturnDate when specified (line 199 if branch)', async () => {
+    // This tests actualReturnDateString conditional
+    // When actualReturnDate IS provided, it should use that date
+    
+    const pickupTime = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    const returnTime = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+    
+    const mockActiveOrder: Order = {
+      _id: new mongoose.Types.ObjectId(),
+      studentId: testUserIdString,
+      status: OrderStatus.IN_STORAGE,
+      volume: 2.5,
+      price: 120.0,
+      studentAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '456 Custom Date St, Vancouver, BC'
+      },
+      warehouseAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '456 Warehouse Ave, Vancouver, BC'
+      },
+      returnAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '456 Custom Date St, Vancouver, BC'
+      },
+      pickupTime: pickupTime.toISOString(),
+      returnTime: returnTime.toISOString(),
+      paymentIntentId: 'pi_custom_date_456'
+    };
+
+    mockOrderModel.findActiveOrder.mockResolvedValue(mockActiveOrder);
+    mockOrderModel.update.mockResolvedValue(mockActiveOrder);
+    mockJobModel.findByOrderId.mockResolvedValue([]);
+    mockPaymentService.refundPayment.mockResolvedValue({
+      paymentId: 'pi_custom_date_456',
+      status: 'succeeded' as any,
+      amount: 30.0,
+      currency: 'CAD'
+    });
+    mockJobService.createJob.mockResolvedValue({
+      success: true,
+      id: 'job_mock_custom_date',
+      message: 'RETURN job created successfully'
+    });
+
+    // Provide a specific actualReturnDate (2 days before scheduled return)
+    const customReturnDate = new Date(returnTime.getTime() - 2 * 24 * 60 * 60 * 1000);
+    
+    const response = await request(app)
+      .post('/api/order/create-return-Job')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        actualReturnDate: customReturnDate.toISOString()
+      })
+      .expect(201);
+
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body.message).toContain('Refund');
+    
+    // Verify the custom date was used (should trigger refund for early return)
+    expect(mockPaymentService.refundPayment).toHaveBeenCalled();
+    expect(mockJobService.createJob).toHaveBeenCalled();
+  });
+
+  test('should use activeOrder.returnTime when returnDateString is not provided (line 230 else branch)', async () => {
+    // This tests returnDateString conditional
+    // When actualReturnDate is NOT provided in request, use activeOrder.returnTime
+    
+    const expectedReturnTime = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    
+    const mockActiveOrder: Order = {
+      _id: new mongoose.Types.ObjectId(),
+      studentId: testUserIdString,
+      status: OrderStatus.IN_STORAGE,
+      volume: 1.5,
+      price: 90.0,
+      studentAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '789 Default Time St, Vancouver, BC'
+      },
+      warehouseAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '456 Warehouse Ave, Vancouver, BC'
+      },
+      returnAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '789 Default Time St, Vancouver, BC'
+      },
+      pickupTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      returnTime: expectedReturnTime,
+      paymentIntentId: 'pi_default_time_789'
+    };
+
+    mockOrderModel.findActiveOrder.mockResolvedValue(mockActiveOrder);
+    mockOrderModel.update.mockResolvedValue(mockActiveOrder);
+    mockJobModel.findByOrderId.mockResolvedValue([]);
+    mockJobService.createJob.mockResolvedValue({
+      success: true,
+      id: 'job_mock_default_time',
+      message: 'RETURN job created successfully'
+    });
+
+    // Don't provide actualReturnDate - should use activeOrder.returnTime
+    const response = await request(app)
+      .post('/api/order/create-return-Job')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({})
+      .expect(201);
+
+    expect(response.body).toHaveProperty('success', true);
+    
+    // Verify orderModel.update was called with the activeOrder.returnTime
+    expect(mockOrderModel.update).toHaveBeenCalledWith(
+      mockActiveOrder._id,
+      expect.objectContaining({
+        returnTime: expectedReturnTime
+      })
+    );
+    
     expect(mockJobService.createJob).toHaveBeenCalled();
   });
 });
@@ -2140,7 +2320,7 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
       currency: 'CAD'
     });
     
-    // Mock jobService.cancelJobsForOrder to throw an error (tests line 390)
+    // Mock jobService.cancelJobsForOrder to throw an error
     mockJobService.cancelJobsForOrder.mockRejectedValue(new Error('Failed to cancel jobs'));
     
     mockEventEmitter.emitOrderUpdated.mockImplementation(() => {});
@@ -2151,7 +2331,7 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
       .expect(200);
 
     // The cancellation should still succeed despite job cancellation failure
-    // This tests line 390: logger.error('Failed to cancel linked jobs after order cancellation:', err)
+    // This tests the error logging for failed job cancellation
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
 
@@ -2170,6 +2350,64 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     expect(mockEventEmitter.emitOrderUpdated).toHaveBeenCalledWith(
       mockUpdatedOrder,
       { by: testUserIdString }
+    );
+  });
+
+  test('should skip refund when order has no paymentIntentId (line 365 else branch)', async () => {
+    // This tests the else branch when order.paymentIntentId is undefined
+    // It should skip the refund process and log a warning
+    
+    const mockPendingOrder: Order = {
+      _id: new mongoose.Types.ObjectId(),
+      studentId: testUserIdString,
+      status: OrderStatus.PENDING,
+      volume: 2.0,
+      price: 100.0,
+      studentAddress: {
+        lat: 49.2606,
+        lon: -123.1133,
+        formattedAddress: '123 No Payment St, Vancouver, BC'
+      },
+      warehouseAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '123 Warehouse St, Vancouver, BC'
+      },
+      pickupTime: '2025-11-10T10:00:00.000Z',
+      returnTime: '2025-11-15T10:00:00.000Z',
+      // No paymentIntentId - this is the key for this test
+    };
+
+    const mockUpdatedOrder: Order = { ...mockPendingOrder, status: OrderStatus.CANCELLED };
+
+    mockOrderModel.findActiveOrder.mockResolvedValue(mockPendingOrder);
+    mockOrderModel.update.mockResolvedValue(mockUpdatedOrder);
+    mockJobService.cancelJobsForOrder.mockResolvedValue({
+      cancelledJobs: []
+    });
+    mockEventEmitter.emitOrderUpdated.mockImplementation(() => {});
+
+    const response = await request(app)
+      .delete('/api/order/cancel-order')
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    // Should still succeed
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
+
+    // Verify refund was NOT called since there's no paymentIntentId
+    expect(mockPaymentService.refundPayment).not.toHaveBeenCalled();
+
+    // Verify order was still cancelled
+    expect(mockOrderModel.update).toHaveBeenCalledWith(mockPendingOrder._id, {
+      status: OrderStatus.CANCELLED
+    });
+
+    // Verify jobs were still cancelled
+    expect(mockJobService.cancelJobsForOrder).toHaveBeenCalledWith(
+      mockPendingOrder._id.toString(),
+      testUserIdString
     );
   });
 

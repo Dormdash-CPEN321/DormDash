@@ -225,7 +225,7 @@ describe('POST /api/jobs', () => {
     });
 
     test('should trigger catch block and call next(err) when createJob throws after validation', async () => {
-        // This test covers line 52 in job.routes.ts - the .catch((err: unknown) => { next(err); })
+        // This test covers the error handling in the catch block
         // Mock the controller to throw an error after validation passes
         const { JobController } = require('../../src/controllers/job.controller');
         const controllerProto = JobController.prototype;

@@ -597,7 +597,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
 
         // Verify the spy was called
         expect(findOneSpy).toHaveBeenCalled();
-        // Should return 500 because findById throws an error (line 161)
+        // Should return 500 because findById throws an error
         expect(response.status).toBe(500);
       } finally {
         findOneSpy.mockRestore();
@@ -634,7 +634,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
         });
 
         try {
-          // This will hit the error handling in findByGoogleId (line 177)
+          // This will hit the error handling in findByGoogleId
           await userModel.findByGoogleId('test-google-id');
         } finally {
           findOneSpy.mockRestore();
@@ -671,7 +671,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
         });
 
         try {
-          // This will hit the error handling in findByGoogleId (line 177)
+          // This will hit the error handling in findByGoogleId
           await userModel.findByGoogleId('test-google-id');
         } finally {
           findOneSpy.mockRestore();
@@ -695,7 +695,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
-    test('should return null when user not found by googleId (line 171)', async () => {
+    test('should return null when user not found by googleId', async () => {
       // Mock the auth service to test findByGoogleId returning null
       const authService = require('../../src/services/auth.service').authService;
       const originalSignIn = authService.signInWithGoogle;
@@ -732,7 +732,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       const originalSignIn = authService.signInWithGoogle;
       
       authService.signInWithGoogle = jest.fn().mockImplementation(async () => {
-        // Call findByGoogleId with existing googleId - should return user (line 173)
+        // Call findByGoogleId with existing googleId - should return user
         const result = await userModel.findByGoogleId(`test-google-id-auth-mock-${testUserId.toString()}`);
         if (!result) {
           throw new Error('User not found');
@@ -760,7 +760,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
     });
   });
 
-  describe('getFcmToken - error handling (lines 186-191)', () => {
+  describe('getFcmToken - error handling', () => {
     test('should handle database error in getFcmToken', async () => {
       // Mock select-role to trigger a path that could use getFcmToken
       // We'll mock userModel.update to call getFcmToken and throw error
@@ -774,7 +774,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
         });
 
         try {
-          // This will hit the error handling in getFcmToken (line 191)
+          // This will hit the error handling in getFcmToken
           await userModel.getFcmToken(userId);
         } finally {
           findByIdSpy.mockRestore();
@@ -793,14 +793,14 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
-    test('should return null when user not found in getFcmToken (line 185)', async () => {
+    test('should return null when user not found in getFcmToken', async () => {
       const nonExistentId = new mongoose.Types.ObjectId();
       const result = await userModel.getFcmToken(nonExistentId);
       expect(result).toBeNull();
     });
 
     test('should return FCM token when user exists', async () => {
-      // This tests the success path and the null coalescing (line 187)
+      // This tests the success path and the null coalescing
       const result = await userModel.getFcmToken(testUserId);
       // Result can be null or a string, both are valid
       expect(result === null || typeof result === 'string').toBe(true);
@@ -814,7 +814,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
     });
   });
 
-  describe('clearInvalidFcmToken - error handling (lines 204-209)', () => {
+  describe('clearInvalidFcmToken - error handling', () => {
     test('should handle database error in clearInvalidFcmToken', async () => {
       // Mock userModel.update to call clearInvalidFcmToken with error
       const originalUpdate = userModel.update;
@@ -827,7 +827,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
         });
 
         try {
-          // This will hit the error handling in clearInvalidFcmToken (line 209)
+          // This will hit the error handling in clearInvalidFcmToken
           await userModel.clearInvalidFcmToken('invalid-token-xyz');
         } finally {
           updateManySpy.mockRestore();
@@ -846,7 +846,7 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
-    test('should successfully clear invalid FCM token (lines 197-203)', async () => {
+    test('should successfully clear invalid FCM token', async () => {
       // First set a test token
       await (userModel as any).user.findByIdAndUpdate(
         testUserId,
