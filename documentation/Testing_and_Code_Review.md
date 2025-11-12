@@ -383,10 +383,10 @@ _Figure: Codacy Issues Page, per category_
     1. **‘Detect missing process.exit’**
 
 
-        - **Location in Git:** [`backend/src/index.ts#L44`](https://github.com/Dormdash-CPEN321/DormDash/blob/ee50449596bc9711fcc12f09662c9cebb66b9a0d/backend/src/index.ts#L44)
+        - **Location in Git:** [`backend/src/index.ts#L44`](#https://github.com/Dormdash-CPEN321/DormDash/blob/ee50449596bc9711fcc12f09662c9cebb66b9a0d/backend/src/index.ts#L44)
         - **Justification:** false positive, we call process.exitCode=1
 
     2. **‘Detect missing process.exit’**
 
-        - **Location in Git:** [`backend/src/config/database.ts#L9`](https://github.com/Dormdash-CPEN321/DormDash/blob/ee50449596bc9711fcc12f09662c9cebb66b9a0d/backend/src/config/database.ts#L9)
+        - **Location in Git:** [`backend/src/config/database.ts#L9`](#https://github.com/Dormdash-CPEN321/DormDash/blob/ee50449596bc9711fcc12f09662c9cebb66b9a0d/backend/src/config/database.ts#L9)
         - **Justification:** false positive, the solution says to add an error listener, however the error is on an error handler.
