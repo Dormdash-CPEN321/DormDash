@@ -352,11 +352,11 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
 5.**RoutePlanner**
    - **Purpose**: Handles creation of optimized routes for movers to maximize efficiency and earnings.
    - **Interfaces**:
-        1.` SuggestedRoute calculateSmartRoute(String moverId, LatLng currentLocation, Int maxDuration) `
+        1. ` SuggestedRoute calculateSmartRoute(String moverId, LatLng currentLocation, Int maxDuration) `
             - **Purpose**: Calculates optimal route for mover based on current location and time constraints. Returns route with jobs ordered by composite score balancing earnings and proximity.
-        2.` Job[] filterJobsByAvailability(Job[] jobs, DayAvailability availability)`
+        2. ` Job[] filterJobsByAvailability(Job[] jobs, DayAvailability availability)`
             - **Purpose**: Filters available jobs to only include those that fall within mover's availability time windows. Checks if job start and end times fit within any availability slot for the scheduled day.
-        3.` JobWithValue[] calculateJobValues(Job[] jobs)`
+        3. ` JobWithValue[] calculateJobValues(Job[] jobs)`
             - **Purpose**: Calculates value score (earnings per minute) for each job. Returns jobs with valueScore.
         4. `Int estimateJobDuration(double volume) `
             - **Purpose**: Estimates job duration based on item volume using formula. Returns duration in minutes.
@@ -483,5 +483,6 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
 2. [**[UI Response Time]**](#nfr2)
 
     - **Validation**: The Android frontend uses Jetpack Compose with local, immediate UI state updates so interactions that don’t require a backend round-trip (box counters, date/time pickers, form input) update instantly on-device while network calls are performed asynchronously via the app’s repository/services layer, keeping core UI feedback below the 0.1s perceptual target
+
 
 
