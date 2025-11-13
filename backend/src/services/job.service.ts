@@ -630,7 +630,7 @@ export class JobService {
 
       // Update order status to PICKED_UP
       try {
-        const orderObjectId = extractObjectId(updatedJob?.orderId);
+        const orderObjectId = extractObjectId(updatedJob.orderId);
         if (!orderObjectId) {
           throw new Error('Invalid orderId in job');
         }
