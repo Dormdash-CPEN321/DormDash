@@ -94,7 +94,13 @@ afterAll(async () => {
   console.error = originalConsole.error;
 });
 
+// Interface POST /api/auth/signup
 describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
+  // Mocked behavior: AuthController.signUp rejects with error
+  // Input: valid request body with idToken
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: error response
   test('should trigger next(err) when controller promise rejects', async () => {
     const { AuthController } = require('../../src/controllers/auth.controller');
     const controllerProto = AuthController.prototype;
@@ -113,6 +119,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     controllerProto.signUp = originalMethod;
   });
 
+  // Mocked behavior: authService.signUpWithGoogle rejects with generic error
+  // Input: request with idToken 'test-token'
+  // Expected status code: 500
+  // Expected behavior: unknown error is forwarded to error handler
+  // Expected output: 500 error response
   test('should trigger next(err) for unknown Error types', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignUp = authService.signUpWithGoogle;
@@ -129,6 +140,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     authService.signUpWithGoogle = originalSignUp;
   });
 
+  // Mocked behavior: authService.signUpWithGoogle rejects with non-Error string
+  // Input: request with idToken 'test-token'
+  // Expected status code: 500
+  // Expected behavior: non-Error exception is caught and forwarded
+  // Expected output: 500 error response
   test('should trigger next(err) for non-Error exceptions', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignUp = authService.signUpWithGoogle;
@@ -145,6 +161,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     authService.signUpWithGoogle = originalSignUp;
   });
 
+  // Mocked behavior: OAuth2Client.verifyIdToken returns ticket with null payload
+  // Input: request with idToken 'test-token'
+  // Expected status code: 401
+  // Expected behavior: null payload treated as invalid token
+  // Expected output: error message 'Invalid Google token'
   test('should handle getPayload returning null/undefined', async () => {
     // Mock OAuth2Client to return ticket with null payload
     const { OAuth2Client } = require('google-auth-library');
@@ -166,6 +187,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: OAuth2Client returns payload without email field
+  // Input: request with idToken 'test-token', payload has sub and name but no email
+  // Expected status code: 401
+  // Expected behavior: missing email field causes validation failure
+  // Expected output: error message 'Invalid Google token'
   test('should handle payload missing email', async () => {
     // Mock OAuth2Client to return payload without email
     const { OAuth2Client } = require('google-auth-library');
@@ -192,6 +218,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: OAuth2Client returns payload without name field
+  // Input: request with idToken 'test-token', payload has sub and email but no name
+  // Expected status code: 401
+  // Expected behavior: missing name field causes validation failure
+  // Expected output: error message 'Invalid Google token'
   test('should handle payload missing name', async () => {
     // Mock OAuth2Client to return payload without name
     const { OAuth2Client } = require('google-auth-library');
@@ -218,6 +249,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: OAuth2Client.verifyIdToken returns ticket where getPayload() throws error
+  // Input: request with idToken 'test-token'
+  // Expected status code: 401
+  // Expected behavior: exception in getPayload() is caught and treated as invalid token
+  // Expected output: error message 'Invalid Google token'
   test('should handle getPayload throwing an error', async () => {
     // Mock OAuth2Client to have getPayload throw error
     const { OAuth2Client } = require('google-auth-library');
@@ -241,6 +277,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: OAuth2Client successfully verifies token with valid payload
+  // Input: request with mocked-valid-token, new user credentials (unique googleId and email)
+  // Expected status code: 201
+  // Expected behavior: new user is created in database, JWT token generated
+  // Expected output: success message, JWT token, user object with email, name, googleId
   test('should successfully sign up a new user with valid Google token (mocking OAuth2Client)', async () => {
     // Mock the OAuth2Client to successfully verify token and return valid payload
     const { OAuth2Client } = require('google-auth-library');
@@ -280,6 +321,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: OAuth2Client verifies token successfully, but JWT_SECRET is undefined
+  // Input: request with mocked-valid-token, new user credentials
+  // Expected status code: 500
+  // Expected behavior: JWT token generation fails due to missing JWT_SECRET
+  // Expected output: 500 error (unable to generate token)
   test('should return 500 when JWT_SECRET is not configured during signup', async () => {
     // Mock the OAuth2Client to successfully verify token
     const { OAuth2Client } = require('google-auth-library');
@@ -322,6 +368,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: OAuth2Client verifies token, jwt.sign returns Buffer instead of string
+  // Input: request with mocked-valid-token, new user credentials
+  // Expected status code: 500
+  // Expected behavior: type mismatch in token generation causes failure
+  // Expected output: 500 error response
   test('should return 500 when jwt.sign returns non-string token', async () => {
     // Mock the OAuth2Client to successfully verify token
     const { OAuth2Client } = require('google-auth-library');
@@ -382,6 +433,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     authService.signUpWithGoogle = originalSignUp;
   });
 
+  // Mocked behavior: OAuth2Client verifies token with googleId matching existing user
+  // Input: request with mocked-valid-token, credentials matching testUser's googleId
+  // Expected status code: 409
+  // Expected behavior: signup attempt for existing user is rejected
+  // Expected output: error message 'User already exists, please sign in instead.'
   test('should return 409 if user already exists (mocking OAuth2Client)', async () => {
     // Mock the OAuth2Client to return a payload that matches an existing user
     const { OAuth2Client } = require('google-auth-library');
@@ -408,6 +464,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: authService.signUpWithGoogle rejects with 'User already exists' error
+  // Input: request with test-token
+  // Expected status code: 409
+  // Expected behavior: existing user error is caught and returned as 409
+  // Expected output: error message 'User already exists, please sign in instead.'
   test('should return 409 if user already exists', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignUp = authService.signUpWithGoogle;
@@ -425,6 +486,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     authService.signUpWithGoogle = originalSignUp;
   });
 
+  // Mocked behavior: authService.signUpWithGoogle rejects with 'Failed to process user' error
+  // Input: request with test-token
+  // Expected status code: 500
+  // Expected behavior: processing error is caught and returned as 500
+  // Expected output: error message 'Failed to process user information'
   test('should return 500 for failed to process user error', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignUp = authService.signUpWithGoogle;
@@ -442,6 +508,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     authService.signUpWithGoogle = originalSignUp;
   });
 
+  // Mocked behavior: none (validation middleware)
+  // Input: request body with no idToken field
+  // Expected status code: 400
+  // Expected behavior: validation middleware rejects missing required field
+  // Expected output: validation error
   test('should return 400 for missing idToken', async () => {
     const response = await request(app)
       .post('/api/auth/signup')
@@ -450,6 +521,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     expect(response.status).toBe(400);
   });
 
+  // Mocked behavior: none (validation middleware)
+  // Input: request body with idToken as number (12345) instead of string
+  // Expected status code: 400
+  // Expected behavior: validation middleware rejects invalid type
+  // Expected output: validation error
   test('should return 400 for invalid idToken type', async () => {
     const response = await request(app)
       .post('/api/auth/signup')
@@ -458,6 +534,11 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
     expect(response.status).toBe(400);
   });
 
+  // Mocked behavior: authService.signUpWithGoogle resolves with mock token and user
+  // Input: request with valid-token
+  // Expected status code: 201
+  // Expected behavior: service returns mocked JWT and user object
+  // Expected output: success message, mock-jwt-token, user object with _id and email
   test('should successfully sign up with valid token', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignUp = authService.signUpWithGoogle;
@@ -491,7 +572,13 @@ describe('POST /api/auth/signup - Sign Up with Google (Mocked)', () => {
   });
 });
 
+// Interface POST /api/auth/signin
 describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
+  // Mocked behavior: AuthController.signIn rejects with error
+  // Input: request with idToken 'test-token'
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: error response
   test('should trigger next(err) when controller promise rejects', async () => {
     const { AuthController } = require('../../src/controllers/auth.controller');
     const controllerProto = AuthController.prototype;
@@ -510,6 +597,11 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     controllerProto.signIn = originalMethod;
   });
 
+  // Mocked behavior: authService.signInWithGoogle rejects with generic error
+  // Input: request with idToken 'test-token'
+  // Expected status code: 500
+  // Expected behavior: unknown error is forwarded to error handler
+  // Expected output: 500 error response
   test('should trigger next(err) for unknown Error types', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignIn = authService.signInWithGoogle;
@@ -526,6 +618,11 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     authService.signInWithGoogle = originalSignIn;
   });
 
+  // Mocked behavior: authService.signInWithGoogle rejects with non-Error string
+  // Input: request with idToken 'test-token'
+  // Expected status code: 500
+  // Expected behavior: non-Error exception is caught and forwarded
+  // Expected output: 500 error response
   test('should trigger next(err) for non-Error exceptions', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignIn = authService.signInWithGoogle;
@@ -542,6 +639,11 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     authService.signInWithGoogle = originalSignIn;
   });
 
+  // Mocked behavior: OAuth2Client successfully verifies token with existing user's googleId
+  // Input: request with mocked-valid-token, credentials matching testUser
+  // Expected status code: 200
+  // Expected behavior: existing user is found, JWT token generated and returned
+  // Expected output: success message, JWT token, user object with email and googleId
   test('should successfully sign in an existing user with valid Google token (mocking OAuth2Client)', async () => {
     // Mock the OAuth2Client to successfully verify token and return valid payload for existing user
     const { OAuth2Client } = require('google-auth-library');
@@ -588,6 +690,11 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     authService.signInWithGoogle = originalSignIn;
   });
 
+  // Mocked behavior: OAuth2Client verifies token with non-existent user's googleId
+  // Input: request with mocked-valid-token, credentials for non-existent user
+  // Expected status code: 404
+  // Expected behavior: user lookup fails, not found error returned
+  // Expected output: error message 'User not found, please sign up first.'
   test('should return 404 if user not found (mocking OAuth2Client)', async () => {
     // Mock the OAuth2Client to return a valid payload but for non-existent user
     const { OAuth2Client } = require('google-auth-library');
@@ -616,6 +723,11 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: authService.signInWithGoogle rejects with 'User not found' error
+  // Input: request with test-token
+  // Expected status code: 404
+  // Expected behavior: user not found error is caught and returned as 404
+  // Expected output: error message 'User not found, please sign up first.'
   test('should return 404 if user not found', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignIn = authService.signInWithGoogle;
@@ -633,6 +745,11 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     authService.signInWithGoogle = originalSignIn;
   });
 
+  // Mocked behavior: authService.signInWithGoogle rejects with 'Failed to process user' error
+  // Input: request with test-token
+  // Expected status code: 500
+  // Expected behavior: processing error is caught and returned as 500
+  // Expected output: error message 'Failed to process user information'
   test('should return 500 for failed to process user error', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignIn = authService.signInWithGoogle;
@@ -650,6 +767,11 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     authService.signInWithGoogle = originalSignIn;
   });
 
+  // Mocked behavior: none (validation middleware)
+  // Input: request body with no idToken field
+  // Expected status code: 400
+  // Expected behavior: validation middleware rejects missing required field
+  // Expected output: validation error
   test('should return 400 for missing idToken', async () => {
     const response = await request(app)
       .post('/api/auth/signin')
@@ -658,6 +780,11 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
     expect(response.status).toBe(400);
   });
 
+  // Mocked behavior: authService.signInWithGoogle resolves with mock token and user
+  // Input: request with valid-token
+  // Expected status code: 200
+  // Expected behavior: service returns mocked JWT and existing user object
+  // Expected output: success message, mock-jwt-token, user object with _id and email
   test('should successfully sign in with valid token', async () => {
     const authService = require('../../src/services/auth.service').authService;
     const originalSignIn = authService.signInWithGoogle;
@@ -690,7 +817,13 @@ describe('POST /api/auth/signin - Sign In with Google (Mocked)', () => {
   });
 });
 
+// Interface POST /api/auth/select-role
 describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
+  // Mocked behavior: AuthController.selectRole rejects with error
+  // Input: authenticated request with userRole 'STUDENT'
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: error response
   test('should trigger next(err) when controller promise rejects', async () => {
     const { AuthController } = require('../../src/controllers/auth.controller');
     const controllerProto = AuthController.prototype;
@@ -710,6 +843,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     controllerProto.selectRole = originalMethod;
   });
 
+  // Mocked behavior: userModel.update rejects with generic database error
+  // Input: authenticated request with userRole 'STUDENT'
+  // Expected status code: 500
+  // Expected behavior: unknown error is forwarded to error handler
+  // Expected output: 500 error response
   test('should trigger next(err) for unknown Error types', async () => {
     const userModel = require('../../src/models/user.model').userModel;
     const originalUpdate = userModel.update;
@@ -727,6 +865,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     userModel.update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.update rejects with non-Error string
+  // Input: authenticated request with userRole 'STUDENT'
+  // Expected status code: 500
+  // Expected behavior: non-Error exception is caught and forwarded
+  // Expected output: 500 error response
   test('should trigger next(err) for non-Error exceptions', async () => {
     const userModel = require('../../src/models/user.model').userModel;
     const originalUpdate = userModel.update;
@@ -744,6 +887,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     userModel.update = originalUpdate;
   });
 
+  // Mocked behavior: none (uses real database)
+  // Input: authenticated request with userRole 'STUDENT'
+  // Expected status code: 200
+  // Expected behavior: user's role is updated to STUDENT in database
+  // Expected output: success message, user object with userRole: 'STUDENT'
   test('should successfully select STUDENT role', async () => {
     const response = await request(app)
       .post('/api/auth/select-role')
@@ -755,6 +903,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     expect(response.body.data.user.userRole).toBe('STUDENT');
   });
 
+  // Mocked behavior: none (uses real database)
+  // Input: authenticated request with userRole 'MOVER'
+  // Expected status code: 200
+  // Expected behavior: user's role is updated to MOVER, credits initialized to 0
+  // Expected output: success message, user object with userRole: 'MOVER' and credits: 0
   test('should successfully select MOVER role and initialize credits to 0', async () => {
     const response = await request(app)
       .post('/api/auth/select-role')
@@ -767,6 +920,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     expect(response.body.data.user.credits).toBe(0);
   });
 
+  // Mocked behavior: none (authentication middleware)
+  // Input: request with userRole 'STUDENT' but no Authorization header
+  // Expected status code: 401
+  // Expected behavior: auth middleware rejects unauthenticated request
+  // Expected output: unauthorized error
   test('should return 401 for missing authentication token', async () => {
     const response = await request(app)
       .post('/api/auth/select-role')
@@ -775,6 +933,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     expect(response.status).toBe(401);
   });
 
+  // Mocked behavior: none (authentication middleware)
+  // Input: request with userRole 'STUDENT' and invalid Bearer token
+  // Expected status code: 401
+  // Expected behavior: auth middleware rejects malformed/invalid token
+  // Expected output: unauthorized error
   test('should return 401 for invalid authentication token', async () => {
     const response = await request(app)
       .post('/api/auth/select-role')
@@ -784,6 +947,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     expect(response.status).toBe(401);
   });
 
+  // Mocked behavior: none (validation middleware)
+  // Input: authenticated request with empty body (no userRole field)
+  // Expected status code: 400
+  // Expected behavior: validation middleware rejects missing required field
+  // Expected output: validation error
   test('should return 400 for missing userRole', async () => {
     const response = await request(app)
       .post('/api/auth/select-role')
@@ -793,6 +961,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     expect(response.status).toBe(400);
   });
 
+  // Mocked behavior: none (validation middleware)
+  // Input: authenticated request with userRole 'INVALID_ROLE'
+  // Expected status code: 400
+  // Expected behavior: validation middleware rejects invalid enum value
+  // Expected output: validation error
   test('should return 400 for invalid userRole', async () => {
     const response = await request(app)
       .post('/api/auth/select-role')
@@ -802,6 +975,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     expect(response.status).toBe(400);
   });
 
+  // Mocked behavior: userModel.update resolves with null (user not found)
+  // Input: authenticated request with userRole 'STUDENT'
+  // Expected status code: 404
+  // Expected behavior: null return indicates user doesn't exist
+  // Expected output: error message 'User not found'
   test('should return 404 when userModel.update returns null', async () => {
     // Mock userModel.update to return null (simulating user not found)
     const originalUpdate = userModel.update;
@@ -819,6 +997,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     userModel.update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.update rejects with database error
+  // Input: authenticated request with userRole 'STUDENT'
+  // Expected status code: 500
+  // Expected behavior: database error is caught and returned
+  // Expected output: error message 'Database error'
   test('should handle database error during role update', async () => {
     // Mock userModel.update to throw error
     const originalUpdate = userModel.update;
@@ -836,6 +1019,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     userModel.update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.findById returns null (user no longer exists)
+  // Input: authenticated request with userRole 'STUDENT', valid token but user deleted
+  // Expected status code: 401
+  // Expected behavior: auth middleware finds no user, sets req.user to undefined
+  // Expected output: error message 'Token is valid but user no longer exists'
   test('should return 401 when req.user is undefined', async () => {
     // Mock userModel.findById to return null, simulating user not found
     const originalFindById = userModel.findById;
@@ -855,6 +1043,11 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: userModel.findById returns user object without _id field
+  // Input: authenticated request with userRole 'STUDENT'
+  // Expected status code: 401
+  // Expected behavior: controller checks for !user._id and returns 401
+  // Expected output: error message 'Authentication required'
   test('should return 401 when req.user exists but has no _id', async () => {
     // Mock userModel.findById to return a user without _id
     const originalFindById = userModel.findById;
@@ -881,8 +1074,14 @@ describe('POST /api/auth/select-role - Select User Role (Mocked)', () => {
   });
 });
 
-describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
-  describe('findById - error handling (lines 160-161)', () => {
+// Testing UserModel methods with mocked database operations
+describe('UserModel Error Handling ', () => {
+  describe('findById - error handling', () => {
+    // Mocked behavior: underlying mongoose findOne throws database error
+    // Input: GET /api/user/profile with valid auth token
+    // Expected status code: 500
+    // Expected behavior: database connection error in findById is caught
+    // Expected output: 500 error response
     test('should handle database error in findById via auth middleware', async () => {
       // Mock the underlying mongoose findOne to throw an error
       const actualUserModel = (userModel as any).user;
@@ -904,7 +1103,12 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
-    test('should return null when user not found by id (line 156)', async () => {
+    // Mocked behavior: none (uses real database with non-existent ID)
+    // Input: GET /api/user/profile with token containing non-existent user ID
+    // Expected status code: 401
+    // Expected behavior: findById returns null, auth middleware rejects
+    // Expected output: error message 'Token is valid but user no longer exists'
+    test('should return null when user not found by id', async () => {
       // Create a token with non-existent user ID
       const nonExistentId = new mongoose.Types.ObjectId();
       const invalidToken = jwt.sign({ id: nonExistentId }, process.env.JWT_SECRET || 'default-secret');
@@ -919,7 +1123,12 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
     });
   });
 
-  describe('findByGoogleId - error handling (lines 173-177)', () => {
+  describe('findByGoogleId - error handling', () => {
+    // Mocked behavior: authService calls findByGoogleId, underlying findOne throws error
+    // Input: POST /api/auth/signup with mock credentials
+    // Expected status code: 500
+    // Expected behavior: database query failure in findByGoogleId is caught
+    // Expected output: 500 error response
     test('should handle database error in findByGoogleId during signup', async () => {
       // Mock the auth service to bypass Google token verification
       const authService = require('../../src/services/auth.service').authService;
@@ -958,6 +1167,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
+    // Mocked behavior: authService calls findByGoogleId, underlying findOne throws error
+    // Input: POST /api/auth/signin with mock credentials
+    // Expected status code: 500
+    // Expected behavior: database query failure in findByGoogleId is caught
+    // Expected output: 500 error response
     test('should handle database error in findByGoogleId during signin', async () => {
       // Mock the auth service to bypass Google token verification
       const authService = require('../../src/services/auth.service').authService;
@@ -995,6 +1209,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
+    // Mocked behavior: authService calls findByGoogleId with non-existent googleId
+    // Input: POST /api/auth/signin with non-existent google credentials
+    // Expected status code: 404
+    // Expected behavior: findByGoogleId returns null, throws 'User not found' error
+    // Expected output: 404 error response
     test('should return null when user not found by googleId', async () => {
       // Mock the auth service to test findByGoogleId returning null
       const authService = require('../../src/services/auth.service').authService;
@@ -1026,7 +1245,12 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
-    test('should successfully find existing user by googleId (line 173)', async () => {
+    // Mocked behavior: authService calls findByGoogleId with existing user's googleId
+    // Input: POST /api/auth/signin with existing user credentials
+    // Expected status code: 200
+    // Expected behavior: findByGoogleId returns user, JWT generated
+    // Expected output: success response with token and user data
+    test('should successfully find existing user by googleId', async () => {
       // Test the success path - finding an existing user
       const authService = require('../../src/services/auth.service').authService;
       const originalSignIn = authService.signInWithGoogle;
@@ -1061,6 +1285,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
   });
 
   describe('getFcmToken - error handling', () => {
+    // Mocked behavior: userModel.update calls getFcmToken, findById throws error
+    // Input: POST /api/auth/select-role with valid auth and userRole 'STUDENT'
+    // Expected status code: 500
+    // Expected behavior: database read error in getFcmToken is caught
+    // Expected output: 500 error response
     test('should handle database error in getFcmToken', async () => {
       // Mock select-role to trigger a path that could use getFcmToken
       // We'll mock userModel.update to call getFcmToken and throw error
@@ -1093,12 +1322,22 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
+    // Mocked behavior: none (direct call to getFcmToken with non-existent ID)
+    // Input: non-existent user ID
+    // Expected status code: N/A (direct function call)
+    // Expected behavior: getFcmToken returns null when user doesn't exist
+    // Expected output: null
     test('should return null when user not found in getFcmToken', async () => {
       const nonExistentId = new mongoose.Types.ObjectId();
       const result = await userModel.getFcmToken(nonExistentId);
       expect(result).toBeNull();
     });
 
+    // Mocked behavior: none (direct call to getFcmToken with existing user ID)
+    // Input: existing user ID (testUserId)
+    // Expected status code: N/A (direct function call)
+    // Expected behavior: getFcmToken returns user's FCM token or null
+    // Expected output: string token or null
     test('should return FCM token when user exists', async () => {
       // This tests the success path and the null coalescing
       const result = await userModel.getFcmToken(testUserId);
@@ -1106,6 +1345,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       expect(result === null || typeof result === 'string').toBe(true);
     });
 
+    // Mocked behavior: none (direct call to getFcmToken for user without FCM token)
+    // Input: existing user ID (testMoverId) that has no FCM token set
+    // Expected status code: N/A (direct function call)
+    // Expected behavior: getFcmToken returns null when fcmToken field is undefined
+    // Expected output: null or string
     test('should return null when user has no FCM token', async () => {
       // Test when fcmToken field is undefined/null
       const result = await userModel.getFcmToken(testMoverId);
@@ -1115,6 +1359,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
   });
 
   describe('clearInvalidFcmToken - error handling', () => {
+    // Mocked behavior: userModel.update calls clearInvalidFcmToken, updateMany throws error
+    // Input: POST /api/auth/select-role with valid auth and userRole 'STUDENT'
+    // Expected status code: 500
+    // Expected behavior: database update failure in clearInvalidFcmToken is caught
+    // Expected output: 500 error response
     test('should handle database error in clearInvalidFcmToken', async () => {
       // Mock userModel.update to call clearInvalidFcmToken with error
       const originalUpdate = userModel.update;
@@ -1146,6 +1395,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
+    // Mocked behavior: none (direct call to clearInvalidFcmToken)
+    // Input: test FCM token 'test-invalid-token-clear' set on testUser
+    // Expected status code: N/A (direct function call)
+    // Expected behavior: clearInvalidFcmToken removes matching FCM token from database
+    // Expected output: user's fcmToken field set to null
     test('should successfully clear invalid FCM token', async () => {
       // First set a test token
       await (userModel as any).user.findByIdAndUpdate(
@@ -1161,6 +1415,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       expect(user?.fcmToken).toBeNull();
     });
 
+    // Mocked behavior: none (direct call with non-existent token)
+    // Input: non-existent FCM token 'non-existent-token-xyz-123'
+    // Expected status code: N/A (direct function call)
+    // Expected behavior: clearInvalidFcmToken completes without error even if no match
+    // Expected output: resolves without throwing
     test('should handle clearing non-existent token gracefully', async () => {
       // Should not throw error even if token doesn't exist
       await expect(
@@ -1170,6 +1429,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
   });
 
   describe('authenticateToken middleware - JWT_SECRET edge cases', () => {
+    // Mocked behavior: JWT_SECRET environment variable deleted
+    // Input: POST /api/auth/select-role with Bearer token and userRole 'STUDENT'
+    // Expected status code: 500
+    // Expected behavior: auth middleware detects missing JWT_SECRET configuration
+    // Expected output: error 'Server configuration error', message 'JWT secret not configured'
     test('should return 500 when JWT_SECRET is not configured', async () => {
       // Temporarily remove JWT_SECRET
       const originalSecret = process.env.JWT_SECRET;
@@ -1190,6 +1454,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
+    // Mocked behavior: none (uses expired JWT token)
+    // Input: POST /api/auth/select-role with expired Bearer token (expiresIn: '-1s')
+    // Expected status code: 401
+    // Expected behavior: jwt.verify throws TokenExpiredError, caught as JsonWebTokenError
+    // Expected output: error 'Invalid token', message 'Token is malformed or expired'
     test('should return 401 when token is expired (TokenExpiredError)', async () => {
       // Create an expired token
       // Note: TokenExpiredError extends JsonWebTokenError, so it gets caught by the first instanceof check
@@ -1205,15 +1474,17 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
         .send({ userRole: 'STUDENT' });
 
       expect(response.status).toBe(401);
-      // TokenExpiredError is caught by JsonWebTokenError check (line 50)
       expect(response.body.error).toBe('Invalid token');
       expect(response.body.message).toBe('Token is malformed or expired');
     });
 
-    test('should forward unexpected error to error handler via next(error) on line 58', async () => {
+    // Mocked behavior: userModel.findById rejects with non-JWT database error
+    // Input: POST /api/auth/select-role with valid token and userRole 'STUDENT'
+    // Expected status code: 500
+    // Expected behavior: unexpected error in middleware forwarded to error handler
+    // Expected output: 500 error response
+    test('should forward unexpected error to error handler via next(error)', async () => {
       // Mock userModel.findById to throw a non-JWT error
-      // This will be caught in the inner catch block and since it's not a JsonWebTokenError,
-      // it will hit next(error) on line 58
       const originalFindById = userModel.findById;
       (userModel.findById as any) = jest.fn().mockRejectedValue(new Error('Database connection failed'));
 
@@ -1231,7 +1502,12 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       }
     });
 
-    test('should hit outer catch on line 61 when response operations throw', async () => {
+    // Mocked behavior: none (uses malformed JWT token)
+    // Input: POST /api/auth/select-role with malformed Bearer token 'invalid.jwt.token'
+    // Expected status code: 401
+    // Expected behavior: jwt.verify throws JsonWebTokenError, caught and handled
+    // Expected output: 401 error for invalid token
+    test('should hit outer catch when res.status throws on JsonWebTokenError', async () => {
       // Create an invalid token to trigger JsonWebTokenError
       // Then mock res.status to throw, which will escape inner catch and hit outer catch
       const invalidToken = 'invalid.jwt.token';
@@ -1245,6 +1521,11 @@ describe('UserModel Error Handling - Lines 160-161, 173-209', () => {
       expect(response.status).toBe(401);
     });
 
+    // Mocked behavior: jwt.verify throws synchronous non-JWT error
+    // Input: POST /api/auth/select-role with Bearer token 'some-token'
+    // Expected status code: 500
+    // Expected behavior: synchronous error bypasses inner catch, hits outer catch
+    // Expected output: 500 error response forwarded to error handler
     test('should catch errors in outer catch block', async () => {
       // Mock jwt.verify to throw a non-JWT error that gets to the outer catch
       const originalVerify = jwt.verify;
