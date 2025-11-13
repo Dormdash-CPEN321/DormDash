@@ -1,6 +1,7 @@
 package com.cpen321.usermanagement
 
 import androidx.compose.ui.test.*
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 
 /**
@@ -20,334 +21,410 @@ import org.junit.Test
  * Failure Scenarios:
  * 5a. Mover does not allow location access
  * 6a. Unable to suggest route due to duration/availability constraints
-// */
-//class ViewRecommendedRouteTest : FindJobsTestBase() {
-//
-//    /**
-//     * Test: Main success scenario - View recommended route
-//     * Complete flow from requesting route to viewing suggestions
-//     */
-//    @Test
-//    fun testViewRecommendedRoute_displaysOptimalRoute() {
-//        // Precondition: Navigate to Find Jobs page
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//
-//        // Step 1: Mover clicks "Get Optimal Route" button
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true)
-//            .performClick()
-//
-//        // Step 2: System prompts for max shift duration
-//        composeTestRule.onNode(
-//            hasText("max", substring = true, ignoreCase = true)
-//                .and(hasText("duration", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//
-//        // Verify multiple choice options are displayed (e.g., 2h, 4h, 6h, 8h)
-//        composeTestRule.onNodeWithText("2 hours", substring = true, ignoreCase = true)
-//            .assertIsDisplayed()
-//        composeTestRule.onNodeWithText("4 hours", substring = true, ignoreCase = true)
-//            .assertIsDisplayed()
-//
-//        // Step 3: Mover selects duration (e.g., 4 hours)
-//        composeTestRule.onNodeWithText("4 hours", substring = true, ignoreCase = true)
-//            .performClick()
-//
-//        // Mover clicks "Find Smart Route" button
-//        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true)
-//            .performClick()
-//
-//        // Step 4: System prompts for location access
-//        // Step 5: Grant location permission using UI Automator
-//        grantLocationPermission()
-//
-//        // Wait for route calculation
-//        composeTestRule.waitUntil(timeoutMillis = 10000) {
-//            composeTestRule.onAllNodesWithTag("route_summary")
-//                .fetchSemanticsNodes().isNotEmpty()
-//                .or(composeTestRule.onAllNodesWithText("Calculating route", substring = true, ignoreCase = true)
-//                    .fetchSemanticsNodes().isEmpty())
-//        }
-//
-//        // Step 6: Verify route summary is displayed
-//        composeTestRule.onNodeWithTag("route_summary").assertIsDisplayed()
-//
-//        // Verify list of jobs in the route
-//        composeTestRule.onNodeWithTag("route_jobs_list").assertIsDisplayed()
-//
-//        // Verify each job shows: pickup address, travel time, credits
-//        composeTestRule.onAllNodesWithTag("route_job_pickup_address")
-//            .onFirst()
-//            .assertIsDisplayed()
-//
-//        composeTestRule.onAllNodesWithTag("route_job_travel_time")
-//            .onFirst()
-//            .assertIsDisplayed()
-//
-//        composeTestRule.onAllNodesWithTag("route_job_credits")
-//            .onFirst()
-//            .assertIsDisplayed()
-//    }
-//
-//    /**
-//     * Test: Accept all jobs in recommended route
-//     * Step 7: Test "Accept all jobs" button
-//     */
-//    @Test
-//    fun testRecommendedRoute_acceptAllJobs() {
-//        // Navigate and request route
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//
-//        // Select duration
-//        composeTestRule.onNodeWithText("4 hours", substring = true, ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
-//
-//        // Grant location
-//        grantLocationPermission()
-//
-//        // Wait for route
-//        composeTestRule.waitUntil(timeoutMillis = 10000) {
-//            composeTestRule.onAllNodesWithTag("route_summary")
-//                .fetchSemanticsNodes().isNotEmpty()
-//        }
-//
-//        // Step 7: Click "Accept all jobs" button
-//        composeTestRule.onNodeWithText("Accept all jobs", ignoreCase = true)
-//            .assertIsDisplayed()
-//            .performClick()
-//
-//        // Verify confirmation or loading state
-//        composeTestRule.onNode(
-//            hasText("Accepting all jobs", substring = true, ignoreCase = true)
-//                .or(hasText("Jobs accepted", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//
-//        // Wait for acceptance to complete
-//        composeTestRule.waitUntil(timeoutMillis = 10000) {
-//            composeTestRule.onAllNodesWithText("Jobs accepted", substring = true, ignoreCase = true)
-//                .fetchSemanticsNodes().isNotEmpty()
-//        }
-//
-//        // Verify jobs appear in Current Jobs
-//        composeTestRule.onNodeWithText("Current Jobs").performClick()
-//        composeTestRule.onNodeWithTag("current_jobs_list").assertIsDisplayed()
-//
-//        // Verify multiple jobs are now in current jobs
-//        val jobCount = composeTestRule.onAllNodesWithTag("current_job_card")
-//            .fetchSemanticsNodes().size
-//        assert(jobCount > 1) { "Should have multiple jobs after accepting all" }
-//    }
-//
-//    /**
-//     * Test: Accept individual jobs from recommended route
-//     * Step 7: Test individual "Accept job" buttons
-//     */
-//    @Test
-//    fun testRecommendedRoute_acceptIndividualJobs() {
-//        // Setup: Get to route display
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("4 hours", substring = true, ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
-//        grantLocationPermission()
-//
-//        composeTestRule.waitUntil(timeoutMillis = 10000) {
-//            composeTestRule.onAllNodesWithTag("route_summary")
-//                .fetchSemanticsNodes().isNotEmpty()
-//        }
-//
-//        // Accept first job only
-//        composeTestRule.onAllNodesWithText("Accept job", ignoreCase = true)
-//            .onFirst()
-//            .performClick()
-//
-//        // Verify acceptance confirmation
-//        composeTestRule.waitUntil(timeoutMillis = 5000) {
-//            composeTestRule.onAllNodesWithText("Job accepted", substring = true, ignoreCase = true)
-//                .fetchSemanticsNodes().isNotEmpty()
-//        }
-//
-//        // Accept second job
-//        composeTestRule.onAllNodesWithText("Accept job", ignoreCase = true)
-//            .onFirst() // Now first again since previous was removed/disabled
-//            .performClick()
-//
-//        composeTestRule.waitUntil(timeoutMillis = 5000) {
-//            composeTestRule.onAllNodesWithText("Job accepted", substring = true, ignoreCase = true)
-//                .fetchSemanticsNodes().isNotEmpty()
-//        }
-//    }
-//
-//    /**
-//     * Test: Duration selection options
-//     * Step 2-3: Verify all duration options are available
-//     */
-//    @Test
-//    fun testDurationSelection_displaysAllOptions() {
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//
-//        // Verify multiple duration options
-//        val durationOptions = listOf("2 hours", "4 hours", "6 hours", "8 hours")
-//        durationOptions.forEach { duration ->
-//            composeTestRule.onNode(
-//                hasText(duration, substring = true, ignoreCase = true)
-//            ).assertIsDisplayed()
-//        }
-//    }
-//
-//    /**
-//     * Test: Route summary displays total information
-//     * Step 6: Verify route summary shows totals
-//     */
-//    @Test
-//    fun testRouteSummary_displaysTotalInformation() {
-//        // Setup: Get route
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("4 hours", substring = true, ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
-//        grantLocationPermission()
-//
-//        composeTestRule.waitUntil(timeoutMillis = 10000) {
-//            composeTestRule.onAllNodesWithTag("route_summary")
-//                .fetchSemanticsNodes().isNotEmpty()
-//        }
-//
-//        // Verify route summary shows:
-//        // - Total credits/earnings
-//        composeTestRule.onNode(
-//            hasTestTag("route_total_credits")
-//                .or(hasText("Total credits", substring = true, ignoreCase = true))
-//                .or(hasText("Total earnings", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//
-//        // - Total travel time
-//        composeTestRule.onNode(
-//            hasTestTag("route_total_time")
-//                .or(hasText("Total time", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//
-//        // - Number of jobs in route
-//        composeTestRule.onNode(
-//            hasTestTag("route_job_count")
-//                .or(hasText("jobs", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//    }
-//
-//    /**
-//     * Failure Scenario 5a: Mover denies location permission
-//     */
-//    @Test
-//    fun testDenyLocationPermission_displaysError() {
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("4 hours", substring = true, ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
-//
-//        // Step 5a: Deny location permission
-//        denyLocationPermission()
-//
-//        // Step 5a1: Verify error message is displayed
-//        composeTestRule.onNode(
-//            hasText("location permission is required", substring = true, ignoreCase = true)
-//                .or(hasText("grant permission", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//
-//        // Verify suggestion to grant permission
-//        composeTestRule.onNode(
-//            hasText("grant", substring = true, ignoreCase = true)
-//                .or(hasText("allow", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//    }
-//
-//    /**
-//     * Failure Scenario 6a: No route fits duration/availability constraints
-//     */
-//    @Test
-//    fun testNoRouteFitsConstraints_displaysMessage() {
-//        // TODO: Mock backend to return empty route
-//
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//
-//        // Select very short duration (2 hours)
-//        composeTestRule.onNodeWithText("2 hours", substring = true, ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
-//        grantLocationPermission()
-//
-//        // Step 6a1: Verify message that no jobs fit
-//        composeTestRule.onNode(
-//            hasText("no jobs fit", substring = true, ignoreCase = true)
-//                .or(hasText("unable to suggest route", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//
-//        // Verify suggestion to change availability/duration
-//        composeTestRule.onNode(
-//            hasText("change", substring = true, ignoreCase = true)
-//                .and(hasText("availability", substring = true, ignoreCase = true)
-//                    .or(hasText("duration", substring = true, ignoreCase = true)))
-//        ).assertIsDisplayed()
-//    }
-//
-//    /**
-//     * Test: Loading state while calculating route
-//     */
-//    @Test
-//    fun testRouteCalculation_showsLoadingState() {
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("4 hours", substring = true, ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
-//        grantLocationPermission()
-//
-//        // Verify loading indicator appears
-//        composeTestRule.onNode(
-//            hasTestTag("route_loading")
-//                .or(hasText("Calculating route", substring = true, ignoreCase = true))
-//                .or(hasText("Finding optimal route", substring = true, ignoreCase = true))
-//        ).assertIsDisplayed()
-//    }
-//
-//    /**
-//     * Test: Can cancel route request
-//     */
-//    @Test
-//    fun testCancelRouteRequest_returnsToFindJobs() {
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//
-//        // Look for cancel/back button in duration selection dialog
-//        composeTestRule.onNode(
-//            hasText("Cancel", ignoreCase = true)
-//                .or(hasContentDescription("Navigate up"))
-//        ).performClick()
-//
-//        // Verify we're back on Find Jobs page
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true)
-//            .assertIsDisplayed()
-//    }
-//
-//    /**
-//     * Test: Route jobs are within availability
-//     */
-//    @Test
-//    fun testRecommendedRoute_jobsAreWithinAvailability() {
-//        // Setup: Get route
-//        composeTestRule.onNodeWithText("Find Jobs").performClick()
-//        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("4 hours", substring = true, ignoreCase = true).performClick()
-//        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
-//        grantLocationPermission()
-//
-//        composeTestRule.waitUntil(timeoutMillis = 10000) {
-//            composeTestRule.onAllNodesWithTag("route_summary")
-//                .fetchSemanticsNodes().isNotEmpty()
-//        }
-//
-//        // Verify each job has availability badge or indicator
-//        composeTestRule.onAllNodesWithTag("route_job_within_availability")
-//            .onFirst()
-//            .assertIsDisplayed()
-//    }
-//}
+ */
+@HiltAndroidTest
+class ViewRecommendedRouteTest : FindJobsTestBase() {
+
+    /**
+     * Test: Main success scenario - View recommended route
+     * Complete flow from requesting route to viewing suggestions
+     */
+    @Test
+    fun testViewRecommendedRoute_displaysOptimalRoute() {
+        //first go to availability page and set availability to ensure there are jobs available
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule.onAllNodesWithText("Availability").fetchSemanticsNodes().isNotEmpty()
+        }
+        // Setup: Navigate to Profile and seed test jobs
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Seed Test Jobs (10)").performClick()
+        composeTestRule.waitForIdle()
+
+        Thread.sleep(2000)
+
+        // Navigate back to main screen
+        device.pressBack()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        // Verify we're on the Set Availability screen
+        composeTestRule.onNodeWithText("Set Availability").assertIsDisplayed()
+
+        // Days to add standard 9-5 availability
+        val standardDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY")
+
+        // Add 9:00-17:00 time slots for standard days
+        standardDays.forEach { day ->
+            addTimeSlot(
+                day = day,
+                startTime = "09:00",
+                endTime = "17:00"
+            )
+        }
+
+        // Save availability
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        // Verify success message appears
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+
+        // Precondition: Navigate to Find Jobs page
+        composeTestRule.onNodeWithText("Find Jobs").performClick()
+
+        // Step 1: Mover clicks "Get Optimal Route" button
+        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true)
+            .performClick()
+
+        // Step 2: System prompts for max shift duration
+        composeTestRule.onNode(
+            hasText("max", substring = true, ignoreCase = true)
+                .and(hasText("duration", substring = true, ignoreCase = true))
+        ).assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag("duration_slider")
+            .performTouchInput {
+                // Slider goes from 0 to 6, we want position 3 (4 hours)
+                // Calculate the X position: 3/6 = 0.5 of the width
+                val targetX = left + (width * 0.5f)
+                down(center)
+                moveTo(androidx.compose.ui.geometry.Offset(targetX, centerY))
+                up()
+            }
+
+        // Mover clicks "Find Smart Route" button
+        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true)
+            .performClick()
+
+        // Step 4: System prompts for location access
+        // Step 5: Grant location permission using UI Automator
+        grantLocationPermission()
+
+        composeTestRule.waitForIdle()
+
+        // Wait for route calculation to complete
+        waitForRouteCalculation()
+
+        // Step 6: Verify route summary is displayed
+        composeTestRule.onNodeWithTag("route_summary").assertIsDisplayed()
+
+        // Verify route summary shows:
+        // - Total credits/earnings
+        composeTestRule.onNode(
+            hasTestTag("route_total_credits")
+        ).assertIsDisplayed()
+
+        // - Total travel time
+        composeTestRule.onNode(
+            hasTestTag("route_total_time")
+        ).assertIsDisplayed()
+
+        // - Number of jobs in route
+        composeTestRule.onNode(
+            hasTestTag("route_job_count")
+        ).assertIsDisplayed()
+
+        // Verify list of jobs in the route
+        composeTestRule.onNodeWithTag("route_jobs_list").assertIsDisplayed()
+
+        // Verify each job shows: pickup address, travel time, credits
+        composeTestRule.onAllNodesWithTag("route_job_pickup_address")
+            .onFirst()
+            .assertIsDisplayed()
+
+        composeTestRule.onAllNodesWithTag("route_job_travel_time")
+            .onFirst()
+            .assertIsDisplayed()
+
+        composeTestRule.onAllNodesWithTag("route_job_credits")
+            .onFirst()
+            .assertIsDisplayed()
+
+        // remove all added availability after
+        composeTestRule.onNodeWithText("Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        standardDays.forEach { day ->
+            composeTestRule.onNodeWithTag("delete_time_slot_${day}_09:00").performClick()
+        }
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        // Cleanup: Navigate to Profile and clear all jobs
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Clear All Jobs").performClick()
+        composeTestRule.waitForIdle()
+
+        Thread.sleep(2000) // Give backend time to persist
+    }
+
+    /**
+     * Test: Accept all jobs in recommended route
+     * Step 7: Test "Accept all jobs" button
+     */
+    @Test
+    fun testRecommendedRoute_acceptAllJobs() {
+        // Wait for initial navigation to be ready
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule.onAllNodesWithText("Availability").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        // Setup: Navigate to Profile and seed test jobs
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Seed Test Jobs (10)").performClick()
+        composeTestRule.waitForIdle()
+
+        Thread.sleep(2000)
+
+        // Navigate back to main screen
+        device.pressBack()
+        composeTestRule.waitForIdle()
+
+        // Set availability with unlimited time
+        composeTestRule.onNodeWithText("Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        // Verify we're on the Set Availability screen
+        composeTestRule.onNodeWithText("Set Availability").assertIsDisplayed()
+        composeTestRule.waitForIdle()
+
+        // Days to add unlimited availability
+        val allDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
+
+        // Add unlimited time slots (00:00-23:59) for all days
+        allDays.forEach { day ->
+            addTimeSlot(
+                day = day,
+                startTime = "00:00",
+                endTime = "23:59"
+            )
+        }
+
+        // Save availability
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        // Verify success message appears
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        // Navigate to Find Jobs and request route
+        composeTestRule.onNodeWithText("Find Jobs").performClick()
+        composeTestRule.waitForIdle()
+
+        // Click "Get Optimal Route" button
+        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
+        composeTestRule.waitForIdle()
+
+        // Click "Find Smart Route" button
+        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
+        composeTestRule.waitForIdle()
+
+        // Grant location permission
+        grantLocationPermission()
+        composeTestRule.waitForIdle()
+
+        // Wait for route calculation to complete
+        waitForRouteCalculation()
+
+        // Step 7: Click "Accept all jobs" button
+        composeTestRule.onNodeWithTag("accept_all_jobs_button")
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+        device.pressBack()
+        composeTestRule.waitForIdle()
+
+        // Navigate to Find Jobs - need to click retry if error appears
+        composeTestRule.onNodeWithText("Find Jobs").performClick()
+        composeTestRule.waitForIdle()
+        Thread.sleep(1000)
+
+        // Check if retry button appears (happens because seeded jobs don't have real student IDs)
+        val retryNodes = composeTestRule.onAllNodesWithText("Retry", ignoreCase = true).fetchSemanticsNodes()
+        if (retryNodes.isNotEmpty()) {
+            composeTestRule.onNodeWithText("Retry", ignoreCase = true).performClick()
+            composeTestRule.waitForIdle()
+        }
+
+        // Navigate to Current Jobs to verify
+        composeTestRule.onNodeWithText("Current Jobs").performClick()
+        composeTestRule.waitForIdle()
+        Thread.sleep(1000)
+
+        // Check if retry button appears again
+        val retryNodesCurrentJobs = composeTestRule.onAllNodesWithText("Retry", ignoreCase = true).fetchSemanticsNodes()
+        if (retryNodesCurrentJobs.isNotEmpty()) {
+            composeTestRule.onNodeWithText("Retry", ignoreCase = true).performClick()
+            composeTestRule.waitForIdle()
+        }
+
+        // Verify current jobs list is displayed
+        composeTestRule.onNodeWithTag("current_jobs_list").assertIsDisplayed()
+
+        // Verify multiple jobs are now in current jobs
+        val jobCount = composeTestRule.onAllNodesWithTag("current_job_card")
+            .fetchSemanticsNodes().size
+        assert(jobCount > 1) { "Should have multiple jobs after accepting all" }
+
+        // Cleanup: Remove all added availability
+        composeTestRule.onNodeWithText("Availability").performClick()
+        composeTestRule.waitForIdle()
+
+        allDays.forEach { day ->
+            scrollToDay(day)
+            composeTestRule.onNodeWithTag("delete_time_slot_${day}_00:00").performClick()
+        }
+        composeTestRule.onNodeWithText("Save Availability").performClick()
+
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule
+                .onAllNodesWithText("Availability updated successfully!", substring = true, ignoreCase = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        // Cleanup: Navigate to Profile and clear all jobs
+        composeTestRule.onNodeWithTag("ProfileButton").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Clear All Jobs").performClick()
+        composeTestRule.waitForIdle()
+
+        Thread.sleep(2000) // Give backend time to persist
+    }
+
+    /**
+     * Failure Scenario 5a: Mover denies location permission
+     */
+    @Test
+    fun testDenyLocationPermission_displaysError() {
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithText("Find Jobs").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
+        composeTestRule.waitForIdle()
+
+        // Step 5a: Deny location permission
+        denyLocationPermission()
+        composeTestRule.waitForIdle()
+
+        // Wait for the bottom sheet to update and show the permission required state
+        Thread.sleep(1000)
+        composeTestRule.waitForIdle()
+
+        // Step 5a1: Verify location permission required message is displayed
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule
+                .onAllNodesWithText("Location Permission Required", substring = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+
+        composeTestRule.onNodeWithText("Location Permission Required")
+            .assertIsDisplayed()
+
+        // Also verify the explanation text
+        composeTestRule.onNodeWithText(
+            "We need your location to calculate the optimal route",
+            substring = true
+        ).assertIsDisplayed()
+    }
+
+    /**
+     * Failure Scenario 6a: No route fits duration/availability constraints
+     */
+    @Test
+    fun testNoRouteFitsConstraints_displaysMessage() {
+        composeTestRule.waitUntil(timeoutMillis = 5000) {
+            composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithText("Find Jobs").performClick()
+        composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
+
+        composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
+        grantLocationPermission()
+
+        // Step 6a1: Verify message that no jobs fit
+        composeTestRule.onNode(
+            hasText("no jobs available", substring = true, ignoreCase = true)
+        ).assertIsDisplayed()
+
+        // Verify suggestion to change availability/duration
+        composeTestRule.onNode(
+            hasText("adjust", substring = true, ignoreCase = true)
+                .and(hasText("availability", substring = true, ignoreCase = true)
+                    .or(hasText("duration", substring = true, ignoreCase = true)))
+        ).assertIsDisplayed()
+    }
+
+    // Helper functions
+    /**
+     * Wait for route calculation to complete
+     * First waits for loading indicator to appear, then waits for it to disappear,
+     * then waits for route_summary to appear
+     */
+    private fun waitForRouteCalculation(maxTimeoutMillis: Long = 60000L) {
+        // Short wait to see if loading appears (non-fatal if it doesn't)
+        val loadingShown = try {
+            composeTestRule.waitUntil(5_000) {
+                composeTestRule.onAllNodesWithTag("route_loading").fetchSemanticsNodes().isNotEmpty() ||
+                composeTestRule.onAllNodesWithText("Calculating optimal route", substring = true, ignoreCase = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            true
+        } catch (_: Throwable) {
+            // Loading didn't show within 5s, might already be done
+            false
+        }
+
+        // If loading was shown, wait for it to disappear
+        if (loadingShown) {
+            composeTestRule.waitUntil(maxTimeoutMillis) {
+                composeTestRule.onAllNodesWithTag("route_loading").fetchSemanticsNodes().isEmpty() &&
+                composeTestRule.onAllNodesWithText("Calculating optimal route", substring = true, ignoreCase = true)
+                    .fetchSemanticsNodes().isEmpty()
+            }
+            composeTestRule.waitForIdle()
+        }
+
+        // Finally wait for the route summary to appear
+        composeTestRule.waitUntil(maxTimeoutMillis) {
+            composeTestRule.onAllNodesWithTag("route_summary").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.waitForIdle()
+    }
+}

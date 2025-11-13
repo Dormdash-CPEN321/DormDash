@@ -31,10 +31,10 @@ export class JobService {
   
   // Helper to add credits to mover when job is completed
   private async addCreditsToMover(job: Job | null) {
-    // if (!job?.moverId) {
-    //   logger.warn('No mover assigned to job, skipping credits');
-    //   return;
-    // }
+    if (!job?.moverId) {
+      logger.warn('No mover assigned to job, skipping credits');
+      return;
+    }
 
     try {
       // Extract moverId using utility

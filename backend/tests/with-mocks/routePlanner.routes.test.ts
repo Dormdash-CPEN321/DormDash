@@ -59,12 +59,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         
-        // Set default return values for mongoose util mocks
         mockExtractObjectId.mockReturnValue(testMoverId);
         mockExtractObjectIdString.mockReturnValue(testMoverId.toString());
         mockIsValidObjectId.mockReturnValue(true);
         
-        // Set default mock user in auth middleware
         const authMiddleware = require('../../src/middleware/auth.middleware');
         authMiddleware.authenticateToken = (req: any, res: any, next: any) => {
             req.user = {
@@ -75,6 +73,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         };
     });
 
+    // Mocked behavior: userModel.findById returns mover with availability, jobService.getAllAvailableJobs returns jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon query params, authenticated mover
+    // Expected status code: 200
+    // Expected behavior: returns optimized route with jobs matching mover availability and location
+    // Expected output: route object with jobs array, total distance, duration, earnings
     test('should return smart route for authenticated mover', async () => {
         // Mock mover with availability
         const mockMover = {
@@ -128,6 +131,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockJobService.getAllAvailableJobs).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById returns mover with availability
+    // Input: GET /api/routePlanner/smart without currentLat or currentLon query params
+    // Expected status code: 400
+    // Expected behavior: validation fails due to missing required parameters
+    // Expected output: error message "Invalid location parameters"
     test('should require currentLat and currentLon parameters', async () => {
         mockUserModel.findById.mockResolvedValue({
             _id: testMoverId,
@@ -143,6 +151,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.message).toContain('Invalid location parameters');
     });
 
+    // Mocked behavior: userModel.findById returns mover with availability
+    // Input: GET /api/routePlanner/smart with non-numeric currentLat or currentLon
+    // Expected status code: 400
+    // Expected behavior: validation fails due to invalid parameter types
+    // Expected output: error message "Invalid location parameters"
     test('should validate currentLat and currentLon are numbers', async () => {
         mockUserModel.findById.mockResolvedValue({
             _id: testMoverId,
@@ -162,6 +175,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.message).toContain('Invalid location parameters');
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService.getAllAvailableJobs returns empty jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon, and optional maxDuration=120
+    // Expected status code: 200
+    // Expected behavior: accepts optional maxDuration parameter and returns route
+    // Expected output: success message with data object containing route
     test('should accept optional maxDuration parameter', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -190,6 +208,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body).toHaveProperty('data');
     });
 
+    // Mocked behavior: userModel.findById returns mover with availability
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon, and negative maxDuration=-10
+    // Expected status code: 400
+    // Expected behavior: validation fails due to negative maxDuration value
+    // Expected output: error message about invalid maxDuration
     test('should validate maxDuration is a positive number', async () => {
         mockUserModel.findById.mockResolvedValue({
             _id: testMoverId,
@@ -210,6 +233,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.message).toContain('Invalid maxDuration parameter');
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService.getAllAvailableJobs returns jobs array
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: returns route with all required fields for each job
+    // Expected output: route array with jobs containing jobId, orderId, studentId, jobType, volume, price, addresses, times
     test('should return route with proper structure', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -282,6 +310,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.startLocation).toHaveProperty('lon', testLocation.lon);
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService.getAllAvailableJobs returns empty jobs array
+    // Input: GET /api/routePlanner/smart with currentLat=0, currentLon=0
+    // Expected status code: 200
+    // Expected behavior: returns empty route when no jobs are available
+    // Expected output: message "No jobs available matching your schedule", empty route array
     test('should return empty route if no jobs available', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -311,6 +344,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBe(0);
     });
 
+    // Mocked behavior: userModel.findById returns null (mover not found)
+    // Input: GET /api/routePlanner/smart with valid currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: returns empty route when mover is not found in database
+    // Expected output: message "No jobs available matching your schedule", empty route array
     test('should return empty route if mover not found', async () => {
         mockUserModel.findById.mockResolvedValue(null);
 
@@ -329,6 +367,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBe(0);
     });
 
+    // Mocked behavior: userModel.findById returns mover without availability field
+    // Input: GET /api/routePlanner/smart with valid currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: returns empty route when mover has no availability schedule
+    // Expected output: message "No jobs available matching your schedule", empty route array
     test('should return empty route if mover has no availability', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -352,6 +395,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBe(0);
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService.getAllAvailableJobs returns jobs with large volume
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon, maxDuration=30
+    // Expected status code: 200
+    // Expected behavior: filters out jobs that would exceed maxDuration constraint
+    // Expected output: empty or filtered route excluding jobs exceeding maxDuration
     test('should not suggest jobs that exceed maxDuration', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -399,6 +447,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(Array.isArray(response.body.data.route)).toBe(true);
     });
 
+    // Mocked behavior: userModel.findById returns mover with null _id
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: handles invalid moverId gracefully by returning empty route
+    // Expected output: message "No jobs available matching your schedule", empty route array
     test('should handle invalid moverId (returns empty route)', async () => {
         // Mock extractObjectId to return null (invalid moverId)
         const mockMover = {
@@ -424,6 +477,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(Array.isArray(response.body.data.route)).toBe(true);
     });
 
+    // Mocked behavior: userModel.findById rejects with database error
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 500
+    // Expected behavior: catches database error and returns 500 error
+    // Expected output: error message "Database connection failed"
     test('should handle database error in userModel.findById', async () => {
         mockUserModel.findById.mockRejectedValue(new Error('Database connection failed'));
 
@@ -440,6 +498,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockUserModel.findById).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById succeeds, jobService.getAllAvailableJobs rejects with error
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 500
+    // Expected behavior: catches job service error and returns 500 error
+    // Expected output: error message from jobService.getAllAvailableJobs failure
     test('should handle database error in jobService.getAllAvailableJobs', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -464,6 +527,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockJobService.getAllAvailableJobs).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById succeeds, jobService.getAllAvailableJobs returns jobs with missing/invalid lat/lon
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: skips jobs with invalid location data, returns valid jobs only
+    // Expected output: route excluding jobs without valid pickupAddress or dropoffAddress coordinates
     test('should handle jobs with invalid location data', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -512,6 +580,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBe(0);
     });
 
+    // Mocked behavior: userModel.findById returns mover with MON availability, jobService returns jobs scheduled outside MON 9-5
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: filters out jobs scheduled outside mover availability window
+    // Expected output: empty route as no jobs match availability
     test('should handle jobs that do not match mover availability', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -559,6 +632,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(Array.isArray(response.body.data.route)).toBe(true);
     });
 
+    // Mocked behavior: userModel.findById succeeds, jobService.getAllAvailableJobs rejects with generic error
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 500
+    // Expected behavior: catches service error and returns 500 status
+    // Expected output: error message "Service error"
     test('should handle service error (500)', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -582,6 +660,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body).toHaveProperty('message', 'Failed to calculate smart route');
     });
 
+    // Mocked behavior: routeController.getSmartRoute rejects with promise rejection error
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 500
+    // Expected behavior: route handler .catch() block calls next(err), error middleware handles it
+    // Expected output: 500 error status from error middleware
     test('should call next(err) when controller promise rejects', async () => {
         // Get reference to the actual controller instance used by the route
         const controllerModule = require('../../src/controllers/routePlanner.controller');
@@ -608,6 +691,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         controller.getSmartRoute = originalMethod;
     });
 
+    // Mocked behavior: none (direct controller call with req.user=undefined)
+    // Input: controller called with req.user=undefined, query with currentLat, currentLon
+    // Expected status code: 401
+    // Expected behavior: controller detects missing user._id and returns 401 unauthorized
+    // Expected output: error message "Mover ID not found in request"
     test('should return 401 when mover ID is not found in request', async () => {
         // Since the middleware guarantees req.user._id exists in production,
         // this test directly calls the controller with a mocked req object
@@ -635,6 +723,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         });
     });
 
+    // Mocked behavior: extractObjectIdString throws ZodError
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 400
+    // Expected behavior: catches ZodError and returns 400 validation error
+    // Expected output: error message "Invalid request parameters: Validation failed"
     test('should return 400 for ZodError validation failures', async () => {
         // Mock the schema validation to throw a ZodError
         const zodModule = require('zod');
@@ -670,6 +763,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         utilsModule.extractObjectIdString = originalExtract;
     });
 
+    // Mocked behavior: userModel.findById returns mover with availability, jobService returns jobs scheduled within availability
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: returns route with jobs, message includes job count
+    // Expected output: message "Smart route calculated with X jobs", route array with jobs
     test('should return message with job count when route has jobs', async () => {
         // Create a Monday at 10:00 AM (within availability window)
         const nextMonday = new Date();
@@ -728,6 +826,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         }
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService.getAllAvailableJobs returns empty array
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: returns empty route with appropriate message
+    // Expected output: message "No jobs available matching your schedule", empty route array
     test('should return "no jobs" message when route is empty', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -757,6 +860,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBe(0);
     });
 
+    // Mocked behavior: userModel.findById returns mover with SAT availability, jobService returns Saturday jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: correctly handles Saturday availability and matches Saturday jobs
+    // Expected output: route with Saturday jobs matching SAT availability window
     test('should handle Saturday availability', async () => {
         const nextSaturday = new Date();
         nextSaturday.setDate(nextSaturday.getDate() + ((6 + 7 - nextSaturday.getDay()) % 7 || 7));
@@ -805,6 +913,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockUserModel.findById).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById returns mover with SUN availability, jobService returns Sunday jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: correctly handles Sunday availability and matches Sunday jobs
+    // Expected output: route with Sunday jobs matching SUN availability window
     test('should handle Sunday availability', async () => {
         const nextSunday = new Date();
         nextSunday.setDate(nextSunday.getDate() + ((7 - nextSunday.getDay()) % 7 || 7));
@@ -853,6 +966,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockUserModel.findById).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById returns mover with TUE availability, jobService returns Tuesday jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: correctly handles Tuesday availability and matches Tuesday jobs
+    // Expected output: route with Tuesday jobs matching TUE availability window
     test('should handle Tuesday availability', async () => {
         const nextTuesday = new Date();
         nextTuesday.setDate(nextTuesday.getDate() + ((2 + 7 - nextTuesday.getDay()) % 7 || 7));
@@ -901,6 +1019,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockUserModel.findById).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById returns mover with FRI availability, jobService returns Friday jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: correctly handles Friday availability and matches Friday jobs
+    // Expected output: route with Friday jobs matching FRI availability window
     test('should handle Friday availability', async () => {
         const nextFriday = new Date();
         nextFriday.setDate(nextFriday.getDate() + ((5 + 7 - nextFriday.getDay()) % 7 || 7));
@@ -949,6 +1072,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockUserModel.findById).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById returns mover with empty array for a specific day
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: handles days with empty availability array gracefully
+    // Expected output: empty route for jobs scheduled on days with no availability
     test('should handle empty availability for a day', async () => {
         const nextWednesday = new Date();
         nextWednesday.setDate(nextWednesday.getDate() + ((3 + 7 - nextWednesday.getDay()) % 7 || 7));
@@ -997,6 +1125,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBe(0);
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService returns jobs with invalid dropoff address (missing lat/lon)
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: skips jobs with invalid dropoff location data
+    // Expected output: empty route as jobs with invalid dropoff addresses are filtered out
     test('should handle jobs with invalid dropoff location data', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -1042,6 +1175,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBe(0);
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService returns jobs scheduled too soon to reach
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: filters out jobs where travel time from current location makes arrival impossible before scheduled time
+    // Expected output: empty route as infeasible jobs are excluded
     test('should handle jobs that cannot be reached in time', async () => {
         // Create two jobs - one reachable and one that cannot be reached
         // This will test the "No more feasible jobs" break statement on line 398
@@ -1114,6 +1252,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBeLessThan(2);
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService returns multiple jobs at different locations
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: calculates accurate distance, duration, and earnings metrics for route
+    // Expected output: metrics with totalDistance, totalDuration, totalEarnings, earningsPerHour
     test('should calculate distance and route metrics correctly', async () => {
         // Create a Monday at 10:00 AM with jobs at different locations
         const nextMonday = new Date();
@@ -1185,6 +1328,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         }
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService returns jobs spanning multiple hours
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon, maxDuration constraint
+    // Expected status code: 200
+    // Expected behavior: respects maxDuration based on active work time (excludes wait time between jobs)
+    // Expected output: route with jobs that fit within maxDuration of active work time
     test('should respect maxDuration with active work time only', async () => {
         // Create a Monday at 10:00 AM
         const nextMonday = new Date();
@@ -1260,6 +1408,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         }
     });
 
+    // Mocked behavior: userModel.findById returns mover with MON 9-5 availability, jobService returns job at 6 PM
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: filters out jobs scheduled outside mover's availability time window
+    // Expected output: empty route as jobs are outside 9-5 availability window
     test('should filter jobs outside mover availability window', async () => {
         // Create a Monday at 18:00 (6 PM) - outside availability
         const nextMonday = new Date();
@@ -1309,6 +1462,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(response.body.data.route.length).toBe(0);
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService returns jobs with scheduledTime as ISO string
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: correctly parses ISO string scheduledTime and includes in route
+    // Expected output: route with jobs processed correctly with string scheduledTime
     test('should handle jobs scheduled with string scheduledTime', async () => {
         // Create a Monday at 10:00 AM
         const nextMonday = new Date();
@@ -1359,6 +1517,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockJobService.getAllAvailableJobs).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService.getAllAvailableJobs returns empty array
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: calculates metrics correctly for empty route (all zeros)
+    // Expected output: metrics with totalEarnings=0, totalJobs=0, totalDistance=0, totalDuration=0, earningsPerHour=0
     test('should calculate empty route metrics correctly', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -1392,6 +1555,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         });
     });
 
+    // Mocked behavior: userModel.findById returns mover, jobService returns job where mover arrives before scheduled time
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: handles early arrival scenario, includes wait time in calculations
+    // Expected output: route with job included, estimatedStartTime set to scheduledTime (waits for scheduled time)
     test('should handle early arrival with feasibility check', async () => {
         // Create a Monday at 14:00 (2 PM) - far in future so we can arrive early
         const nextMonday = new Date();
@@ -1442,6 +1610,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(Array.isArray(response.body.data.route)).toBe(true);
     });
 
+    // Mocked behavior: extractObjectId returns null (invalid moverId), userModel.findById still called
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: handles null moverId gracefully, returns empty route
+    // Expected output: empty route with zero metrics
     test('should handle extractObjectId returning null for invalid moverId', async () => {
         // Mock extractObjectId to return null (simulating invalid ObjectId format)
         mockExtractObjectId.mockReturnValueOnce(null);
@@ -1483,6 +1656,11 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockUserModel.findById).not.toHaveBeenCalled();
     });
 
+    // Mocked behavior: Date.prototype.getDay mocked to return invalid day number (7), userModel returns mover with SUN availability
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: convertToDayOfWeek default case returns 'SUN', matches SUN availability
+    // Expected output: route potentially includes job as default day (SUN) matches mover availability
     test('should handle invalid day number to trigger default cases in convertToDayOfWeek', async () => {
         const mockMover = {
             _id: testMoverId,
@@ -1493,9 +1671,7 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         
         // Save original Date.prototype.getDay
         const originalGetDay = Date.prototype.getDay;
-        
-        // Mock Date.prototype.getDay to return an invalid day number (7)
-        // This will trigger the default case in convertToDayOfWeek (line 525) which returns 'SUN'
+
         Date.prototype.getDay = jest.fn().mockReturnValue(7) as any;
         
         const mockJobs = [

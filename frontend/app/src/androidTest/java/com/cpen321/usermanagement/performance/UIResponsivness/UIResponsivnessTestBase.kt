@@ -12,6 +12,8 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
 import org.junit.Rule
+import org.junit.After
+
 
 @HiltAndroidTest
 abstract class UIResponsivnessTestBase {
@@ -25,33 +27,47 @@ abstract class UIResponsivnessTestBase {
     protected lateinit var device: UiDevice
     protected val appPackage = "com.cpen321.usermanagement"
     private val launchTimeout = 5000L
+    protected val timeout = 100L // 0.1 seconds time out for elements to appear
+
+    companion object {
+        @Volatile
+        private var isSetupDone = false
+        private val setupLock = Any()
+    }
 
     @Before
     fun baseSetup() {
-        hiltRule.inject()
+        // Initialize device and inject for this test instance
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        hiltRule.inject()
+        
+        if (isSetupDone) return
+        
+        synchronized(setupLock) {
+            if (isSetupDone) return
+            isSetupDone = true
 
-        // Wake and unlock device
-        if (!device.isScreenOn) device.wakeUp()
-        device.swipe(500, 1000, 500, 100, 10)
-        device.pressHome()
+            // Wake and unlock device
+            if (!device.isScreenOn) device.wakeUp()
+            device.swipe(500, 1000, 500, 100, 10)
+            device.pressHome()
 
-        // Launch MainActivity via Intent
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val intent = Intent(context, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            // Launch MainActivity via Intent
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val intent = Intent(context, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+
+            // Wait for the app to appear
+            device.wait(Until.hasObject(By.pkg(appPackage).depth(0)), launchTimeout)
+
+            composeTestRule.waitForIdle()
+
+            grantNotificationPermission()
+            SignIn()
         }
-        context.startActivity(intent)
-
-        // Wait for the app to appear
-        device.wait(Until.hasObject(By.pkg(appPackage).depth(0)), launchTimeout)
-
-        composeTestRule.waitForIdle()
-
-        grantNotificationPermission()
-
-        SignIn()
     }
 
     protected fun grantNotificationPermission() {
@@ -85,5 +101,29 @@ abstract class UIResponsivnessTestBase {
         }
 
         composeTestRule.waitForIdle()
+    }
+
+    @After
+    fun resetToHome() {
+        try {
+            repeat(5) {
+                val isHomeScreen = composeTestRule.onAllNodesWithText("DormDash", useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+
+                if (isHomeScreen) return
+
+                device.pressBack()
+                composeTestRule.waitForIdle()
+            }
+
+            // Final verification — wait up to 3 seconds for "Your orders" to appear
+            composeTestRule.waitUntil(timeoutMillis = 3000) {
+                composeTestRule.onAllNodesWithText("DormDash", useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

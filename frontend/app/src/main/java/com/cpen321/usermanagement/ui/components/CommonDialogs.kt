@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -17,10 +18,16 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HourSelector(
     selectedHour: Int,
-    onHourChange: (Int) -> Unit
+    onHourChange: (Int) -> Unit,
+    testTagPrefix: String = ""
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        IconButton(onClick = { onHourChange((selectedHour + 1) % 24) }) {
+        IconButton(
+            onClick = { onHourChange((selectedHour + 1) % 24) },
+            modifier = if (testTagPrefix.isNotEmpty()) 
+                Modifier.testTag("${testTagPrefix}_increase_hour") 
+            else Modifier
+        ) {
             Icon(
                 Icons.Default.Add,
                 contentDescription = "Increase hour",
@@ -32,7 +39,12 @@ fun HourSelector(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
-        IconButton(onClick = { onHourChange(if (selectedHour > 0) selectedHour - 1 else 23) }) {
+        IconButton(
+            onClick = { onHourChange(if (selectedHour > 0) selectedHour - 1 else 23) },
+            modifier = if (testTagPrefix.isNotEmpty()) 
+                Modifier.testTag("${testTagPrefix}_decrease_hour") 
+            else Modifier
+        ) {
             Icon(
                 Icons.Default.Remove,
                 contentDescription = "Decrease hour",
@@ -81,11 +93,12 @@ fun TimePickerDialog(
     initialHour: Int,
     initialMinute: Int,
     onTimeSelected: (Int, Int) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    testTagPrefix: String = ""
 ) {
     var selectedHour by remember { mutableStateOf(initialHour) }
     var selectedMinute by remember { mutableStateOf(initialMinute) }
-
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Time") },
@@ -95,14 +108,18 @@ fun TimePickerDialog(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                HourSelector(selectedHour = selectedHour, onHourChange = { selectedHour = it })
-
+                HourSelector(
+                    selectedHour = selectedHour, 
+                    onHourChange = { selectedHour = it },
+                    testTagPrefix = testTagPrefix
+                )
+                
                 Text(
                     text = ":",
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
-
+                
                 MinuteSelector(selectedMinute = selectedMinute, onMinuteChange = { selectedMinute = it })
             }
         },

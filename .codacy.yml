@@ -2,3 +2,4 @@
 exclude_paths:
   - "frontend/app/src/androidTest/**"
   - "backend/tests/**"
+  - "backend/src/controllers/loadTest.controller.ts"

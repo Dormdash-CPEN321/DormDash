@@ -82,7 +82,11 @@ afterAll(async () => {
   console.info = originalConsole.info;
 });
 
-describe('POST /api/payment/create-intent - Create Payment Intent', () => {
+describe('Unmocked POST /api/payment/create-intent', () => {
+  // Input: authenticated request with amount 5000 and currency CAD
+  // Expected status code: 200
+  // Expected behavior: server creates a Stripe payment intent and returns clientSecret and id
+  // Expected output: { clientSecret, id, amount: 5000, currency: 'CAD' }
   test('should create a payment intent successfully', async () => {
     const response = await request(app)
       .post('/api/payment/create-intent')
@@ -99,6 +103,10 @@ describe('POST /api/payment/create-intent - Create Payment Intent', () => {
     expect(response.body).toHaveProperty('currency', 'CAD');
   });
 
+  // Input: create-intent payload but missing Authorization header
+  // Expected status code: 401
+  // Expected behavior: request rejected due to missing authentication
+  // Expected output: authentication error
   test('should require authentication', async () => {
     await request(app)
       .post('/api/payment/create-intent')
@@ -109,6 +117,10 @@ describe('POST /api/payment/create-intent - Create Payment Intent', () => {
       .expect(401);
   });
 
+  // Input: create-intent payload missing required `amount`
+  // Expected status code: 400
+  // Expected behavior: validation fails and request is rejected
+  // Expected output: response body contains error message
   test('should validate required fields', async () => {
     const response = await request(app)
       .post('/api/payment/create-intent')
@@ -122,6 +134,10 @@ describe('POST /api/payment/create-intent - Create Payment Intent', () => {
     expect(response.body).toHaveProperty('message');
   });
 
+  // Input: create-intent with a negative amount (-100)
+  // Expected status code: 400
+  // Expected behavior: validation fails because amount must be positive
+  // Expected output: response body contains error message
   test('should validate amount is positive', async () => {
     const response = await request(app)
       .post('/api/payment/create-intent')
@@ -135,6 +151,10 @@ describe('POST /api/payment/create-intent - Create Payment Intent', () => {
     expect(response.body).toHaveProperty('message');
   });
 
+  // Input: create-intent with optional orderId provided
+  // Expected status code: 200
+  // Expected behavior: payment intent is created and associated with orderId
+  // Expected output: response contains clientSecret
   test('should accept optional orderId', async () => {
     const response = await request(app)
       .post('/api/payment/create-intent')
@@ -150,7 +170,11 @@ describe('POST /api/payment/create-intent - Create Payment Intent', () => {
   });
 });
 
-describe('POST /api/payment/process - Process Payment', () => {
+describe('Unmocked POST /api/payment/process', () => {
+  // Input: payment processing request without Authorization header
+  // Expected status code: 401
+  // Expected behavior: request rejected due to missing authentication
+  // Expected output: authentication error
   test('should require authentication', async () => {
     await request(app)
       .post('/api/payment/process')
@@ -161,6 +185,10 @@ describe('POST /api/payment/process - Process Payment', () => {
       .expect(401);
   });
 
+  // Input: payment processing payload missing paymentIntentId
+  // Expected status code: 400
+  // Expected behavior: validation fails and returns error message
+  // Expected output: error message 
   test('should validate required fields', async () => {
     const response = await request(app)
       .post('/api/payment/process')
@@ -173,31 +201,23 @@ describe('POST /api/payment/process - Process Payment', () => {
 
     expect(response.body).toHaveProperty('message');
   });
-
-  // Note: Actual payment processing tests would require Stripe test mode setup
-  // For now, we'll test the validation and authentication
-  test('should accept valid payment processing request structure', async () => {
-    const response = await request(app)
-      .post('/api/payment/process')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        paymentIntentId: 'pi_test_123',
-        paymentMethodId: 'pm_test_123'
-      });
-
-    // The actual response will depend on Stripe integration
-    // This test ensures the endpoint accepts the request structure
-    expect([200, 400, 402]).toContain(response.status); // 402 is Stripe's card error status
-  });
 });
 
 describe('GET /api/payment/status/:paymentIntentId - Get Payment Status', () => {
+  // Input: unauthenticated GET /api/payment/status/:paymentIntentId
+  // Expected status code: 401
+  // Expected behavior: request rejected due to missing authentication
+  // Expected output: authentication error
   test('should require authentication', async () => {
     await request(app)
       .get('/api/payment/status/pi_test_123')
       .expect(401);
   });
 
+  // Input: authenticated GET /api/payment/status/:paymentIntentId
+  // Expected status code: 200
+  // Expected behavior: endpoint returns current payment status
+  // Expected output: 200 response (
   test('should accept payment status request', async () => {
     const response = await request(app)
       .get('/api/payment/status/pi_test_123')

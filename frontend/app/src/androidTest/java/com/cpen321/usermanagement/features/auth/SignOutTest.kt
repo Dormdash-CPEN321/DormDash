@@ -6,10 +6,28 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Test suite for the Sign-Out functionality.
+ * 
+ * Tests that users can successfully sign out and are returned to the
+ * authentication screen.
+ */
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class SignOutTest : AuthTestBase() {
 
+    /**
+     * Tests the complete sign-out flow.
+     * 
+     * Test Steps:
+     * 1. Signs in using the test account
+     * 2. Navigates to profile screen by clicking the profile button
+     * 3. Clicks the "Sign Out" button
+     * 4. Waits for navigation back to auth screen
+     * 5. Verifies presence of "Sign in with Google" button
+     * 
+     * Expected Result: User is signed out and returned to auth screen
+     */
     @Test
     fun signOut_returnsToAuthScreen() {
         // Step 1: Sign in first

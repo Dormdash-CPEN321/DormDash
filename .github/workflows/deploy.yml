@@ -1,50 +1,50 @@
-# name: Deploy to EC2
-# on:
-#   push:
-#     branches:
-#       - main
+name: Deploy to EC2
+on:
+  push:
+    branches:
+      - main
 
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout
-#         uses: actions/checkout@v3
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       
-#       - name: Copy files to EC2
-#         uses: appleboy/scp-action@master
-#         with:
-#           host: ${{ secrets.EC2_HOST }}
-#           username: ${{ secrets.EC2_USER }}
-#           key: ${{ secrets.EC2_KEY }}
-#           source: "."
-#           target: "/home/ubuntu/dormdash-project"
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: "."
+          target: "/home/ubuntu/dormdash-project"
 
-#       - name: Rebuild and Deploy
-#         uses: appleboy/ssh-action@master
-#         with:
-#           host: ${{ secrets.EC2_HOST }}
-#           username: ${{ secrets.EC2_USER }}
-#           key: ${{ secrets.EC2_KEY }}
-#           script: |
-#             cd /home/ubuntu/dormdash-project/backend
+      - name: Rebuild and Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd /home/ubuntu/dormdash-project/backend
 
-#             # Write Secrets into .env
-#             cat > .env <<EOF
-#             PORT=${{ secrets.PROD_PORT }}
-#             MONGODB_URI=${{ secrets.PROD_DB_URI }}
-#             JWT_SECRET=${{ secrets.JWT_SECRET }}
-#             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-#             STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-#             STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
-#             EOF
+            # Write Secrets into .env
+            cat > .env <<EOF
+            PORT=${{ secrets.PROD_PORT }}
+            MONGODB_URI=${{ secrets.PROD_DB_URI }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+            EOF
 
-#             cat > serviceAccountKey.json <<EOF
-#             ${{ secrets.SERVICE_ACCOUNT_KEY }}
-#             EOF
+            cat > serviceAccountKey.json <<EOF
+            ${{ secrets.SERVICE_ACCOUNT_KEY }}
+            EOF
 
-#             # Give .env permissions
-#             chmod 600 .env
+            # Give .env permissions
+            chmod 600 .env
 
 #             # Build and run container
 #             docker-compose down

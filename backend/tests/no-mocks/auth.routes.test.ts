@@ -5,10 +5,6 @@ import mongoose from 'mongoose';
 import app from '../../src/app';
 import { connectDB, disconnectDB } from '../../src/config/database';
 import { userModel } from '../../src/models/user.model';
-import { jobModel } from '../../src/models/job.model';
-import { orderModel } from '../../src/models/order.model';
-import { JobStatus, JobType } from '../../src/types/job.type';
-import { OrderStatus } from '../../src/types/order.types';
 
 const originalWarn = console.warn;
 let authToken: string;
@@ -77,7 +73,11 @@ afterAll(async () => {
     console.warn = originalWarn; 
 });
 
-describe('POST /api/auth/signup - Sign Up with Google', () => {
+describe('Unmocked POST /api/auth/signup', () => {
+    // Input: invalid Google idToken string
+    // Expected status code: 401
+    // Expected behavior: request is rejected due to invalid token
+    // Expected output: { message: 'Invalid Google token' }
     test('should return 401 for invalid Google token', async () => {
         const response = await request(app)
             .post('/api/auth/signup')
@@ -87,6 +87,10 @@ describe('POST /api/auth/signup - Sign Up with Google', () => {
         expect(response.body.message).toBe('Invalid Google token');
     });
 
+    // Input: request body missing idToken
+    // Expected status code: 400
+    // Expected behavior: validation fails
+    // Expected output: error details (body)
     test('should return 400 for missing idToken', async () => {
         const response = await request(app)
             .post('/api/auth/signup')
@@ -95,6 +99,10 @@ describe('POST /api/auth/signup - Sign Up with Google', () => {
         expect(response.status).toBe(400);
     });
 
+    // Input: idToken of wrong type (number)
+    // Expected status code: 400
+    // Expected behavior: validation fails
+    // Expected output: error details (body)
     test('should return 400 for invalid idToken type', async () => {
         const response = await request(app)
             .post('/api/auth/signup')
@@ -104,7 +112,11 @@ describe('POST /api/auth/signup - Sign Up with Google', () => {
     });
 });
 
-describe('POST /api/auth/signin - Sign In with Google', () => {
+describe('Unmocked POST /api/auth/signin', () => {
+    // Input: invalid Google idToken string
+    // Expected status code: 401
+    // Expected behavior: signin rejected due to invalid token
+    // Expected output: { message: 'Invalid Google token' }
     test('should return 401 for invalid Google token', async () => {
         const response = await request(app)
             .post('/api/auth/signin')
@@ -114,6 +126,10 @@ describe('POST /api/auth/signin - Sign In with Google', () => {
         expect(response.body.message).toBe('Invalid Google token');
     });
 
+    // Input: request body missing idToken
+    // Expected status code: 400
+    // Expected behavior: validation fails
+    // Expected output: error details (body)
     test('should return 400 for missing idToken', async () => {
         const response = await request(app)
             .post('/api/auth/signin')
@@ -122,6 +138,10 @@ describe('POST /api/auth/signin - Sign In with Google', () => {
         expect(response.status).toBe(400);
     });
 
+    // Input: idToken of wrong type (object)
+    // Expected status code: 400
+    // Expected behavior: validation fails
+    // Expected output: error details (body)
     test('should return 400 for invalid idToken type', async () => {
         const response = await request(app)
             .post('/api/auth/signin')
@@ -131,7 +151,11 @@ describe('POST /api/auth/signin - Sign In with Google', () => {
     });
 });
 
-describe('POST /api/auth/select-role - Select User Role', () => {
+describe('Unmocked POST /api/auth/select-role', () => {
+    // Input: authenticated user, userRole: 'STUDENT'
+    // Expected status code: 200
+    // Expected behavior: user's role is updated to STUDENT
+    // Expected output: message and updated user data with userRole 'STUDENT'
     test('should successfully select STUDENT role for authenticated user', async () => {
         const response = await request(app)
             .post('/api/auth/select-role')
@@ -143,6 +167,10 @@ describe('POST /api/auth/select-role - Select User Role', () => {
         expect(response.body.data.user.userRole).toBe('STUDENT');
     });
 
+    // Input: authenticated user, userRole: 'MOVER'
+    // Expected status code: 200
+    // Expected behavior: user's role is updated to MOVER and credits initialized to 0
+    // Expected output: message and updated user data with userRole 'MOVER' and credits 0
     test('should successfully select MOVER role and initialize credits to 0', async () => {
         const response = await request(app)
             .post('/api/auth/select-role')
@@ -155,6 +183,10 @@ describe('POST /api/auth/select-role - Select User Role', () => {
         expect(response.body.data.user.credits).toBe(0);
     });
 
+    // Input: no Authorization token provided
+    // Expected status code: 401
+    // Expected behavior: request rejected due to missing authentication
+    // Expected output: error details (body)
     test('should return 401 for missing authentication token', async () => {
         const response = await request(app)
             .post('/api/auth/select-role')
@@ -163,6 +195,10 @@ describe('POST /api/auth/select-role - Select User Role', () => {
         expect(response.status).toBe(401);
     });
 
+    // Input: invalid Authorization token provided
+    // Expected status code: 401
+    // Expected behavior: request rejected due to invalid token
+    // Expected output: error details (body)
     test('should return 401 for invalid authentication token', async () => {
         const response = await request(app)
             .post('/api/auth/select-role')
@@ -172,6 +208,10 @@ describe('POST /api/auth/select-role - Select User Role', () => {
         expect(response.status).toBe(401);
     });
 
+    // Input: authenticated request missing userRole field
+    // Expected status code: 400
+    // Expected behavior: validation fails and role is not changed
+    // Expected output: error details (body)
     test('should return 400 for missing userRole', async () => {
         const response = await request(app)
             .post('/api/auth/select-role')
@@ -181,6 +221,10 @@ describe('POST /api/auth/select-role - Select User Role', () => {
         expect(response.status).toBe(400);
     });
 
+    // Input: authenticated request with invalid userRole value
+    // Expected status code: 400
+    // Expected behavior: validation fails and role is not changed
+    // Expected output: error details (body)
     test('should return 400 for invalid userRole', async () => {
         const response = await request(app)
             .post('/api/auth/select-role')

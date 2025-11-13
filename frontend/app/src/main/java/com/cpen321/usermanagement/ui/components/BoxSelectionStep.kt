@@ -307,7 +307,9 @@ private fun DateTimeSelectionSection(
         hour = display.pickupHour,
         minute = display.pickupMinute,
         onDateClick = actions.onShowPickupDatePicker,
-        onTimeClick = actions.onShowPickupTimePicker
+        onTimeClick = actions.onShowPickupTimePicker,
+        dateTestTag = "pickup_date_button",
+        timeTestTag = "pickup_time_button"
     )
     
     Spacer(modifier = Modifier.height(24.dp))
@@ -325,7 +327,9 @@ private fun DateTimeSelectionSection(
         hour = display.returnHour,
         minute = display.returnMinute,
         onDateClick = actions.onShowReturnDatePicker,
-        onTimeClick = actions.onShowReturnTimePicker
+        onTimeClick = actions.onShowReturnTimePicker,
+        dateTestTag = "return_date_button",
+        timeTestTag = "return_time_button"
     )
     
     if (display.isReturnBeforePickup) {
@@ -340,7 +344,9 @@ private fun DateTimeRow(
     hour: Int,
     minute: Int,
     onDateClick: () -> Unit,
-    onTimeClick: () -> Unit
+    onTimeClick: () -> Unit,
+    dateTestTag: String = "",
+    timeTestTag: String = ""
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -349,22 +355,26 @@ private fun DateTimeRow(
         DateCard(
             date = date,
             onClick = onDateClick,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            testTag = dateTestTag
         )
         
         TimeCard(
             hour = hour,
             minute = minute,
             onClick = onTimeClick,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            testTag = timeTestTag
         )
     }
 }
 
 @Composable
-private fun DateCard(date: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun DateCard(date: String, onClick: () -> Unit, modifier: Modifier = Modifier, testTag: String = "") {
     OutlinedCard(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier
+        ),
         onClick = onClick
     ) {
         Row(
@@ -393,9 +403,11 @@ private fun DateCard(date: String, onClick: () -> Unit, modifier: Modifier = Mod
 }
 
 @Composable
-private fun TimeCard(hour: Int, minute: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun TimeCard(hour: Int, minute: Int, onClick: () -> Unit, modifier: Modifier = Modifier, testTag: String = "") {
     OutlinedCard(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier
+        ),
         onClick = onClick
     ) {
         Row(
@@ -492,7 +504,8 @@ private fun DateTimePickerDialogs(
             initialHour = dateTimeState.pickupHour,
             initialMinute = dateTimeState.pickupMinute,
             onTimeSelected = onPickupTimeSelected,
-            onDismiss = { onDismiss("pickupTime") }
+            onDismiss = { onDismiss("pickupTime") },
+            testTagPrefix = "pickup_time"
         )
     }
     
@@ -511,7 +524,8 @@ private fun DateTimePickerDialogs(
             initialHour = dateTimeState.returnHour,
             initialMinute = dateTimeState.returnMinute,
             onTimeSelected = onReturnTimeSelected,
-            onDismiss = { onDismiss("returnTime") }
+            onDismiss = { onDismiss("returnTime") },
+            testTagPrefix = "return_time"
         )
     }
 }

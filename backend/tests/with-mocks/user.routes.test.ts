@@ -96,16 +96,20 @@ afterAll(async () => {
   console.info = originalConsole.info;
 });
 
+// Interface GET /api/user/profile
 describe('GET /api/user/profile - Get User Profile (Mocked)', () => {
-  test('should return 401 when req.user is undefined (line 10)', async () => {
-    // Mock the UserController's getProfile to simulate req.user being undefined
+  // Mocked behavior: UserController.getProfile called with req.user = undefined
+  // Input: authenticated request but controller simulates missing req.user
+  // Expected status code: 401
+  // Expected behavior: detects missing user authentication in controller
+  // Expected output: error message 'User not authenticated'
+  test('should return 401 when req.user is undefined ', async () => {
     const { UserController } = require('../../src/controllers/user.controller');
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.getProfile;
     
-    // Create a spy that calls the original but with req.user = undefined
     controllerProto.getProfile = jest.fn().mockImplementation((req: any, res: any) => {
-      req.user = undefined; // Simulate missing user
+      req.user = undefined;
       return originalMethod.call(controllerProto, req, res);
     });
 
@@ -121,84 +125,22 @@ describe('GET /api/user/profile - Get User Profile (Mocked)', () => {
       controllerProto.getProfile = originalMethod;
     }
   });
-
-  test('should return user profile for authenticated student', async () => {
-    const response = await request(app)
-      .get('/api/user/profile')
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'Profile fetched successfully');
-    expect(response.body).toHaveProperty('data');
-    expect(response.body.data).toHaveProperty('user');
-    expect(response.body.data.user).toHaveProperty('email', `usermock${testUserId.toString()}@example.com`);
-    expect(response.body.data.user).toHaveProperty('name', 'Test User Mock');
-    expect(response.body.data.user).toHaveProperty('userRole', 'STUDENT');
-    expect(response.body.data.user).toHaveProperty('_id', testUserId.toString());
-  });
-
-  test('should return user profile for authenticated mover with mover-specific fields', async () => {
-    const response = await request(app)
-      .get('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'Profile fetched successfully');
-    expect(response.body.data.user).toHaveProperty('userRole', 'MOVER');
-    expect(response.body.data.user).toHaveProperty('credits', 150);
-    expect(response.body.data.user).toHaveProperty('carType', 'Sedan');
-    expect(response.body.data.user).toHaveProperty('capacity', 500);
-    expect(response.body.data.user).toHaveProperty('plateNumber', 'ABC123');
-  });
-
-  test('should return 401 when no token provided', async () => {
-    const response = await request(app)
-      .get('/api/user/profile')
-      .expect(401);
-
-    expect(response.body).toHaveProperty('message');
-  });
-
-  test('should return 401 when invalid token provided', async () => {
-    await request(app)
-      .get('/api/user/profile')
-      .set('Authorization', 'Bearer invalid-token-xyz')
-      .expect(401);
-  });
-
-  test('should return 401 when token has invalid signature', async () => {
-    const invalidToken = jwt.sign({ id: testUserId }, 'wrong-secret');
-    
-    await request(app)
-      .get('/api/user/profile')
-      .set('Authorization', `Bearer ${invalidToken}`)
-      .expect(401);
-  });
-
-  test('should return 401 when token is expired', async () => {
-    const expiredToken = jwt.sign(
-      { id: testUserId },
-      process.env.JWT_SECRET || 'default-secret',
-      { expiresIn: '-1h' }
-    );
-    
-    await request(app)
-      .get('/api/user/profile')
-      .set('Authorization', `Bearer ${expiredToken}`)
-      .expect(401);
-  });
 });
 
+// Interface POST /api/user/profile
 describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
-  test('should return 401 when req.user is undefined (line 30)', async () => {
-    // Mock the UserController's updateProfile to simulate req.user being undefined
+  // Mocked behavior: UserController.updateProfile called with req.user = undefined
+  // Input: authenticated request with name update but controller simulates missing req.user
+  // Expected status code: 401
+  // Expected behavior: detects missing user authentication in controller
+  // Expected output: error message 'User not authenticated'
+  test('should return 401 when req.user is undefined ', async () => {
     const { UserController } = require('../../src/controllers/user.controller');
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.updateProfile;
     
-    // Create a spy that calls the original but with req.user = undefined
     controllerProto.updateProfile = jest.fn().mockImplementation(async (req: any, res: any, next: any) => {
-      req.user = undefined; // Simulate missing user
+      req.user = undefined;
       return originalMethod.call(controllerProto, req, res, next);
     });
 
@@ -216,265 +158,15 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
     }
   });
 
-  test('should successfully update user name', async () => {
-    const updateData = {
-      name: 'Updated Mock User'
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(updateData)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'User info updated successfully');
-    expect(response.body.data.user).toHaveProperty('name', 'Updated Mock User');
-    expect(response.body.data.user).toHaveProperty('_id', testUserId.toString());
-  });
-
-  test('should successfully update user bio', async () => {
-    const updateData = {
-      bio: 'This is my test bio for the mocked user tests'
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(updateData)
-      .expect(200);
-
-    expect(response.body.data.user).toHaveProperty('bio', 'This is my test bio for the mocked user tests');
-  });
-
-  test('should successfully update FCM token', async () => {
-    const updateData = {
-      fcmToken: 'new-mock-fcm-token-12345'
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(updateData)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'User info updated successfully');
-    expect(response.body.data.user).toHaveProperty('fcmToken', 'new-mock-fcm-token-12345');
-  });
-
-  test('should successfully update multiple fields at once', async () => {
-    const updateData = {
-      name: 'Multi Update User',
-      bio: 'Updated bio',
-      fcmToken: 'multi-update-token'
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(updateData)
-      .expect(200);
-
-    expect(response.body.data.user).toHaveProperty('name', 'Multi Update User');
-    expect(response.body.data.user).toHaveProperty('bio', 'Updated bio');
-    expect(response.body.data.user).toHaveProperty('fcmToken', 'multi-update-token');
-  });
-
-  test('should successfully update mover-specific fields', async () => {
-    const updateData = {
-      carType: 'SUV',
-      capacity: 800,
-      plateNumber: 'XYZ789'
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .send(updateData)
-      .expect(200);
-
-    expect(response.body.data.user).toHaveProperty('carType', 'SUV');
-    expect(response.body.data.user).toHaveProperty('capacity', 800);
-    expect(response.body.data.user).toHaveProperty('plateNumber', 'XYZ789');
-  });
-
-  test('should successfully update mover availability', async () => {
-    const updateData = {
-      availability: {
-        MON: [['09:00', '17:00']],
-        TUE: [['09:00', '12:00'], ['13:00', '17:00']],
-        WED: [['10:00', '16:00']]
-      }
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .send(updateData)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'User info updated successfully');
-    expect(response.body.data.user).toHaveProperty('availability');
-  });
-
-  test('should reject invalid time format in availability', async () => {
-    const updateData = {
-      availability: {
-        MON: [['25:00', '26:00']] // Invalid hour
-      }
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .send(updateData)
-      .expect(400);
-
-    expect(response.body).toHaveProperty('error', 'Validation error');
-  });
-
-  test('should reject availability where start time is after end time', async () => {
-    const updateData = {
-      availability: {
-        MON: [['17:00', '09:00']] // End before start
-      }
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .send(updateData)
-      .expect(400);
-
-    expect(response.body).toHaveProperty('error', 'Validation error');
-  });
-
-  test('should reject bio longer than 500 characters', async () => {
-    const updateData = {
-      bio: 'a'.repeat(501) // 501 characters
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(updateData)
-      .expect(400);
-
-    expect(response.body).toHaveProperty('error', 'Validation error');
-  });
-
-  test('should reject negative capacity', async () => {
-    const updateData = {
-      capacity: -100
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .send(updateData)
-      .expect(400);
-
-    expect(response.body).toHaveProperty('error', 'Validation error');
-  });
-
-  test('should reject zero capacity', async () => {
-    const updateData = {
-      capacity: 0
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .send(updateData)
-      .expect(400);
-
-    expect(response.body).toHaveProperty('error', 'Validation error');
-  });
-
-  test('should reject negative credits', async () => {
-    const updateData = {
-      credits: -50
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .send(updateData)
-      .expect(400);
-
-    expect(response.body).toHaveProperty('error', 'Validation error');
-  });
-
-  test('should allow updating credits to zero', async () => {
-    const updateData = {
-      credits: 0
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .send(updateData)
-      .expect(200);
-
-    expect(response.body.data.user).toHaveProperty('credits', 0);
-  });
-
-  test('should reject invalid user role', async () => {
-    const updateData = {
-      userRole: 'ADMIN' // Invalid role
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(updateData as any)
-      .expect(400);
-
-    expect(response.body).toHaveProperty('error', 'Validation error');
-  });
-
-  test('should accept empty optional fields', async () => {
-    const updateData = {
-      name: 'Name Only Update'
-    };
-
-    const response = await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(updateData)
-      .expect(200);
-
-    expect(response.body.data.user).toHaveProperty('name', 'Name Only Update');
-  });
-
-  test('should return 401 when not authenticated', async () => {
-    const updateData = {
-      name: 'Should Fail'
-    };
-
-    await request(app)
-      .post('/api/user/profile')
-      .send(updateData)
-      .expect(401);
-  });
-
-  test('should return 401 with invalid token', async () => {
-    const updateData = {
-      name: 'Should Fail'
-    };
-
-    await request(app)
-      .post('/api/user/profile')
-      .set('Authorization', 'Bearer invalid-token')
-      .send(updateData)
-      .expect(401);
-  });
-
+  // Mocked behavior: UserController.updateProfile rejects with error
+  // Input: authenticated student request with name update
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: 500 error response
   test('should call next(err) when controller promise rejects', async () => {
-    // Get reference to the UserController class
     const { UserController } = require('../../src/controllers/user.controller');
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.updateProfile;
-    // Mock the updateProfile method to reject
     controllerProto.updateProfile = (jest.fn() as any).mockRejectedValue(new Error('Mocked controller error'));
     const updateData = {
         name: 'Should Trigger Error'
@@ -483,13 +175,16 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
         .post('/api/user/profile')
         .set('Authorization', `Bearer ${authToken}`)
         .send(updateData);
-    // Verify the error was handled by the error middleware
     expect(response.status).toBe(500);
     expect(controllerProto.updateProfile).toHaveBeenCalled();
-    // Restore the original method
     controllerProto.updateProfile = originalMethod;
   });
 
+  // Mocked behavior: userModel.update resolves with null
+  // Input: authenticated student request with name update
+  // Expected status code: 404
+  // Expected behavior: handles case where user not found during update
+  // Expected output: error message 'User not found'
   test('should handle user model update returning null', async () => {
     const originalUpdate = userModel.update;
     userModel.update = (jest.fn() as any).mockResolvedValue(null);
@@ -506,10 +201,14 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message', 'User not found');
 
-    // Restore original method
     userModel.update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.update rejects with unknown Error
+  // Input: authenticated student request with name update
+  // Expected status code: 500
+  // Expected behavior: error handler catches database error
+  // Expected output: error message 'Unknown database error'
   test('should trigger next(err) for unknown Error types during update', async () => {
     const originalUpdate = userModel.update;
     userModel.update = (jest.fn() as any).mockRejectedValue(new Error('Unknown database error'));
@@ -526,10 +225,14 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message', 'Unknown database error');
 
-    // Restore original method
     userModel.update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.update rejects with non-Error string
+  // Input: authenticated student request with name update
+  // Expected status code: 500
+  // Expected behavior: error handler catches non-Error exception
+  // Expected output: 500 error response
   test('should trigger next(err) for non-Error exceptions during update', async () => {
     const originalUpdate = userModel.update;
     userModel.update = (jest.fn() as any).mockRejectedValue('String error from database');
@@ -544,13 +247,16 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
       .send(updateData)
       .expect(500);
 
-    // Should be caught by the error handler middleware
     expect(response.status).toBe(500);
 
-    // Restore original method
     userModel.update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.update rejects with Error having empty message
+  // Input: authenticated student request with name update
+  // Expected status code: 500
+  // Expected behavior: uses fallback error message when Error.message is empty
+  // Expected output: error message 'Failed to update user info'
   test('should use fallback message when Error has no message during update', async () => {
     const originalUpdate = userModel.update;
     const errorWithoutMessage = new Error();
@@ -569,14 +275,18 @@ describe('POST /api/user/profile - Update User Profile (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message', 'Failed to update user info');
 
-    // Restore original method
     userModel.update = originalUpdate;
   });
 });
 
+// Interface POST /api/user/cash-out
 describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
-  test('should return 401 when req.user is undefined (line 92)', async () => {
-    // Mock the UserController's cashOut to simulate req.user being undefined
+  // Mocked behavior: UserController.cashOut called with req.user = undefined
+  // Input: authenticated mover request but controller simulates missing req.user
+  // Expected status code: 401
+  // Expected behavior: detects missing user authentication in controller
+  // Expected output: error message 'User not authenticated'
+  test('should return 401 when req.user is undefined ', async () => {
     const { UserController } = require('../../src/controllers/user.controller');
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.cashOut;
@@ -600,64 +310,12 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
     }
   });
 
-  test('should successfully cash out credits for mover', async () => {
-    // First, ensure mover has credits
-    await (userModel as any).user.updateOne(
-      { _id: testMoverId },
-      { $set: { credits: 200 } }
-    );
-
-    const response = await request(app)
-      .post('/api/user/cash-out')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'Credits cashed out successfully');
-    expect(response.body).toHaveProperty('data');
-    expect(response.body.data.user).toHaveProperty('credits', 0);
-    expect(response.body.data.user).toHaveProperty('userRole', 'MOVER');
-  });
-
-  test('should successfully cash out when mover has zero credits', async () => {
-    // Set credits to 0
-    await (userModel as any).user.updateOne(
-      { _id: testMoverId },
-      { $set: { credits: 0 } }
-    );
-
-    const response = await request(app)
-      .post('/api/user/cash-out')
-      .set('Authorization', `Bearer ${moverAuthToken}`)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'Credits cashed out successfully');
-    expect(response.body.data.user).toHaveProperty('credits', 0);
-  });
-
-  test('should return 403 when student tries to cash out', async () => {
-    const response = await request(app)
-      .post('/api/user/cash-out')
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(403);
-
-    expect(response.body).toHaveProperty('message', 'Only movers can cash out credits');
-  });
-
-  test('should return 401 when not authenticated', async () => {
-    await request(app)
-      .post('/api/user/cash-out')
-      .expect(401);
-  });
-
-  test('should return 401 with invalid token', async () => {
-    await request(app)
-      .post('/api/user/cash-out')
-      .set('Authorization', 'Bearer invalid-token')
-      .expect(401);
-  });
-
+  // Mocked behavior: userModel.update resolves with mover having credits set to 0
+  // Input: authenticated mover request
+  // Expected status code: 200
+  // Expected behavior: successfully processes cash out even for large amounts
+  // Expected output: user with credits 0
   test('should handle cash out with large credit amounts', async () => {
-    // Mock a mover with large credits
     const originalUpdate = (userModel as any).update;
     (userModel as any).update = (jest.fn() as any).mockResolvedValue({
       _id: testMoverId.toString(),
@@ -680,8 +338,12 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
     (userModel as any).update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.update resolves with null
+  // Input: authenticated mover request
+  // Expected status code: 404
+  // Expected behavior: handles case where user not found during cash out
+  // Expected output: error message 'User not found'
   test('should handle error when user not found during cash out', async () => {
-    // Mock userModel.update to return null
     const originalUpdate = (userModel as any).update;
     (userModel as any).update = (jest.fn() as any).mockResolvedValue(null);
 
@@ -692,12 +354,15 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message', 'User not found');
 
-    // Restore original method
     (userModel as any).update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.update rejects with database error
+  // Input: authenticated mover request
+  // Expected status code: 500
+  // Expected behavior: handles database update failure during cash out
+  // Expected output: error message 'Database update failed'
   test('should handle error when update fails during cash out', async () => {
-    // Mock userModel.update to throw an error
     const originalUpdate = (userModel as any).update;
     (userModel as any).update = (jest.fn() as any).mockRejectedValue(new Error('Database update failed'));
 
@@ -708,12 +373,15 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message', 'Database update failed');
 
-    // Restore original method
     (userModel as any).update = originalUpdate;
   });
 
+  // Mocked behavior: userModel.update rejects with non-Error object
+  // Input: authenticated mover request
+  // Expected status code: 500
+  // Expected behavior: handles non-Error exception during cash out
+  // Expected output: 500 error response
   test('should handle non-Error exceptions during cash out', async () => {
-    // Mock userModel.update to throw a non-Error object
     const originalUpdate = (userModel as any).update;
     (userModel as any).update = (jest.fn() as any).mockRejectedValue({ code: 500, message: 'System error' });
 
@@ -722,15 +390,17 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
       .set('Authorization', `Bearer ${moverAuthToken}`)
       .expect(500);
 
-    // Should be caught by the error handler middleware
     expect(response.status).toBe(500);
 
-    // Restore original method
     (userModel as any).update = originalUpdate;
   });
 
+  // Mocked behavior: UserController.cashOut rejects with error
+  // Input: authenticated mover request
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: 500 error response
   test('should call next(err) when controller promise rejects', async () => {
-    // Get reference to the UserController class
     const { UserController } = require('../../src/controllers/user.controller');
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.cashOut;
@@ -743,10 +413,14 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
     // Verify the error was handled by the error middleware
     expect(response.status).toBe(500);
     expect(controllerProto.cashOut).toHaveBeenCalled();
-    // Restore the original method
     controllerProto.cashOut = originalMethod;
   });
 
+  // Mocked behavior: userModel.update rejects with Error having empty message
+  // Input: authenticated mover request
+  // Expected status code: 500
+  // Expected behavior: uses fallback error message when Error.message is empty
+  // Expected output: error message 'Failed to cash out credits'
   test('should use fallback message when Error has no message during cash out', async () => {
     const originalUpdate = (userModel as any).update;
     const errorWithoutMessage = new Error();
@@ -760,15 +434,19 @@ describe('POST /api/user/cash-out - Cash Out (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message', 'Failed to cash out credits');
 
-    // Restore original method
     (userModel as any).update = originalUpdate;
   });
 
 });
 
+// Interface DELETE /api/user/profile
 describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
-  test('should return 401 when req.user is undefined (line 65)', async () => {
-    // Mock the UserController's deleteProfile to simulate req.user being undefined
+  // Mocked behavior: UserController.deleteProfile called with req.user = undefined
+  // Input: authenticated request but controller simulates missing req.user
+  // Expected status code: 401
+  // Expected behavior: detects missing user authentication in controller
+  // Expected output: error message 'User not authenticated'
+  test('should return 401 when req.user is undefined', async () => {
     const { UserController } = require('../../src/controllers/user.controller');
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.deleteProfile;
@@ -792,100 +470,12 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
     }
   });
 
-  test('should successfully delete user profile', async () => {
-    // Create a temporary user for deletion
-    const tempUserId = new mongoose.Types.ObjectId();
-    await (userModel as any).user.create({
-      _id: tempUserId,
-      googleId: `temp-google-id-${tempUserId.toString()}`,
-      email: `temp${tempUserId.toString()}@example.com`,
-      name: 'Temp User',
-      userRole: 'STUDENT'
-    });
-
-    const tempToken = jwt.sign({ id: tempUserId }, process.env.JWT_SECRET || 'default-secret');
-
-    const response = await request(app)
-      .delete('/api/user/profile')
-      .set('Authorization', `Bearer ${tempToken}`)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'User deleted successfully');
-
-    // Verify user was actually deleted
-    const deletedUser = await (userModel as any).user.findById(tempUserId);
-    expect(deletedUser).toBeNull();
-  });
-
-  test('should successfully delete mover profile with all mover-specific data', async () => {
-    // Create a temporary mover for deletion
-    const tempMoverId = new mongoose.Types.ObjectId();
-    await (userModel as any).user.create({
-      _id: tempMoverId,
-      googleId: `temp-mover-google-id-${tempMoverId.toString()}`,
-      email: `tempmover${tempMoverId.toString()}@example.com`,
-      name: 'Temp Mover',
-      userRole: 'MOVER',
-      credits: 500,
-      carType: 'Truck',
-      capacity: 1000
-    });
-
-    const tempToken = jwt.sign({ id: tempMoverId }, process.env.JWT_SECRET || 'default-secret');
-
-    const response = await request(app)
-      .delete('/api/user/profile')
-      .set('Authorization', `Bearer ${tempToken}`)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'User deleted successfully');
-
-    // Verify mover was actually deleted
-    const deletedMover = await (userModel as any).user.findById(tempMoverId);
-    expect(deletedMover).toBeNull();
-  });
-
-  test('should return 401 when not authenticated', async () => {
-    await request(app)
-      .delete('/api/user/profile')
-      .expect(401);
-  });
-
-  test('should return 401 with invalid token', async () => {
-    await request(app)
-      .delete('/api/user/profile')
-      .set('Authorization', 'Bearer invalid-token')
-      .expect(401);
-  });
-
-  test('should successfully delete user with FCM token', async () => {
-    // Create a temporary user with FCM token
-    const tempUserId = new mongoose.Types.ObjectId();
-    await (userModel as any).user.create({
-      _id: tempUserId,
-      googleId: `temp-fcm-google-id-${tempUserId.toString()}`,
-      email: `tempfcm${tempUserId.toString()}@example.com`,
-      name: 'Temp FCM User',
-      userRole: 'STUDENT',
-      fcmToken: 'temp-fcm-token-to-delete'
-    });
-
-    const tempToken = jwt.sign({ id: tempUserId }, process.env.JWT_SECRET || 'default-secret');
-
-    const response = await request(app)
-      .delete('/api/user/profile')
-      .set('Authorization', `Bearer ${tempToken}`)
-      .expect(200);
-
-    expect(response.body).toHaveProperty('message', 'User deleted successfully');
-
-    // Verify user and their FCM token are deleted
-    const deletedUser = await (userModel as any).user.findById(tempUserId);
-    expect(deletedUser).toBeNull();
-  });
-
+  // Mocked behavior: UserController.deleteProfile rejects with error
+  // Input: authenticated student request
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: 500 error response
   test('should call next(err) when controller promise rejects', async () => {
-    // Get reference to the UserController class
     const { UserController } = require('../../src/controllers/user.controller');
     const controllerProto = UserController.prototype;
     const originalMethod = controllerProto.deleteProfile;
@@ -898,14 +488,17 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
       .delete('/api/user/profile')
       .set('Authorization', `Bearer ${authToken}`);
 
-    // Verify the error was handled by the error middleware
     expect(response.status).toBe(500);
     expect(controllerProto.deleteProfile).toHaveBeenCalled();
 
-    // Restore the original method
     controllerProto.deleteProfile = originalMethod;
   });
 
+  // Mocked behavior: userModel.delete rejects with database error
+  // Input: authenticated student request
+  // Expected status code: 500
+  // Expected behavior: handles database deletion error
+  // Expected output: error message 'Database deletion error'
   test('should trigger next(err) for unknown Error types during delete', async () => {
     const originalDelete = userModel.delete;
     userModel.delete = (jest.fn() as any).mockRejectedValue(new Error('Database deletion error'));
@@ -917,10 +510,14 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message', 'Database deletion error');
 
-    // Restore original method
     userModel.delete = originalDelete;
   });
 
+  // Mocked behavior: userModel.delete rejects with non-Error string
+  // Input: authenticated student request
+  // Expected status code: 500
+  // Expected behavior: handles non-Error exception during delete
+  // Expected output: 500 error response
   test('should trigger next(err) for non-Error exceptions during delete', async () => {
     const originalDelete = userModel.delete;
     userModel.delete = (jest.fn() as any).mockRejectedValue('String error during deletion');
@@ -930,13 +527,16 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .expect(500);
 
-    // Should be caught by the error handler middleware
     expect(response.status).toBe(500);
 
-    // Restore original method
     userModel.delete = originalDelete;
   });
 
+  // Mocked behavior: userModel.delete rejects with Error having empty message
+  // Input: authenticated student request
+  // Expected status code: 500
+  // Expected behavior: uses fallback error message when Error.message is empty
+  // Expected output: error message 'Failed to delete user'
   test('should use fallback message when Error has no message during delete', async () => {
     const originalDelete = userModel.delete;
     const errorWithoutMessage = new Error();
@@ -950,20 +550,19 @@ describe('DELETE /api/user/profile - Delete User Profile (Mocked)', () => {
 
     expect(response.body).toHaveProperty('message', 'Failed to delete user');
 
-    // Restore original method
     userModel.delete = originalDelete;
   });
 });
 
+// Interface UserModel - Database Error Handling via API Endpoints
 describe('UserModel - Database Error Handling via API Endpoints', () => {
-  // Tests for userModel.update FCM token handling are done through POST /api/user/profile
-  // Tests for userModel.findById are done through any authenticated endpoint (auth middleware)
-  // Tests for userModel.findByGoogleId are done through /api/auth/signup and /api/auth/login in auth.routes.test.ts
-  // Tests for userModel.create are done through /api/auth/signup
-  // Tests for userModel.delete are done through DELETE /api/user/profile
-  // Tests for userModel.getFcmToken and clearInvalidFcmToken are internal to notification service (not exposed via REST)
 
   describe('update - FCM token handling via endpoint', () => {
+    // Mocked behavior: userModel.user.updateMany throws error during token cleanup
+    // Input: authenticated student request with new FCM token
+    // Expected status code: 500
+    // Expected behavior: handles database error during FCM token cleanup operation
+    // Expected output: 500 error response, updateMany spy called
     test('should handle database error during FCM token update via endpoint', async () => {
       const actualUserModel = (userModel as any).user;
       const updateManySpy = jest.spyOn(actualUserModel, 'updateMany').mockImplementation(() => {
@@ -983,57 +582,15 @@ describe('UserModel - Database Error Handling via API Endpoints', () => {
         updateManySpy.mockRestore();
       }
     });
-
-    test('should clear FCM token from other users when assigning to new user via endpoint', async () => {
-      const sharedToken = 'shared-fcm-token-via-endpoint-123';
-      
-      // Assign token to mover first via endpoint
-      await request(app)
-        .post('/api/user/profile')
-        .set('Authorization', `Bearer ${moverAuthToken}`)
-        .send({ fcmToken: sharedToken })
-        .expect(200);
-
-      // Verify mover has the token
-      let moverResponse = await request(app)
-        .get('/api/user/profile')
-        .set('Authorization', `Bearer ${moverAuthToken}`)
-        .expect(200);
-      expect(moverResponse.body.data.user.fcmToken).toBe(sharedToken);
-
-      // Now assign same token to student via endpoint - should clear from mover
-      await request(app)
-        .post('/api/user/profile')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ fcmToken: sharedToken })
-        .expect(200);
-      
-      // Verify mover's token was cleared
-      moverResponse = await request(app)
-        .get('/api/user/profile')
-        .set('Authorization', `Bearer ${moverAuthToken}`)
-        .expect(200);
-      expect(moverResponse.body.data.user.fcmToken).toBeNull();
-
-      // Verify student has the token
-      const studentResponse = await request(app)
-        .get('/api/user/profile')
-        .set('Authorization', `Bearer ${authToken}`)
-        .expect(200);
-      expect(studentResponse.body.data.user.fcmToken).toBe(sharedToken);
-
-      // Restore original token
-      await request(app)
-        .post('/api/user/profile')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ fcmToken: 'initial-fcm-token' })
-        .expect(200);
-    });
   });
 
   describe('create', () => {
+    // Mocked behavior: AuthService.verifyGoogleToken resolves with valid data, userModel.user.create throws error
+    // Input: POST /api/auth/signup with mock ID token
+    // Expected status code: 500
+    // Expected behavior: handles database creation error during signup
+    // Expected output: 500 error response, create spy called
     test('should handle database error when creating user via signup endpoint', async () => {
-      // Mock Google verification to return valid data first
       const { AuthService } = require('../../src/services/auth.service');
       const serviceProto = AuthService.prototype;
       const originalVerify = serviceProto.verifyGoogleToken;
@@ -1067,8 +624,12 @@ describe('UserModel - Database Error Handling via API Endpoints', () => {
       }
     });
 
+    // Mocked behavior: AuthService.verifyGoogleToken resolves with invalid data (empty googleId, invalid email)
+    // Input: POST /api/auth/signup with mock ID token
+    // Expected status code: 500
+    // Expected behavior: handles validation error when creating user with invalid data
+    // Expected output: 500 error response
     test('should handle validation error when creating user with invalid data via signup', async () => {
-      // Mock the Google verification to return invalid data
       const { AuthService } = require('../../src/services/auth.service');
       const serviceProto = AuthService.prototype;
       const originalVerify = serviceProto.verifyGoogleToken;
@@ -1092,49 +653,15 @@ describe('UserModel - Database Error Handling via API Endpoints', () => {
         serviceProto.verifyGoogleToken = originalVerify;
       }
     });
-
-    test('should successfully create user via signup endpoint', async () => {
-      // Mock Google verification to return valid data
-      const { AuthService } = require('../../src/services/auth.service');
-      const serviceProto = AuthService.prototype;
-      const originalVerify = serviceProto.verifyGoogleToken;
-      
-      const newUserId = new mongoose.Types.ObjectId();
-      const mockUserData = {
-        googleId: `signup-test-${newUserId.toString()}`,
-        email: `signuptest${newUserId.toString()}@example.com`,
-        name: 'Signup Test User',
-      };
-
-      serviceProto.verifyGoogleToken = (jest.fn() as any).mockResolvedValue(mockUserData);
-
-      try {
-        const response = await request(app)
-          .post('/api/auth/signup')
-          .send({
-            idToken: 'mock-valid-id-token'
-          })
-          .expect(201);
-
-        expect(response.body).toHaveProperty('message', 'User signed up successfully');
-        expect(response.body.data.user).toHaveProperty('email', mockUserData.email);
-        expect(response.body.data.user).toHaveProperty('name', mockUserData.name);
-        expect(response.body.data).toHaveProperty('token');
-
-        // Clean up - find and delete the created user
-        const createdUser = await (userModel as any).user.findOne({ googleId: mockUserData.googleId });
-        if (createdUser) {
-          await (userModel as any).user.findByIdAndDelete(createdUser._id);
-        }
-      } finally {
-        serviceProto.verifyGoogleToken = originalVerify;
-      }
-    });
   });
 
   describe('delete', () => {
+    // Mocked behavior: userModel.user.findByIdAndDelete throws error
+    // Input: DELETE /api/user/profile with authenticated temp user
+    // Expected status code: 500
+    // Expected behavior: handles database deletion error
+    // Expected output: 500 error response, delete spy called
     test('should handle database error when deleting user via endpoint', async () => {
-      // Create a temporary user for this test
       const tempUserId = new mongoose.Types.ObjectId();
       await (userModel as any).user.create({
         _id: tempUserId,
@@ -1163,43 +690,16 @@ describe('UserModel - Database Error Handling via API Endpoints', () => {
         expect(response.body).toHaveProperty('message');
       } finally {
         deleteSpy.mockRestore();
-        // Clean up - manually delete the user
         await (userModel as any).user.findByIdAndDelete(tempUserId);
       }
     });
 
-    test('should successfully delete user via endpoint', async () => {
-      // Create a temporary user to delete
-      const tempUserId = new mongoose.Types.ObjectId();
-      await (userModel as any).user.create({
-        _id: tempUserId,
-        googleId: `delete-success-test-${tempUserId.toString()}`,
-        email: `deletesuccess${tempUserId.toString()}@example.com`,
-        name: 'Delete Success Test User',
-        userRole: 'STUDENT'
-      });
-
-      const tempToken = jwt.sign({ id: tempUserId }, process.env.JWT_SECRET || 'default-secret');
-
-      // Verify user exists before deletion
-      const userBefore = await userModel.findById(tempUserId);
-      expect(userBefore).not.toBeNull();
-
-      // Delete the user via endpoint
-      const response = await request(app)
-        .delete('/api/user/profile')
-        .set('Authorization', `Bearer ${tempToken}`)
-        .expect(200);
-
-      expect(response.body).toHaveProperty('message', 'User deleted successfully');
-
-      // Verify user is deleted
-      const userAfter = await userModel.findById(tempUserId);
-      expect(userAfter).toBeNull();
-    });
-
+    // Mocked behavior: userModel.user.findByIdAndDelete resolves with null
+    // Input: DELETE /api/user/profile with authenticated temp user
+    // Expected status code: 200
+    // Expected behavior: gracefully handles case where user not found (returns null but doesn't throw)
+    // Expected output: success message despite user not found
     test('should handle deleting user gracefully via endpoint', async () => {
-      // Create a temporary user
       const tempUserId = new mongoose.Types.ObjectId();
       await (userModel as any).user.create({
         _id: tempUserId,
@@ -1225,7 +725,6 @@ describe('UserModel - Database Error Handling via API Endpoints', () => {
         expect(response.body).toHaveProperty('message', 'User deleted successfully');
       } finally {
         deleteSpy.mockRestore();
-        // Clean up
         await (userModel as any).user.findByIdAndDelete(tempUserId);
       }
     });

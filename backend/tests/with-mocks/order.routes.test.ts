@@ -146,7 +146,13 @@ afterAll(async () => {
   console.info = originalConsole.info;
 });
 
+// Interface POST /api/order/quote
 describe('POST /api/order/quote - Get Quote (Mocked)', () => {
+  // Mocked behavior: none (uses real quote calculation service)
+  // Input: request with volume 2.5, studentAddress, warehouseAddress, pickupTime, returnTime
+  // Expected status code: 200
+  // Expected behavior: calculates quote based on volume and addresses
+  // Expected output: success message with totalPrice
   test('should successfully get a quote', async () => {
     // Mock successful quote response
     const mockQuote: GetQuoteResponse = {
@@ -229,6 +235,11 @@ describe('POST /api/order/quote - Get Quote (Mocked)', () => {
     controllerProto.getQuote = originalMethod;
   });
 
+  // Mocked behavior: orderService.getQuote throws error
+  // Input: request with valid quote data
+  // Expected status code: 500
+  // Expected behavior: service error is forwarded to error handler
+  // Expected output: 500 error response
   test('should trigger next(err) when orderService.getQuote throws error', async () => {
     // Mock the warehouse config to throw an error during getQuote
     const warehouseModule = require('../../src/constants/warehouses');
@@ -257,6 +268,11 @@ describe('POST /api/order/quote - Get Quote (Mocked)', () => {
 });
 
 describe('POST /api/order - Create Order (Mocked)', () => {
+  // Mocked behavior: none (uses real order creation logic with mocked models/services)
+  // Input: request with valid order data
+  // Expected status code: 201
+  // Expected behavior: creates order, job, emits event
+  // Expected output: created order object with id, status, volume, price
   test('should successfully create an order', async () => {
     // Mock successful order creation
     const mockOrderId = new mongoose.Types.ObjectId();
@@ -334,6 +350,11 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     expect(response.body).toHaveProperty('price', 150.0);
   });
 
+  // Mocked behavior: orderModel.findByIdempotencyKey returns existing order
+  // Input: request with Idempotency-Key header 'test-key-123', order data
+  // Expected status code: 201
+  // Expected behavior: returns existing order without creating duplicate
+  // Expected output: existing order object with matching id
   test('should handle idempotent order creation', async () => {
     // Mock existing order found by idempotency key
     const mockExistingOrderId = new mongoose.Types.ObjectId();
@@ -394,6 +415,11 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     expect(mockOrderModel.findByIdempotencyKey).toHaveBeenCalledWith('test-key-123');
   });
 
+  // Mocked behavior: none (validation middleware)
+  // Input: request with invalid studentId 'not-a-valid-mongodb-objectid'
+  // Expected status code: 400
+  // Expected behavior: validation rejects invalid MongoDB ObjectId format
+  // Expected output: validation error with field 'studentId', message 'Invalid student ID'
   test('should handle order creation validation errors with invalid studentId', async () => {
     // Test the Zod validation for invalid student ID
     // The createOrderSchema uses mongoose.isValidObjectId(val) which should fail for 'invalid-id'
@@ -427,6 +453,11 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     expect(mockOrderModel.create).not.toHaveBeenCalled();
   });
 
+  // Mocked behavior: none (validation middleware)
+  // Input: request with negative volume -1
+  // Expected status code: 400
+  // Expected behavior: validation rejects negative volume value
+  // Expected output: validation error
   test('should handle order creation validation errors with negative volume', async () => {
     const response = await request(app)
       .post('/api/order')
@@ -454,6 +485,11 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     expect(mockOrderModel.create).not.toHaveBeenCalled();
   });
 
+  // Mocked behavior: orderModel.create rejects with database error
+  // Input: request with valid order data
+  // Expected status code: 500
+  // Expected behavior: database failure is caught and returned
+  // Expected output: 500 error response
   test('should handle database errors during order creation', async () => {
     // Mock database error
     mockOrderModel.findByIdempotencyKey.mockResolvedValue(null);
@@ -484,10 +520,11 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     expect(mockOrderModel.create).toHaveBeenCalled();
   });
 
-  // Input: valid order payload
+  // Mocked behavior: real mongoose model.create throws error via spy
+  // Input: request with valid order data
   // Expected status code: 500
-  // Expected behavior: surfaces model-layer failure when order creation throws
-  // Mocked behavior: real mongoose create rejects via spy
+  // Expected behavior: surfaces underlying mongoose create failure
+  // Expected output: 500 error response
   test('should surface model create failures with error handling', async () => {
     const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
     const actualOrderInstance = actualOrderModule.orderModel as any;
@@ -533,11 +570,13 @@ describe('POST /api/order - Create Order (Mocked)', () => {
       createSpy.mockRestore();
       mockOrderModel.create.mockReset();
     }
+  });
 
-  // Input: valid order with idempotency key
+  // Mocked behavior: real mongoose model.findOne throws error via spy
+  // Input: request with Idempotency-Key header, valid order data
   // Expected status code: 500
-  // Expected behavior: surfaces model-layer failure when findByIdempotencyKey throws
-  // Mocked behavior: real mongoose findOne rejects via spy on order model
+  // Expected behavior: surfaces underlying mongoose findOne failure during idempotency check
+  // Expected output: 500 error response
   test('should surface database errors when checking idempotency key', async () => {
     const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
     const actualOrderInstance = actualOrderModule.orderModel as any;
@@ -585,8 +624,12 @@ describe('POST /api/order - Create Order (Mocked)', () => {
       mockOrderModel.findByIdempotencyKey.mockReset();
     }
   });
-  });
 
+  // Mocked behavior: OrderController.createOrder rejects with error
+  // Input: request with valid order data
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: 500 error response
   test('should call next(err) when controller promise rejects', async () => {
     const { OrderController } = require('../../src/controllers/order.controller');
     const controllerProto = OrderController.prototype;
@@ -624,11 +667,12 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     controllerProto.createOrder = originalMethod;
   });
 
-  // Input: valid order with idempotency key
-  // Expected status code: 500
-  // Expected behavior: surfaces model-layer failure when findByIdempotencyKey throws
-  // Mocked behavior: real mongoose findOne rejects via spy on order model
-  test('should surface database errors when checking idempotency key', async () => {
+  // Mocked behavior: orderModel.create throws duplicate key error (code 11000), second findByIdempotencyKey finds order
+  // Input: request with Idempotency-Key 'test-race-key-456', valid order data
+  // Expected status code: 201
+  // Expected behavior: recovers from race condition by finding existing order
+  // Expected output: existing order with status PENDING
+  test('should recover from duplicate key error using idempotency key (lines 147-151)', async () => {
     const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
     const actualOrderInstance = actualOrderModule.orderModel as any;
     const realMongooseModel = (actualOrderInstance as any).order as mongoose.Model<Order>;
@@ -676,7 +720,11 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     }
   });
 
-  // Test OrderMapper moverId branches through POST /api/order endpoint
+  // Mocked behavior: orderModel.create returns order without moverId
+  // Input: request with valid order data
+  // Expected status code: 201
+  // Expected behavior: creates order with status PENDING, no mover assigned yet
+  // Expected output: order object without moverId field 
   test('should create order without moverId initially', async () => {
     const mockOrderId = new mongoose.Types.ObjectId();
     
@@ -746,6 +794,11 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     expect(response.body.moverId).toBeUndefined();
   });
 
+  // Mocked behavior: orderModel.create returns order with moverId
+  // Input: request with valid order data
+  // Expected status code: 201
+  // Expected behavior: creates order with status ACCEPTED, mover is pre-assigned
+  // Expected output: order object with moverId field containing mover's ObjectId
   test('should create order with moverId when mover is pre-assigned', async () => {
     const mockOrderId = new mongoose.Types.ObjectId();
     const moverId = new mongoose.Types.ObjectId();
@@ -816,10 +869,12 @@ describe('POST /api/order - Create Order (Mocked)', () => {
     expect(response.body).toHaveProperty('moverId', moverId.toString());
   });
 
+  // Mocked behavior: orderModel.create throws duplicate key error (code 11000), second findByIdempotencyKey finds order
+  // Input: request with Idempotency-Key 'test-race-key-456', valid order data
+  // Expected status code: 201
+  // Expected behavior: recovers from race condition by finding existing order
+  // Expected output: existing order with status PENDING
   test('should recover from duplicate key error using idempotency key (lines 147-151)', async () => {
-    // This tests the catch block in createOrder where a duplicate key error occurs,
-    // and then it tries to find the existing order by idempotency key
-    
     const mockOrderId = new mongoose.Types.ObjectId();
     const mockExistingOrder: Order = {
       _id: mockOrderId,
@@ -898,7 +953,13 @@ describe('POST /api/order - Create Order (Mocked)', () => {
   });
 });
 
+// Interface POST /api/order/create-return-Job
 describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () => {
+  // Mocked behavior: orderModel.findActiveOrder returns IN_STORAGE order, jobModel.findByOrderId returns empty, jobService.createJob succeeds
+  // Input: authenticated request with returnAddress, actualReturnDate (early return)
+  // Expected status code: 201
+  // Expected behavior: creates return job, calculates refund for early return
+  // Expected output: success message with refundAmount
   test('should successfully create a return job', async () => {
     // Mock active order
     const mockActiveOrder: Order = {
@@ -955,9 +1016,14 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
 
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('message');
-    expect(response.body).toHaveProperty('refundAmount'); // Should have refund for early return
+    expect(response.body).toHaveProperty('refundAmount');
   });
 
+  // Mocked behavior: orderModel.findActiveOrder returns null
+  // Input: authenticated request with empty body
+  // Expected status code: 500
+  // Expected behavior: throws error when no active order exists
+  // Expected output: 500 error response
   test('should handle no active order found', async () => {
     // Mock no active order
     mockOrderModel.findActiveOrder.mockResolvedValue(null);
@@ -971,6 +1037,11 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     expect(mockJobModel.findByOrderId).not.toHaveBeenCalled();
   });
 
+  // Mocked behavior: orderModel.findActiveOrder returns order, jobModel.findByOrderId returns existing RETURN job
+  // Input: authenticated request with empty body
+  // Expected status code: 201
+  // Expected behavior: detects existing return job, doesn't create duplicate
+  // Expected output: success message indicating job already exists
   test('should handle existing return job', async () => {
     // Mock active order
     const mockActiveOrder: Order = {
@@ -1019,6 +1090,11 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     expect(response.body.message).toContain('already exists');
   });
 
+  // Mocked behavior: orderModel.findActiveOrder returns order, jobModel.findByOrderId returns empty, jobService.createJob succeeds
+  // Input: authenticated request with actualReturnDate 2 days after scheduled returnTime
+  // Expected status code: 201
+  // Expected behavior: creates return job, calculates late fee
+  // Expected output: success message with lateFee field
   test('should handle late return with fee', async () => {
     // Mock active order
     const mockActiveOrder: Order = {
@@ -1067,9 +1143,14 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       .expect(201);
 
     expect(response.body).toHaveProperty('success', true);
-    expect(response.body).toHaveProperty('lateFee'); // Should have late fee
+    expect(response.body).toHaveProperty('lateFee');
   });
 
+  // Mocked behavior: OrderController.createReturnJob rejects with error
+  // Input: authenticated request with returnAddress
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: 500 error response
   test('should call next(err) when controller promise rejects', async () => {
     const { OrderController } = require('../../src/controllers/order.controller');
     const controllerProto = OrderController.prototype;
@@ -1097,6 +1178,11 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     controllerProto.createReturnJob = originalMethod;
   });
 
+  // Mocked behavior: none (direct controller test with undefined user)
+  // Input: request with returnAddress but req.user is undefined
+  // Expected status code: 401
+  // Expected behavior: controller checks authentication, rejects unauthenticated request
+  // Expected output: error message 'Authentication required. Please log in.'
   test('should return 401 when user is not authenticated in createReturnJob', async () => {
     // Directly test the controller with no user
     const { OrderController } = require('../../src/controllers/order.controller');
@@ -1131,6 +1217,11 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     expect(mockNext).not.toHaveBeenCalled();
   });
 
+  // Mocked behavior: none (direct controller test with user object lacking _id)
+  // Input: request with returnAddress, req.user exists but has no _id field
+  // Expected status code: 401
+  // Expected behavior: controller checks for user._id, rejects when missing
+  // Expected output: error message 'Authentication required. Please log in.'
   test('should return 401 when user._id is missing in createReturnJob', async () => {
     // Directly test the controller with user but no _id
     const { OrderController } = require('../../src/controllers/order.controller');
@@ -1165,8 +1256,12 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     expect(mockNext).not.toHaveBeenCalled();
   });
 
+  // Mocked behavior: orderModel returns order with paymentIntentId, paymentService.refundPayment succeeds, jobService.createJob succeeds
+  // Input: authenticated request with actualReturnDate 3 days before scheduled returnTime
+  // Expected status code: 201
+  // Expected behavior: creates return job, processes refund for unused storage days
+  // Expected output: success message with refundAmount > 0
   test('should successfully process refund for early return (lines 256-264)', async () => {
-    // Set pickup time 2 days ago, return time 7 days from pickup (5 days from now)
     const pickupTime = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     const returnTime = new Date(pickupTime.getTime() + 7 * 24 * 60 * 60 * 1000);
     
@@ -1244,8 +1339,12 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     expect(mockJobService.createJob).toHaveBeenCalled();
   });
 
+  // Mocked behavior: orderModel returns order, paymentService.refundPayment rejects with error, jobService.createJob succeeds
+  // Input: authenticated request with actualReturnDate 4 days before scheduled returnTime
+  // Expected status code: 201
+  // Expected behavior: attempts refund, catches error, still creates return job successfully
+  // Expected output: success message despite refund failure
   test('should handle error when refund payment fails during early return (lines 265-266)', async () => {
-    // Set pickup time 2 days ago, return time 7 days from pickup
     const pickupTime = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     const returnTime = new Date(pickupTime.getTime() + 7 * 24 * 60 * 60 * 1000);
     
@@ -1305,7 +1404,6 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     // Should still succeed with return job creation despite refund failure
     // This tests the catch block with logger.error
     expect(response.body).toHaveProperty('success', true);
-    // The message will still mention refund attempt even if it fails internally
     expect(response.body.message).toContain('Return job created successfully');
 
     // Verify refund was attempted
@@ -1313,14 +1411,15 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       'pi_early_return_fail_789',
       expect.any(Number)
     );
-
-    // Verify return job was still created despite refund failure
     expect(mockJobService.createJob).toHaveBeenCalled();
   });
 
+  // Mocked behavior: orderModel returns order, jobModel returns empty, jobService.createJob succeeds
+  // Input: authenticated request with empty body (no actualReturnDate)
+  // Expected status code: 201
+  // Expected behavior: uses current date as actualReturnDate
+  // Expected output: success message with return job created
   test('should use current date when actualReturnDate is not provided ', async () => {
-    // When actualReturnDate is NOT provided, it should use new Date()
-    
     const mockActiveOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
       studentId: testUserIdString,
@@ -1359,21 +1458,20 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
     const response = await request(app)
       .post('/api/order/create-return-Job')
       .set('Authorization', `Bearer ${authToken}`)
-      .send({})  // No actualReturnDate provided
+      .send({})
       .expect(201);
 
     expect(response.body).toHaveProperty('success', true);
-    // Message should be the simple one (no refund/late fee since dates are close)
     expect(response.body.message).toContain('Return job created successfully');
-    
-    // Verify job was created (meaning the date was set to current date)
     expect(mockJobService.createJob).toHaveBeenCalled();
   });
 
+  // Mocked behavior: orderModel returns order with paymentIntentId, paymentService.refundPayment succeeds, jobService.createJob succeeds
+  // Input: authenticated request with actualReturnDate 2 days before scheduled returnTime
+  // Expected status code: 201
+  // Expected behavior: uses provided actualReturnDate, triggers early return refund
+  // Expected output: success message with refund confirmation
   test('should use provided actualReturnDate when specified (line 199 if branch)', async () => {
-    // This tests actualReturnDateString conditional
-    // When actualReturnDate IS provided, it should use that date
-    
     const pickupTime = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
     const returnTime = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
     
@@ -1418,7 +1516,6 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       message: 'RETURN job created successfully'
     });
 
-    // Provide a specific actualReturnDate (2 days before scheduled return)
     const customReturnDate = new Date(returnTime.getTime() - 2 * 24 * 60 * 60 * 1000);
     
     const response = await request(app)
@@ -1431,16 +1528,16 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
 
     expect(response.body).toHaveProperty('success', true);
     expect(response.body.message).toContain('Refund');
-    
-    // Verify the custom date was used (should trigger refund for early return)
     expect(mockPaymentService.refundPayment).toHaveBeenCalled();
     expect(mockJobService.createJob).toHaveBeenCalled();
   });
 
+  // Mocked behavior: orderModel returns order, jobModel returns empty, jobService.createJob succeeds
+  // Input: authenticated request with empty body (no actualReturnDate provided)
+  // Expected status code: 201
+  // Expected behavior: uses activeOrder.returnTime as returnDate for update
+  // Expected output: success message, orderModel.update called with activeOrder.returnTime
   test('should use activeOrder.returnTime when returnDateString is not provided (line 230 else branch)', async () => {
-    // This tests returnDateString conditional
-    // When actualReturnDate is NOT provided in request, use activeOrder.returnTime
-    
     const expectedReturnTime = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     
     const mockActiveOrder: Order = {
@@ -1478,7 +1575,6 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       message: 'RETURN job created successfully'
     });
 
-    // Don't provide actualReturnDate - should use activeOrder.returnTime
     const response = await request(app)
       .post('/api/order/create-return-Job')
       .set('Authorization', `Bearer ${authToken}`)
@@ -1486,20 +1582,23 @@ describe('POST /api/order/create-return-Job - Create Return Job (Mocked)', () =>
       .expect(201);
 
     expect(response.body).toHaveProperty('success', true);
-    
-    // Verify orderModel.update was called with the activeOrder.returnTime
     expect(mockOrderModel.update).toHaveBeenCalledWith(
       mockActiveOrder._id,
       expect.objectContaining({
         returnTime: expectedReturnTime
       })
     );
-    
     expect(mockJobService.createJob).toHaveBeenCalled();
   });
 });
 
+// Interface GET /api/order/all-orders
 describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
+  // Mocked behavior: orderModel.getAllOrders returns array of orders
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: retrieves all orders for authenticated user
+  // Expected output: success message with orders array
   test('should successfully get all orders', async () => {
     // Mock orders data
     const mockOrders: Order[] = [
@@ -1543,10 +1642,11 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
     expect(response.body).toHaveProperty('message', 'Orders retrieved successfully');
   });
 
+  // Mocked behavior: real mongoose model.find throws error via spy
   // Input: authenticated request
   // Expected status code: 500
-  // Expected behavior: propagates model-layer failure fetching orders
-  // Mocked behavior: real mongoose find rejects when getAllOrders delegates to actual model
+  // Expected behavior: surfaces underlying mongoose find failure
+  // Expected output: 500 error response
   test('should handle database errors when getting orders', async () => {
     const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
     const actualOrderInstance = actualOrderModule.orderModel as any;
@@ -1573,6 +1673,11 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: OrderController.getAllOrders rejects with error
+  // Input: authenticated request
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: 500 error response
   test('should call next(err) when controller promise rejects', async () => {
     const { OrderController } = require('../../src/controllers/order.controller');
     const controllerProto = OrderController.prototype;
@@ -1593,7 +1698,11 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
     controllerProto.getAllOrders = originalMethod;
   });
 
-  // Test OrderMapper moverId branches through GET /api/order/all-orders endpoint
+  // Mocked behavior: orderModel.getAllOrders returns orders with moverId
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: maps orders with assigned movers correctly
+  // Expected output: orders array with moverId field populated
   test('should return orders with moverId when mover is assigned', async () => {
     const moverId = new mongoose.Types.ObjectId();
     
@@ -1635,11 +1744,15 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
 
     expect(response.body).toHaveProperty('success', true);
     expect(response.body.orders).toHaveLength(1);
-    // Verify moverId is mapped correctly (not undefined)
     expect(response.body.orders[0]).toHaveProperty('moverId', moverId.toString());
     expect(response.body.orders[0].status).toBe(OrderStatus.ACCEPTED);
   });
 
+  // Mocked behavior: orderModel.getAllOrders returns orders with undefined moverId
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: maps orders without movers, moverId remains undefined
+  // Expected output: orders array with moverId undefined
   test('should return orders without moverId when mover is not assigned', async () => {
     // Mock orders without moverId (undefined or null)
     const mockOrders: Order[] = [
@@ -1679,11 +1792,15 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
 
     expect(response.body).toHaveProperty('success', true);
     expect(response.body.orders).toHaveLength(1);
-    // Verify moverId is undefined when not assigned
     expect(response.body.orders[0].moverId).toBeUndefined();
     expect(response.body.orders[0].status).toBe(OrderStatus.PENDING);
   });
 
+  // Mocked behavior: orderModel.getAllOrders returns mix of orders with/without moverId
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: correctly maps both orders with and without assigned movers
+  // Expected output: orders array with mixed moverId values (some populated, some undefined)
   test('should return mixed orders with and without moverId', async () => {
     const moverId1 = new mongoose.Types.ObjectId();
     
@@ -1750,18 +1867,20 @@ describe('GET /api/order/all-orders - Get All Orders (Mocked)', () => {
 
     expect(response.body).toHaveProperty('success', true);
     expect(response.body.orders).toHaveLength(2);
-    
-    // First order should have moverId
     expect(response.body.orders[0]).toHaveProperty('moverId', moverId1.toString());
     expect(response.body.orders[0].status).toBe(OrderStatus.PICKED_UP);
-    
-    // Second order should not have moverId (undefined)
     expect(response.body.orders[1].moverId).toBeUndefined();
     expect(response.body.orders[1].status).toBe(OrderStatus.PENDING);
   });
 });
 
+// Interface GET /api/order/active-order
 describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
+  // Mocked behavior: orderModel.findActiveOrder returns IN_STORAGE order
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: retrieves active order for authenticated user
+  // Expected output: order object with id, status IN_STORAGE, volume, price
   test('should successfully get active order', async () => {
     // Mock active order
     const mockActiveOrder: Order = {
@@ -1801,6 +1920,11 @@ describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
     expect(response.body).toHaveProperty('volume', 2.5);
   });
 
+  // Mocked behavior: orderModel.findActiveOrder returns null
+  // Input: authenticated request
+  // Expected status code: 404
+  // Expected behavior: returns null when no active order exists
+  // Expected output: null response body
   test('should return null when no active order exists', async () => {
     mockOrderModel.findActiveOrder.mockResolvedValue(null);
 
@@ -1812,6 +1936,11 @@ describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
     expect(response.body).toBeNull();
   });
 
+  // Mocked behavior: OrderController.getActiveOrder rejects with error
+  // Input: authenticated request
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: 500 error response
   test('should call next(err) when controller promise rejects', async () => {
     const { OrderController } = require('../../src/controllers/order.controller');
     const controllerProto = OrderController.prototype;
@@ -1831,10 +1960,12 @@ describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
     // Restore original method
     controllerProto.getActiveOrder = originalMethod;
   });
-  // Input: authenticated request for active order
+
+  // Mocked behavior: real mongoose model.findOne.sort throws error via spy
+  // Input: authenticated request
   // Expected status code: 500
-  // Expected behavior: surfaces error when underlying findActiveOrder fails
-  // Mocked behavior: real mongoose findOne.sort throws when delegated
+  // Expected behavior: surfaces underlying mongoose findOne failure
+  // Expected output: 500 error response
   test('should surface database errors when active order lookup fails', async () => {
     const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
     const actualOrderInstance = actualOrderModule.orderModel as any;
@@ -1865,10 +1996,11 @@ describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
     }
   });
 
-  // Input: authenticated request for active order
+  // Mocked behavior: real mongoose model.findById throws error via spy
+  // Input: authenticated request
   // Expected status code: 500
-  // Expected behavior: exposes failure when fetching order by id during processing
-  // Mocked behavior: real mongoose findById rejects when invoked inside mock path
+  // Expected behavior: surfaces underlying mongoose findById failure
+  // Expected output: 500 error response
   test('should surface database errors when fetching order by id fails', async () => {
     const actualOrderModule = jest.requireActual('../../src/models/order.model') as typeof import('../../src/models/order.model');
     const actualOrderInstance = actualOrderModule.orderModel as any;
@@ -1894,11 +2026,15 @@ describe('GET /api/order/active-order - Get Active Order (Mocked)', () => {
       mockOrderModel.findActiveOrder.mockReset();
     }
   });
-
-  
 });
 
+// Interface DELETE /api/order/cancel-order
 describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
+  // Mocked behavior: orderModel.findActiveOrder returns PENDING order, paymentService.refundPayment succeeds, jobService.cancelJobsForOrder succeeds, eventEmitter emits
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: cancels pending order, processes full refund, cancels associated jobs
+  // Expected output: success message 'Order cancelled successfully'
   test('should successfully cancel a pending order', async () => {
     // Mock pending order
     const mockPendingOrder: Order = {
@@ -1946,6 +2082,11 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
   });
 
+  // Mocked behavior: orderModel.findActiveOrder returns ACCEPTED order (not PENDING)
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: rejects cancellation of non-pending orders
+  // Expected output: success false, message 'Only pending orders can be cancelled'
   test('should handle cancellation of non-pending orders', async () => {
     // Mock accepted order (cannot be cancelled)
     const mockAcceptedOrder: Order = {
@@ -1979,6 +2120,11 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     expect(response.body.message).toContain('Only pending orders can be cancelled');
   });
 
+  // Mocked behavior: orderModel.findActiveOrder returns null
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: returns error when no active order exists to cancel
+  // Expected output: success false, message 'Order not found'
   test('should handle no active order to cancel', async () => {
     mockOrderModel.findActiveOrder.mockResolvedValue(null);
 
@@ -1991,6 +2137,11 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     expect(response.body).toHaveProperty('message', 'Order not found');
   });
 
+  // Mocked behavior: orderModel returns PENDING order with paymentIntentId, paymentService.refundPayment rejects, jobService and eventEmitter succeed
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: catches refund error but still completes cancellation
+  // Expected output: success message (cancellation proceeds despite refund failure)
   test('should handle refund failure during cancellation', async () => {
     // Mock pending order with payment intent
     const mockPendingOrder: Order = {
@@ -2032,6 +2183,11 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
   });
 
+  // Mocked behavior: real paymentService delegates to stripeService.refundPayment which throws error
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: payment service catches stripe error, still completes cancellation
+  // Expected output: success message (error handled gracefully)
   test('should handle stripeService.refundPayment error during cancellation', async () => {
     // Mock pending order with payment intent
     const mockPendingOrder: Order = {
@@ -2087,6 +2243,11 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
   });
 
+  // Mocked behavior: real paymentService delegates to stripeService.refundPayment which succeeds without amount
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: processes full refund (no amount specified), completes cancellation
+  // Expected output: success message 'Order cancelled successfully'
   test('should handle successful stripeService.refundPayment during cancellation without amount', async () => {
     // Mock pending order with payment intent
     const mockPendingOrder: Order = {
@@ -2146,6 +2307,11 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
   });
 
+  // Mocked behavior: real paymentService delegates to stripeService.refundPayment with partial amount
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: processes partial refund (75.0), completes cancellation
+  // Expected output: success message 'Order cancelled successfully'
   test('should handle successful stripeService.refundPayment with partial amount', async () => {
     // Mock pending order with payment intent
     const mockPendingOrder: Order = {
@@ -2176,11 +2342,9 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     const actualPaymentService = jest.requireActual('../../src/services/payment.service') as typeof import('../../src/services/payment.service');
     
     mockPaymentService.refundPayment.mockImplementation((paymentIntentId: string, amount?: number) => {
-      // Call the real payment service with the specific amount
       return actualPaymentService.paymentService.refundPayment(paymentIntentId, 75.0);
     });
     
-    // Mock stripeService to return success with partial refund amount
     const mockRefundResult = {
       paymentId: 'pi_mock_999',
       status: 'succeeded' as any,
@@ -2264,6 +2428,11 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     }
   });
 
+  // Mocked behavior: OrderController.cancelOrder rejects with error
+  // Input: authenticated request
+  // Expected status code: 500
+  // Expected behavior: error handler catches controller rejection
+  // Expected output: 500 error response
   test('should call next(err) when controller promise rejects', async () => {
     const { OrderController } = require('../../src/controllers/order.controller');
     const controllerProto = OrderController.prototype;
@@ -2284,6 +2453,11 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     controllerProto.cancelOrder = originalMethod;
   });
 
+  // Mocked behavior: orderModel returns PENDING order with paymentIntentId, paymentService succeeds, jobService.cancelJobsForOrder rejects
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: catches job cancellation error but still completes order cancellation
+  // Expected output: success message (order cancelled despite job cancellation failure)
   test('should handle error when cancelJobsForOrder fails during order cancellation (line 390)', async () => {
     // Mock pending order with payment intent
     const mockPendingOrder: Order = {
@@ -2334,29 +2508,25 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     // This tests the error logging for failed job cancellation
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
-
-    // Verify jobService.cancelJobsForOrder was called and failed
     expect(mockJobService.cancelJobsForOrder).toHaveBeenCalledWith(
       mockPendingOrder._id.toString(),
       testUserIdString
     );
-
-    // Verify order was still cancelled in the model
     expect(mockOrderModel.update).toHaveBeenCalledWith(mockPendingOrder._id, {
       status: OrderStatus.CANCELLED
     });
-
-    // Verify order.updated event was still emitted (without ts in the expected object)
     expect(mockEventEmitter.emitOrderUpdated).toHaveBeenCalledWith(
       mockUpdatedOrder,
       { by: testUserIdString }
     );
   });
 
+  // Mocked behavior: orderModel returns PENDING order without paymentIntentId, jobService succeeds, eventEmitter emits
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: skips refund process when no paymentIntentId exists, logs warning
+  // Expected output: success message (order cancelled without refund)
   test('should skip refund when order has no paymentIntentId (line 365 else branch)', async () => {
-    // This tests the else branch when order.paymentIntentId is undefined
-    // It should skip the refund process and log a warning
-    
     const mockPendingOrder: Order = {
       _id: new mongoose.Types.ObjectId(),
       studentId: testUserIdString,
@@ -2375,7 +2545,6 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
       },
       pickupTime: '2025-11-10T10:00:00.000Z',
       returnTime: '2025-11-15T10:00:00.000Z',
-      // No paymentIntentId - this is the key for this test
     };
 
     const mockUpdatedOrder: Order = { ...mockPendingOrder, status: OrderStatus.CANCELLED };
@@ -2392,14 +2561,9 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
 
-    // Should still succeed
     expect(response.body).toHaveProperty('success', true);
     expect(response.body).toHaveProperty('message', 'Order cancelled successfully');
-
-    // Verify refund was NOT called since there's no paymentIntentId
     expect(mockPaymentService.refundPayment).not.toHaveBeenCalled();
-
-    // Verify order was still cancelled
     expect(mockOrderModel.update).toHaveBeenCalledWith(mockPendingOrder._id, {
       status: OrderStatus.CANCELLED
     });
