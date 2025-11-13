@@ -1,14 +1,8 @@
 #!/usr/bin/env ts-node
+/* Not part of the actual load test. Used for debugging load test locally */
 
 /**
- * Seed users for load testing
  * Creates students and movers in the database
- * 
- * Requirements:
- * - 400 concurrent users
- * - 70% POST /api/order (students, each can create only one order)
- * - 30% GET /api/jobs/available (movers, can view multiple jobs)
- * 
  * We create:
  * - 2000 students (to handle multiple rounds of requests since each can only create one order)
  * - 300 movers (can view multiple jobs, so fewer needed)

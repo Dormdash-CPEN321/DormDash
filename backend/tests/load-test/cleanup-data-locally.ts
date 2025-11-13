@@ -1,4 +1,5 @@
 #!/usr/bin/env ts-node
+/* Not part of the actual load test. Used for debugging load test locally */
 
 /**
  * Cleanup script to remove all load test data from the database

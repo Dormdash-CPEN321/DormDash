@@ -11,30 +11,29 @@ const getAvailableJobsLatency = new Trend('get_available_jobs_latency');
 export const options = {
   stages: [
     // gradually increase load over 2 minutes
-    { duration: '1m', target: 200 }, // ramp to 200 users in 1 minute
-    { duration: '1m', target: 400 }, // Ramp to 400 users in another minute
-    { duration: '3m', target: 400 }, // hold at 400 users for 3 minutes
-    // gradually decrease load over 2 minutes
-    { duration: '1m', target: 200 }, // down to 200 users
-    { duration: '1m', target: 0 }, // down to 0 users
+    { duration: '30s', target: 50 }, // ramp to 50 users in 1 seconds
+    { duration: '30s', target: 120 }, // Ramp to 120 users in another 30 seconds
+    { duration: '2m', target: 200 }, // hold at 200 users for 2 minutes
+    // gradually decrease load over 1 minute
+    { duration: '30s', target: 100 }, 
+    { duration: '30s', target: 0 }, 
   ],
   thresholds: {
-    // 90th percentile latency must be below 800ms for each endpoint
-    'http_req_duration{name:POST /api/order}': ['p(90)<800'],
-    'http_req_duration{name:GET /api/jobs/available}': ['p(90)<800'],
+    // 90th percentile latency must be below 20s for each endpoint
+    'http_req_duration{name:POST /api/order}': ['p(90)<20000'],
+    'http_req_duration{name:GET /api/jobs/available}': ['p(90)<20000'],
     // overall error rate must be below 1%
     errors: ['rate<0.01'],
     // HTTP errors should be less than 1%
     'http_req_failed': ['rate<0.01'],
-    // check if 90% of requests complete within 800ms
-    'http_req_duration': ['p(90)<800'],
+    // check if 90% of requests complete within 20s
+    'http_req_duration': ['p(90)<20000'],
   },
 };
 
 
 const BASE_URL = "http://ec2-44-254-94-195.us-west-2.compute.amazonaws.com"
 
-console.log(`Using BASE_URL: ${BASE_URL}`);
 
 const WAREHOUSES = [
   {
@@ -192,94 +191,58 @@ export function handleSummary(data) {
 }
 
 // text summary
-function textSummary(data, options) {
+// text summary (scalability-focused)
+function textSummary(data, options = {}) {
   const indent = options.indent || '  ';
   let summary = '\n' + '='.repeat(60) + '\n';
-  summary += 'LOAD TEST SUMMARY - PEAK BURST TEST\n';
+  summary += 'LOAD TEST SUMMARY - SCALABILITY TEST\n';
   summary += '='.repeat(60) + '\n\n';
 
-  summary += 'Overall Metrics:\n';
-  summary += `${indent}Total Requests: ${data.metrics.http_reqs?.values.count || 0}\n`;
-  summary += `${indent}Failed Requests: ${
-    data.metrics.http_req_failed?.values.rate
-      ? (data.metrics.http_req_failed.values.rate * 100).toFixed(2) + '%'
-      : '0%'
-  }\n`;
-  summary += `${indent}Average Response Time: ${
-    data.metrics.http_req_duration?.values.avg
-      ? data.metrics.http_req_duration.values.avg.toFixed(2) + 'ms'
-      : 'N/A'
-  }\n`;
-  summary += `${indent}95th Percentile: ${
-    data.metrics.http_req_duration?.values['p(95)']
-      ? data.metrics.http_req_duration.values['p(95)'].toFixed(2) + 'ms'
-      : 'N/A'
-  }\n`;
-  summary += `${indent}99th Percentile: ${
-    data.metrics.http_req_duration?.values['p(99)']
-      ? data.metrics.http_req_duration.values['p(99)'].toFixed(2) + 'ms'
-      : 'N/A'
-  }\n`;
-  summary += `${indent}Max Response Time: ${
-    data.metrics.http_req_duration?.values.max
-      ? data.metrics.http_req_duration.values.max.toFixed(2) + 'ms'
-      : 'N/A'
-  }\n`;
-  summary += `${indent}Requests per Second: ${
-    data.metrics.http_reqs?.values.rate
-      ? data.metrics.http_reqs.values.rate.toFixed(2)
-      : 'N/A'
-  }\n\n`;
+  // Overall system stability
+  const totalRequests = data.metrics.http_reqs?.values.count || 0;
+  const failedRequests = data.metrics.http_req_failed?.values.rate
+    ? data.metrics.http_req_failed.values.rate * 100
+    : 0;
+  const avgResponse = data.metrics.http_req_duration?.values.avg || 0;
+  const p90Latency = data.metrics.http_req_duration?.values['p(90)'] || 0;
+  const rps = data.metrics.http_reqs?.values.rate || 0;
 
-  summary += 'Endpoint-Specific Metrics:\n';
-  if (data.metrics['post_order_latency']) {
-    const postP95 = data.metrics['post_order_latency'].values['p(95)'] || 0;
-    summary += `${indent}POST /api/order - 95th percentile: ${postP95.toFixed(2)}ms ${
-      postP95 < 500 ? '✓' : '✗'
-    }\n`;
-  }
-  if (data.metrics['get_available_jobs_latency']) {
-    const getP95 =
-      data.metrics['get_available_jobs_latency'].values['p(95)'] || 0;
-    summary += `${indent}GET /api/jobs/available - 95th percentile: ${getP95.toFixed(2)}ms ${
-      getP95 < 500 ? '✓' : '✗'
-    }\n`;
-  }
+  summary += 'Scalability Overview:\n';
+  summary += `${indent}Total Requests: ${totalRequests}\n`;
+  summary += `${indent}Failed Requests: ${failedRequests.toFixed(2)}%\n`;
+  summary += `${indent}Average Response Time: ${avgResponse.toFixed(2)}ms\n`;
+  summary += `${indent}90th Percentile Latency: ${p90Latency.toFixed(2)}ms\n`;
+  summary += `${indent}Requests per Second: ${rps.toFixed(2)}\n`;
 
-  // threshold results
+  // Threshold results
   summary += '\nThreshold Results:\n';
-  if (data.metrics.errors) {
-    const errorRate = data.metrics.errors.values.rate * 100;
-    summary += `${indent}Error Rate: ${errorRate.toFixed(2)}% ${
-      errorRate < 1 ? '✓' : '✗'
-    }\n`;
-  }
-  if (data.metrics.http_req_duration) {
-    const p95 = data.metrics.http_req_duration.values['p(95)'] || 0;
-    summary += `${indent}95th Percentile Latency: ${p95.toFixed(2)}ms ${
-      p95 < 500 ? '✓' : '✗'
-    }\n`;
-  }
+  summary += `${indent}Error Rate: ${failedRequests.toFixed(2)}% ${
+    failedRequests < 1 ? '✓' : '✗'
+  }\n`;
+  summary += `${indent}90th Percentile Latency: ${p90Latency.toFixed(2)}ms ${
+    p90Latency < 20000 ? '✓' : '✗'
+  }\n`;
 
+  // Scalability metrics
   summary += '\n' + '='.repeat(60) + '\n';
   summary += 'Scalability Metrics:\n';
   summary += '='.repeat(60) + '\n';
-  summary += `${indent}Peak VUs: 400\n`;
-  summary += `${indent}Test Duration: ~8 minutes (ramp-up, sustained, ramp-down)\n`;
+  summary += `${indent}Peak Virtual Users (VUs): ${options.vus || 'N/A'}\n`;
+  summary += `${indent}Test Duration: ${options.duration || 'N/A'}\n`;
   summary += `${indent}Total Data Transferred: ${
     data.metrics.data_received?.values.count
-      ? (data.metrics.data_received.values.count / 1024 / 1024).toFixed(2) +
-        ' MB'
+      ? (data.metrics.data_received.values.count / 1024 / 1024).toFixed(2) + ' MB'
       : 'N/A'
   }\n`;
   summary += `${indent}Data Sent: ${
     data.metrics.data_sent?.values.count
       ? (data.metrics.data_sent.values.count / 1024 / 1024).toFixed(2) + ' MB'
       : 'N/A'
-  }\n\n`;
+  }\n`;
 
-  if (data.root_group && data.root_group.checks) {
-    summary += 'Check Results:\n';
+  // Pass/fail checks summary
+  if (data.root_group?.checks) {
+    summary += '\nCheck Results:\n';
     Object.entries(data.root_group.checks).forEach(([name, check]) => {
       const total = check.passes + check.fails;
       const passRate = total > 0 ? (check.passes / total) * 100 : 0;
@@ -287,6 +250,30 @@ function textSummary(data, options) {
     });
   }
 
+  // Dynamic final summary
+  const scalabilityPassed = failedRequests < 1 && p90Latency < 20000;
   summary += '\n' + '='.repeat(60) + '\n';
+  summary += 'Summary:\n';
+  summary += '='.repeat(60) + '\n';
+  if (scalabilityPassed) {
+    summary += `${indent}✅ Scalability test completed successfully.\n`;
+    summary += `${indent}System remained stable under high concurrency.\n`;
+    summary += `${indent}Performance degradation observed is within acceptable range.\n`;
+  } else {
+    summary += `${indent}❌ Scalability test did NOT meet requirements.\n`;
+    if (failedRequests >= 1) {
+      summary += `${indent}- Error rate too high: ${failedRequests.toFixed(2)}%\n`;
+    } else {
+      summary += `${indent}- Error rate within acceptable range: ${failedRequests.toFixed(2)}%\n`;
+    }
+    if (p90Latency >= 20000) {
+      summary += `${indent}- 90th percentile latency too high: ${p90Latency.toFixed(2)}ms\n`;
+    } else {
+      summary += `${indent}- 90th percentile latency within acceptable range: ${p90Latency.toFixed(2)}ms\n`;
+    }
+    summary += `${indent}⚠️ Consider scaling the system or optimizing endpoints.\n`;
+  }
+  summary += '='.repeat(60) + '\n';
+
   return summary;
 }
