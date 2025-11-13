@@ -187,11 +187,11 @@ export class RoutePlannerService {
   private getDaySlotsForAvailability(
     availability: DayAvailability,
     dayOfWeek: 'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT'
-  ) {
+  ): TimeRange[] {
     // Handle both Mongoose Map and plain object
     // When retrieved from MongoDB, availability is a Map object
     if (availability instanceof Map) {
-      const slots = availability.get(dayOfWeek);
+      const slots = availability.get(dayOfWeek) as TimeRange[];
       return slots ?? [];
     }
 
