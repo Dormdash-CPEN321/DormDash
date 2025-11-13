@@ -11,7 +11,9 @@
 | 2025-10-22     | Requirements Specification: Actor Descriptions | Changed external service names. Why: To keep the naming consistent.                                                                                                                                                                                                     |
 | 2025-10-22     | Requirements Specification: Non-Functional Requirements | Changed our second non-functional requirement to a UI response requirement. Why: This is a more specific constraint and better reflects our implementation choices.                                                                                                     |
 | 2025-10-22     | Design | Added Jobs component and RoutePlanner component to the design description and diagram. Why: Jobs were added because orders are a two-phase service (storage and return); RoutePlanner was separated out to follow separation of concerns and encapsulate routing logic. |
-| 2025-11-12 | Requirement | We changed the requirements to not mention user can change profile picture. Why: we are no longer having profile picture in our app and need to ensure our documentation matches the functionality
+| 2025-11-12 | Requirement | We changed the requirements to not mention user can change profile picture. Why: we are no longer having profile picture in our app and need to ensure our documentation matches the functionality |
+| 2025-11-12 | Use Case Specification | We changed the 'View Recommended Route' use case to use a slider, instead of a multiple choice list. For selecting the duration of the route. |
+
 ---
 
 ## 2. Project Description
@@ -237,7 +239,7 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
 **Main success scenario**:
 1. Mover clicks on “Get Optimal Route” button
 2. System prompts mover for their desired max shift duration
-3. Mover enters their max duration by choosing one option from the multiple choice list and clicks “Find Smart Route” button
+3. Mover enters their max duration by using the slider and clicks “Find Smart Route” button
 4. System prompts mover to allow access to their current location
 5. Mover allows access to location by pressing “Only this time” or “While using the app” button
 6. System displays a route summary and a list of jobs within the mover’s availability and maximum duration window, with details of the pickup address, travel time and credits. 
@@ -477,4 +479,5 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
 1. [**[Scalability]**](#nfr1)
     - **Validation**: The system uses Docker containerization with MongoDB for horizontal scalability and Express.js with Socket.io for real-time job updates, allowing the simple Node.js deployment to handle short bursts of ~400 concurrent users through efficient connection pooling and stateless API design. MongoDB's flexible schema and indexing capabilities combined with the lightweight Express server ensure ~200 jobs/day can be processed efficiently during peak move-in/move-out periods without requiring complex infrastructure
 2. [**[UI Response Time]**](#nfr2)
+
     - **Validation**: Socket.io Real-Time Push: Instead of polling for updates, the backend pushes job status changes directly to connected clients, eliminating the need for repeated API calls and providing immediate feedback.
