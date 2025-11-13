@@ -349,7 +349,7 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
             - **Purpose**: Cancels all uncompleted jobs for an order when order is cancelled; updates status to CANCELLED and emits events to update movers' "Find Jobs" or "Current Jobs" pages. 
 
 
-5.**RoutePlanner**
+5. **RoutePlanner**
    - **Purpose**: Handles creation of optimized routes for movers to maximize efficiency and earnings.
    - **Interfaces**:
         1. ` SuggestedRoute calculateSmartRoute(String moverId, LatLng currentLocation, Int maxDuration) `
@@ -483,6 +483,7 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
 2. [**[UI Response Time]**](#nfr2)
 
     - **Validation**: The Android frontend uses Jetpack Compose with local, immediate UI state updates so interactions that don’t require a backend round-trip (box counters, date/time pickers, form input) update instantly on-device while network calls are performed asynchronously via the app’s repository/services layer, keeping core UI feedback below the 0.1s perceptual target
+
 
 
 
