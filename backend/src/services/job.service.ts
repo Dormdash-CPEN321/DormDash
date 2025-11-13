@@ -782,7 +782,7 @@ export class JobService {
 
       // Update order status to COMPLETED
       try {
-        const orderObjectId = extractObjectId(updatedJob?.orderId);
+        const orderObjectId = extractObjectId(updatedJob.orderId);
         if (!orderObjectId) {
           throw new Error('Invalid orderId in job');
         }
