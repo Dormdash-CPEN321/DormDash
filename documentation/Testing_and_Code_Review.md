@@ -127,17 +127,45 @@ _(Placeholder for Jest coverage screenshot both with and without mocking)_
 
 | **Non-Functional Requirement**  | **Location in Git**                              |
 | ------------------------------- | ------------------------------------------------ |
-| **Performance (Response Time)** | [`tests/nonfunctional/response_time.test.js`](#) |
+| **Scalability** | [`backend/tests/load-test/load-test.js`](#) |
 | **UI Responsivness**     | [`frontend/app/src/androidTest/java/com/cpen321/usermanagement/performance/UIResponsivness/MoverUIResponseTimeTest.kt`](#) [`frontend/app/src/androidTest/java/com/cpen321/usermanagement/performance/UIResponsivness/StudentUIResponseTimeTest.kt`](#) |
 
 ### 3.2. Test Verification and Logs
 
-- **Performance (Response Time)**
+- **Scalability**
 
-    - **Verification:** This test suite simulates multiple concurrent API calls using Jest along with a load-testing utility to mimic real-world user behavior. The focus is on key endpoints such as user login and study group search to ensure that each call completes within the target response time of 2 seconds under normal load. The test logs capture metrics such as average response time, maximum response time, and error rates. These logs are then analyzed to identify any performance bottlenecks, ensuring the system can handle expected traffic without degradation in user experience.
+    - **Verification:** This scalability test evaluates the system’s ability to handle concurrent load and maintain performance stability under stress using K6. It simulates real-world traffic by continuously sending requests to two critical API endpoints: `POST /api/order`, representing students placing storage or moving orders, and `GET /api/jobs/available`, representing movers retrieving available job listings. The test ramps up to 200 virtual users, sustains peak load for two minutes, and then scales down to assess elasticity and resilience. Approximately 70% of the traffic targets the order creation endpoint (write-heavy), while 30% targets job retrieval (read-heavy). Each virtual user uses a valid JWT token generated from real user IDs fetched from the deployed API, ensuring realistic authentication behavior. Key performance metrics—such as error rate, 90th percentile latency, and throughput—are tracked throughout the test, with thresholds requiring latency below 20 seconds and error rates below 1%. The goal is to validate that the backend remains stable, responsive, and scalable under high concurrency while identifying any performance bottlenecks or degradation patterns.
+
     - **Log Output**
       ```
-      [Placeholder for response time test logs]
+      Scalability Overview:
+      Total Requests: 4401
+      Failed Requests: 0.05%
+      Average Response Time: 5203.29ms
+      90th Percentile Latency: 11686.70ms
+      Requests per Second: 18.23
+
+      Threshold Results:
+      Error Rate: 0.05% ✓
+      90th Percentile Latency: 11686.70ms ✓
+
+      Scalability Metrics:
+      Peak Virtual Users (VUs): N/A
+      Test Duration: N/A
+      Total Data Transferred: 985.01 MB
+      Data Sent: 2.82 MB
+
+      Check Results:
+      0: 100.00% (1338/1338)
+      1: 100.00% (1338/1338)
+      2: 99.93% (3061/3063)
+      3: 99.93% (3061/3063)
+      4: 100.00% (3061/3061)
+
+      Summary:
+      ✅ Scalability test completed successfully.
+      System remained stable under high concurrency.
+      Performance degradation observed is within acceptable range.
       ```
 
 - **UI Responsivness**
