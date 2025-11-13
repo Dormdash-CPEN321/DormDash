@@ -11,7 +11,7 @@
 | 2025-10-22     | Requirements Specification: Actor Descriptions | Changed external service names. Why: To keep the naming consistent.                                                                                                                                                                                                     |
 | 2025-10-22     | Requirements Specification: Non-Functional Requirements | Changed our second non-functional requirement to a UI response requirement. Why: This is a more specific constraint and better reflects our implementation choices.                                                                                                     |
 | 2025-10-22     | Design | Added Jobs component and RoutePlanner component to the design description and diagram. Why: Jobs were added because orders are a two-phase service (storage and return); RoutePlanner was separated out to follow separation of concerns and encapsulate routing logic. |
-
+| 2025-11-12 | Requirement | We changed the requirements to not mention user can change profile picture. Why: we are no longer having profile picture in our app and need to ensure our documentation matches the functionality
 ---
 
 ## 2. Project Description
@@ -28,7 +28,7 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
    Users (students and movers) can sign up, sign in, and sign out using Google OAuth. 
 
 2. **Manage Profile**  
-   Users can view and edit their profile details (name, profile picture and bio). 
+   Users can view and edit their profile details (name, and bio). 
 
 3. **Manage Orders**  
    Students can use the storage service by creating an order: in which they specify a pickup and expected return date, receive a price quote, make a payment, and track the status of their order if it's been placed successfully,or if it's still pending or if a mover has accepted the order. Once the mover picks up their items, the student is prompted to confirm that their order has been picked up. If the order status is currently in storage, students can confirm the return job, if they have passed the expected return date they will pay the extra difference. If they are requesting a return before the expected return date, they are given a partial refund. Students can track the status of their stored items in real time and cancel their current active order request before a mover accepts it, with refunds issued automatically. They can also view past order history.
@@ -69,8 +69,8 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
   4. **Delete Account**: User can delete their account in DormDash.
 
 - **Use cases for feature 2: Manage Profile**  
-  1. **Edit Profile**: Users can view the name, profile picture, and bio associated with their account  
-  2. **View Profile**:  Users can edit the name, profile picture, and bio associated with their account 
+  1. **Edit Profile**: Users can view the name, and bio associated with their account  
+  2. **View Profile**:  Users can edit the name, and bio associated with their account 
 
 - **Use cases for feature 3: Manage Orders**  
   1. **Create order**: The student enters addresses, pickup & expected return times, and volume of their items. The system validates the address is within the Greater Vancouver area, and returns a price quote with a breakdown. The student can pay and submit their order.  
@@ -277,7 +277,7 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
             - **Purpose**: Validates and assigns the requested role to the user (e.g., student, mover), applies any role-specific constraints or approval flows, persists the change, and returns the updated User profile.
         5. `User getProfile(String userId)`
             - **Purpose**: Returns the user's current profile, including id, name, role(s), contact info, availability, credit balances. Used to display profile information and use any user data.
-       6. `User updateProfile(String userId, String name, String bio, String fcmToken, String profilePicture, DayAvailability availability)`
+       6. `User updateProfile(String userId, String name, String bio, String fcmToken, DayAvailability availability)`
            - **Purpose**: Updates the profile fields, persists the updated User, and returns the new profile; validates input.
        7. `void deleteProfile(String userId)`
            - **Purpose**:Deletes the user's account: removes personal data, cancels associated jobs/orders.
@@ -445,10 +445,6 @@ DormDash provides a complete, stress-free solution. Through an Uber-like app, st
 15. **Maps Compose**  
    - **Purpose**: Jetpack Compose integration for Google Maps SDK.
    - **Reason**:  Displays interactive maps showing pickup/delivery locations in a Compose-native way. Allows students to see current order locations and movers to see job addresses on a map.
-
-16. **Coil**  
-   - **Purpose**: Image loading library optimized for Jetpack Compose.
-   - **Reason**:  Efficiently loads and caches images (user profile pictures)
 
 
 
