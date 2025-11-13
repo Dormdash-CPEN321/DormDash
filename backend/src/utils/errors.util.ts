@@ -23,7 +23,7 @@ export class AppError extends Error {
  */
 export class NotFoundError extends AppError {
   constructor(resource: string, id: string) {
-    const message = `${resource} not found`;
+    const message = `${resource} with ID ${id} not found`;
     super(message, 404, 'NOT_FOUND');
   }
 }
@@ -41,8 +41,6 @@ export class JobNotFoundError extends NotFoundError {
 export class InternalServerError extends AppError {
   constructor(message: 'Internal server error', originalError: Error) {
     super(message, 500, 'INTERNAL_ERROR');
-    if (originalError) {
-      this.stack = originalError.stack;
-    }
+    this.stack = originalError.stack;
   }
 }

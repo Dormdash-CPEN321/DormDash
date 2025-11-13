@@ -46,4 +46,5 @@ export const errorHandler = (
     // provide a bit more context in non-production environments
     ...(process.env.NODE_ENV !== 'production' && { stack }),
   });
+  next();
 };
