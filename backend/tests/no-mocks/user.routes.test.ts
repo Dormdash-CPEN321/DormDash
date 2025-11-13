@@ -79,9 +79,11 @@ afterAll(async () => {
 });
 
 
-
-
-describe('GET /api/user/profile - Get User Profile', () => {
+describe('Unmocked GET /api/user/profile', () => {
+  // Input: authenticated request
+  // Expected status code: 200
+  // Expected behavior: returns user profile data including email, name, and userRole
+  // Expected output: { data: { user: { email, name, userRole } } }
   test('should return user profile for authenticated user', async () => {
     const response = await request(app)
       .get('/api/user/profile')
@@ -95,12 +97,20 @@ describe('GET /api/user/profile - Get User Profile', () => {
     expect(response.body.data.user).toHaveProperty('userRole', 'STUDENT');
   });
 
+  // Input: unauthenticated request
+  // Expected status code: 401
+  // Expected behavior: request rejected due to missing Authorization header
+  // Expected output: authentication error
   test('should require authentication', async () => {
     await request(app)
       .get('/api/user/profile')
       .expect(401);
   });
 
+  // Input: invalid Authorization token
+  // Expected status code: 401
+  // Expected behavior: request rejected due to invalid token
+  // Expected output: authentication error
   test('should reject invalid token', async () => {
     await request(app)
       .get('/api/user/profile')
@@ -109,7 +119,11 @@ describe('GET /api/user/profile - Get User Profile', () => {
   });
 });
 
-describe('POST /api/user/profile - Update User Profile', () => {
+describe('Unmocked POST /api/user/profile', () => {
+  // Input: authenticate with valid name and bio
+  // Expected status code: 200
+  // Expected behavior: updates user profile fields and returns updated user data
+  // Expected output: { message: 'User info updated successfully', data: { user: { name, bio } } }
   test('should update user profile successfully', async () => {
     const updateData = {
       name: 'Updated Test User',
@@ -128,6 +142,10 @@ describe('POST /api/user/profile - Update User Profile', () => {
     expect(response.body.data.user).toHaveProperty('bio', 'This is my updated bio');
   });
 
+  // Input: authenticated POST /api/user/profile with new fcmToken
+  // Expected status code: 200
+  // Expected behavior: user's fcmToken is updated to provided value
+  // Expected output: { message: 'User info updated successfully', data: { user: { fcmToken } } }
   test('should update FCM token', async () => {
     const updateData = {
       fcmToken: 'new-fcm-token-12345'
@@ -143,6 +161,10 @@ describe('POST /api/user/profile - Update User Profile', () => {
     expect(response.body.data.user).toHaveProperty('fcmToken', 'new-fcm-token-12345');
   });
 
+  // Input: unauthenticated POST /api/user/profile
+  // Expected status code: 401
+  // Expected behavior: request rejected due to missing Authorization header
+  // Expected output: authentication error
   test('should require authentication', async () => {
     const updateData = {
       name: 'Updated Name'
@@ -154,6 +176,10 @@ describe('POST /api/user/profile - Update User Profile', () => {
       .expect(401);
   });
 
+  // Input: authenticated POST /api/user/profile with bio > 500 chars
+  // Expected status code: 400
+  // Expected behavior: validation fails due to bio length
+  // Expected output: { error: 'Validation error' }
   test('should reject invalid bio that exceeds 500 characters', async () => {
     const updateData = {
       bio: 'a'.repeat(501) // 501 characters, exceeds limit
@@ -168,6 +194,10 @@ describe('POST /api/user/profile - Update User Profile', () => {
     expect(response.body).toHaveProperty('error', 'Validation error');
   });
 
+  // Input: authenticated POST /api/user/profile with invalid userRole value
+  // Expected status code: 400
+  // Expected behavior: validation fails for userRole
+  // Expected output: { error: 'Validation error' }
   test('should reject invalid user role', async () => {
     const updateData = {
       userRole: 'INVALID_ROLE' as any
@@ -182,6 +212,10 @@ describe('POST /api/user/profile - Update User Profile', () => {
     expect(response.body).toHaveProperty('error', 'Validation error');
   });
 
+  // Input: authenticated POST /api/user/profile with negative capacity
+  // Expected status code: 400
+  // Expected behavior: validation fails for capacity value
+  // Expected output: { error: 'Validation error' }
   test('should reject negative capacity', async () => {
     const updateData = {
       capacity: -100
@@ -196,6 +230,10 @@ describe('POST /api/user/profile - Update User Profile', () => {
     expect(response.body).toHaveProperty('error', 'Validation error');
   });
 
+  // Input: authenticated POST /api/user/profile with valid availability schedule for mover
+  // Expected status code: 200
+  // Expected behavior: availability is stored on user profile
+  // Expected output: data.user includes availability object
   test('should accept valid mover availability schedule', async () => {
     const updateData = {
       availability: {
@@ -213,6 +251,10 @@ describe('POST /api/user/profile - Update User Profile', () => {
     expect(response.body.data.user).toHaveProperty('availability');
   });
 
+  // Input: authenticated POST /api/user/profile with invalid time format in availability
+  // Expected status code: 400
+  // Expected behavior: validation fails for availability time format
+  // Expected output: { error: 'Validation error' }
   test('should reject invalid time format in availability', async () => {
     const updateData = {
       availability: {
@@ -231,12 +273,20 @@ describe('POST /api/user/profile - Update User Profile', () => {
 });
 
 describe('POST /api/user/cash-out - Cash Out', () => {
+  // Input: unauthenticated POST /api/user/cash-out
+  // Expected status code: 401
+  // Expected behavior: request rejected due to missing authentication
+  // Expected output: authentication error
   test('should require authentication', async () => {
     await request(app)
       .post('/api/user/cash-out')
       .expect(401);
   });
 
+  // Input: authenticated student (not mover) POST /api/user/cash-out
+  // Expected status code: 403
+  // Expected behavior: only movers are allowed to cash out; reject students
+  // Expected output: { message: 'Only movers can cash out credits' }
   test('should return 403 for non-mover users', async () => {
     // Test user is a STUDENT, not a MOVER
     const response = await request(app)
@@ -247,6 +297,10 @@ describe('POST /api/user/cash-out - Cash Out', () => {
     expect(response.body).toHaveProperty('message', 'Only movers can cash out credits');
   });
 
+  // Input: authenticated mover with credits POST /api/user/cash-out
+  // Expected status code: 200
+  // Expected behavior: credits are cashed out and user's credits reset to 0
+  // Expected output: { message: 'Credits cashed out successfully', data: { user: { credits: 0 } } }
   test('should successfully cash out for mover with credits', async () => {
     // Update user to be a mover with credits before cashing out
     const db = mongoose.connection.db;
@@ -274,6 +328,10 @@ describe('POST /api/user/cash-out - Cash Out', () => {
     }
   });
 
+  // Input: authenticated mover with zero credits POST /api/user/cash-out
+  // Expected status code: 200
+  // Expected behavior: cash out handled gracefully, credits remain zero
+  // Expected output: { message: 'Credits cashed out successfully', data: { user: { credits: 0 } } }
   test('should handle cash out when mover has zero credits', async () => {
     const db = mongoose.connection.db;
     if (db) {
@@ -302,6 +360,10 @@ describe('POST /api/user/cash-out - Cash Out', () => {
 });
 
 describe('DELETE /api/user/profile - Delete Profile', () => {
+  // Input: unauthenticated DELETE /api/user/profile
+  // Expected status code: 401
+  // Expected behavior: request rejected due to missing authentication
+  // Expected output: authentication error
   test('should require authentication', async () => {
     await request(app)
       .delete('/api/user/profile')
@@ -387,6 +449,10 @@ describe('DELETE /api/user/profile - Delete Profile', () => {
 });
 
 describe('FCM Token Handling', () => {
+  // Input: second user exists with an FCM token; test user updates profile to same token
+  // Expected status code: 200
+  // Expected behavior: the FCM token is moved to test user and cleared from second user
+  // Expected output: response contains updated user with fcmToken and second user's fcmToken is null
   test('should move FCM token from one user to another on update', async () => {
     const db = mongoose.connection.db;
     const secondUserId = new mongoose.Types.ObjectId();
@@ -428,6 +494,10 @@ describe('FCM Token Handling', () => {
     }
   });
 
+  // Input: two other users exist, one with a conflict FCM token; a user attempts to set same token
+  // Expected status code: 200
+  // Expected behavior: endpoint allows setting token and clears it from the previous holder
+  // Expected output: requester has fcmToken set; previous holder's fcmToken cleared
   test('should handle multiple users trying to set same FCM token', async () => {
     const db = mongoose.connection.db;
     const user2Id = new mongoose.Types.ObjectId();
@@ -496,6 +566,10 @@ describe('DELETE /api/user/profile - Delete User Profile', () => {
       .expect(401);
   });
 
+  // Input: authenticated DELETE /api/user/profile
+  // Expected status code: 200
+  // Expected behavior: user profile is deleted and a success message returned
+  // Expected output: { message: 'User deleted successfully' }
   test('should delete user profile successfully', async () => {
     const response = await request(app)
       .delete('/api/user/profile')

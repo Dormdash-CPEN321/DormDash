@@ -79,7 +79,11 @@ afterAll(async () => {
   console.info = originalConsole.info;
 });
 
-describe('GET /api/routePlanner/smart - Get Smart Route', () => {
+describe('Unmocked GET /api/routePlanner/smart', () => {
+  // Input: authenticated mover with currentLat/currentLon query params
+  // Expected status code: 200
+  // Expected behavior: returns a smart route with route array, metrics and startLocation
+  // Expected output: { message, data: { route: [], metrics: {...}, startLocation: {lat, lon} } }
   test('should return smart route for authenticated mover', async () => {
     const response = await request(app)
       .get('/api/routePlanner/smart')
@@ -98,6 +102,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     expect(Array.isArray(response.body.data.route)).toBe(true);
   });
 
+  // Input: same request but no Authorization header
+  // Expected status code: 401
+  // Expected behavior: request rejected due to missing authentication
+  // Expected output: authentication error
   test('should require authentication', async () => {
     await request(app)
       .get('/api/routePlanner/smart')
@@ -108,6 +116,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
       .expect(401);
   });
 
+  // Input: request with invalid Authorization token
+  // Expected status code: 401
+  // Expected behavior: request rejected due to invalid token
+  // Expected output: authentication error
   test('should reject invalid token', async () => {
     await request(app)
       .get('/api/routePlanner/smart')
@@ -119,6 +131,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
       .expect(401);
   });
 
+  // Input: authenticated request missing currentLat/currentLon parameters
+  // Expected status code: 400
+  // Expected behavior: validation fails for missing location params
+  // Expected output: response.body.message contains 'Invalid location parameters'
   test('should require currentLat and currentLon parameters', async () => {
     const response = await request(app)
       .get('/api/routePlanner/smart')
@@ -129,6 +145,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     expect(response.body.message).toContain('Invalid location parameters');
   });
 
+  // Input: authenticated request with non-numeric currentLat
+  // Expected status code: 400
+  // Expected behavior: validation fails for invalid location params
+  // Expected output: 'Invalid location parameters'
   test('should validate currentLat and currentLon are numbers', async () => {
     const response = await request(app)
       .get('/api/routePlanner/smart')
@@ -143,6 +163,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     expect(response.body.message).toContain('Invalid location parameters');
   });
 
+  // Input: authenticated request with optional maxDuration provided
+  // Expected status code: 200
+  // Expected behavior: returns route respecting maxDuration if possible
+  // Expected output: { message, data: { route: [], metrics: {...}, startLocation: {lat, lon} } }
   test('should accept optional maxDuration parameter', async () => {
     const response = await request(app)
       .get('/api/routePlanner/smart')
@@ -158,6 +182,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     expect(response.body).toHaveProperty('data');
   });
 
+  // Input: authenticated request with negative maxDuration
+  // Expected status code: 400
+  // Expected behavior: validation fails for maxDuration
+  // Expected output: 'Invalid maxDuration parameter'
   test('should validate maxDuration is a positive number', async () => {
     const response = await request(app)
       .get('/api/routePlanner/smart')
@@ -173,6 +201,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     expect(response.body.message).toContain('Invalid maxDuration parameter');
   });
 
+  // Input: authenticated request for smart route
+  // Expected status code: 200
+  // Expected behavior: returns route with jobs containing required fields and metrics structure
+  // Expected output: route array with jobs and metrics object
   test('should return route with proper structure', async () => {
     const response = await request(app)
       .get('/api/routePlanner/smart')
@@ -215,6 +247,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     expect(response.body.data.startLocation).toHaveProperty('lon', -123.1207);
   });
 
+  // Input: authenticated request from location with no available jobs (lat:0, lon:0)
+  // Expected status code: 200
+  // Expected behavior: returns message 'No jobs available matching your schedule' and empty route
+  // Expected output: { message: 'No jobs available matching your schedule', data: { route: [] } }
   test('should return empty route if no jobs available', async () => {
     const response = await request(app)
         .get('/api/routePlanner/smart')
@@ -230,6 +266,10 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     expect(response.body.data.route.length).toBe(0);
   });
   
+  // Input:request with very small maxDuration (30 minutes)
+  // Expected status code: 200
+  // Expected behavior: jobs that would exceed maxDuration are not suggested; response indicates no jobs
+  // Expected output: { message: 'No jobs available matching your schedule', data: { route: [] } }
   test('should not suggest jobs that exceed maxDuration', async () => {
     //fist inject jobs that are within and beyond maxDuration
     mongoose.connection.db.collection('jobs').insertMany([
