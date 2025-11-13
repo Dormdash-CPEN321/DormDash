@@ -192,7 +192,7 @@ export class RoutePlannerService {
     // When retrieved from MongoDB, availability is a Map object
     if (availability instanceof Map) {
       const slots = availability.get(dayOfWeek) as TimeRange[];
-      return slots ?? [];
+      return slots
     }
 
     // Use explicit property access (dot access) for plain objects
