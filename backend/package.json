@@ -4,7 +4,9 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",
+    "test:all": "jest tests/with-mocks tests/no-mocks",
     "test:coverage": "jest --coverage",
+    "test:all:coverage": "jest tests/with-mocks tests/no-mocks --coverage",
     "test:coverage:watch": "jest --coverage --watch",
     "test:mock": "node test-runner.js",
     "test:nomock": "node test-runner.js",
