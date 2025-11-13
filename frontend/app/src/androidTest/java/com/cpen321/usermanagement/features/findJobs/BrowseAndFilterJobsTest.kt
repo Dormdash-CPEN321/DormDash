@@ -204,6 +204,7 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
         // Step 1: Navigate to Find Jobs
         composeTestRule.onNodeWithText("Find Jobs").performClick()
         composeTestRule.waitForIdle()
+        Thread.sleep(2000)
 
         // Step 2a: No jobs available - Verify empty state message is displayed
         composeTestRule.onNodeWithText("No available jobs").assertIsDisplayed()
@@ -224,14 +225,18 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
         device.pressBack()
         composeTestRule.waitForIdle()
 
+        composeTestRule.onNodeWithText("Find Jobs").performClick()
+        composeTestRule.waitForIdle()
+
         // Toggle availability filter
         composeTestRule.onNodeWithTag("availability_switch").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Show All").assertDoesNotExist()
         composeTestRule.onNodeWithText("Within Availability").assertIsDisplayed()
+        composeTestRule.waitForIdle()
 
         // Step 4a: No jobs within availability - Verify empty state message is displayed and no jobs shown
-        composeTestRule.onNodeWithText("No available jobs within your availability").assertIsDisplayed()
+        composeTestRule.onNodeWithText("No available jobs within your availability. Try broadening your availability.").assertIsDisplayed()
         composeTestRule.onAllNodesWithTag("job_card").assertCountEquals(0)
     }
 }

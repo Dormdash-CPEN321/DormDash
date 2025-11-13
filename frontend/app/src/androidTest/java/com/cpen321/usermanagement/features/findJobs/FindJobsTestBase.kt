@@ -75,7 +75,19 @@ abstract class FindJobsTestBase {
         grantNotificationPermission()
 
         // Always need to be signed in as a mover for find jobs use cases
-        signInAsMover()
+        // check if we already see bio screen and sign in if not
+        val completeProfileNodes = composeTestRule
+            .onAllNodesWithText("Complete Your Profile", useUnmergedTree = true)
+            .fetchSemanticsNodes()
+
+        if (completeProfileNodes.isEmpty()) {
+            signInAsMover()
+        } else {
+            composeTestRule
+                .onNodeWithText("Skip", useUnmergedTree = true)
+                .performClick()
+            composeTestRule.waitForIdle()
+        }
     }
 
     /**

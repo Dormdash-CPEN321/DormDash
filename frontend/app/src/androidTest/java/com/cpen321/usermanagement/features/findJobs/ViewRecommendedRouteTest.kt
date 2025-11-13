@@ -122,19 +122,16 @@ class ViewRecommendedRouteTest : FindJobsTestBase() {
         // - Total credits/earnings
         composeTestRule.onNode(
             hasTestTag("route_total_credits")
-                .or(hasText("Earnings", substring = true, ignoreCase = true))
         ).assertIsDisplayed()
 
         // - Total travel time
         composeTestRule.onNode(
             hasTestTag("route_total_time")
-                .or(hasText("Duration", substring = true, ignoreCase = true))
         ).assertIsDisplayed()
 
         // - Number of jobs in route
         composeTestRule.onNode(
             hasTestTag("route_job_count")
-                .or(hasText("Jobs", substring = true, ignoreCase = true))
         ).assertIsDisplayed()
 
         // Verify list of jobs in the route

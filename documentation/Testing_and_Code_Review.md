@@ -106,6 +106,7 @@ _(Placeholder for Jest coverage screenshot both with and without mocking)_
 
 ## 4. Front-end Test Specification
 **Instructions to run the tests**:
+- Clone the repository
 - Create a test.properties file under DormDash/frontend/app/src/androidTest/resources
 - Add the following to the file, and fill in 2 test accounts (1 for student and 1 for mover):
   STUDENT_EMAIL=<the email for the student account>
@@ -197,29 +198,29 @@ _(Placeholder for Jest coverage screenshot both with and without mocking)_
 
  - **Use case: Delete Account**
 
-    - **Expected Behaviors:**
-      | **Scenario Steps** | **Test Case Steps** |
-      | ------------------ | ------------------- |
-      | 1. User opens app and executes ‘Sign in’ use case. | Execute Sign in test |
-      | 2. User clicks on profile icon | Ensure profile icon exists and click it |
-      | 3. System redirects user to profile screen | Ensure profile screen elements exist like ‘Delete Account’ |
-      | 4. The user clicks ‘Delete Account’ | Click ‘Delete Account’ |
-      | 5. The system prompts user to confirm | Ensure confirm button existence |
-      | 6. User clicks ‘Confirm’ | Click ‘Confirm’ |
-      | 7. System deletes account and redirects user to authentication screen | Ensure auth screen identifiers exist, like app title and Google auth buttons |
+   - **Expected Behaviors:**
+       | **Scenario Steps** | **Test Case Steps** |
+       | ------------------ | ------------------- |
+       | 1. User opens app and executes ‘Sign in’ use case. | Execute Sign in test |
+       | 2. User clicks on profile icon | Ensure profile icon exists and click it |
+       | 3. System redirects user to profile screen | Ensure profile screen elements exist like ‘Delete Account’ |
+       | 4. The user clicks ‘Delete Account’ | Click ‘Delete Account’ |
+       | 5. The system prompts user to confirm | Ensure confirm button existence |
+       | 6. User clicks ‘Confirm’ | Click ‘Confirm’ |
+       | 7. System deletes account and redirects user to authentication screen | Ensure auth screen identifiers exist, like app title and Google auth buttons |
 
-    - **Test Logs:**
-      ```
-      > Task :app:connectedDebugAndroidTest
-      Starting 1 tests on Pixel_7(AVD) - 13
-      Connected to process 17126 on device 'Pixel_7 [emulator-5554]'.
+     - **Test Logs:**
+       ```
+      >   Task :app:connectedDebugAndroidTest
+       Starting 1 tests on Pixel_7(AVD) - 13
+       Connected to process 17126 on device 'Pixel_7 [emulator-5554]'.
 
-      Pixel_7(AVD) - 13 Tests 0/1 completed. (0 skipped) (0 failed)
-      Finished 1 tests on Pixel_7(AVD) - 13
+       Pixel_7(AVD) - 13 Tests 0/1 completed. (0 skipped) (0 failed)
+       Finished 1 tests on Pixel_7(AVD) - 13
 
-      BUILD SUCCESSFUL in 34s
-      76 actionable tasks: 1 executed, 75 up-to-date
-      ```
+       BUILD SUCCESSFUL in 34s
+       76 actionable tasks: 1 executed, 75 up-to-date
+       ```
 
 
 
@@ -344,22 +345,24 @@ _(Placeholder for Jest coverage screenshot both with and without mocking)_
 
   **Expected Behaviors:**
 
-| **Scenario Steps**                                                                                                                                                                                  | **Test Case Steps**                                                                                                                                                                                              |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1. Mover clicks on "Find Jobs" on the navigation bar on the bottom of the home page.                                                                                                                | Wait for the app to load the mover main screen (wait until "Find Jobs" text is present).<br/>Click the "Find Jobs" button in the navigation bar.<br>Wait for the screen to load.                                 |
-| 2. The system displays all unassigned jobs including the pickup, drop-off addresses, volume of items, date and time, the type of job (storage or return) and the credit they can earn from the job. | Check that the Job List is displayed.<br>Check that Job's pickup, dropoff address, volume, date/time,type and credits are displayed.                                                                             |
-| 2a. No unassigned jobs exist                                                                                                                                                                        | Navigate to Find Jobs screen.<br>Wait for the screen to load.                                                                                                                                                    |
-| 2a1. Display to mover that there are no jobs available                                                                                                                                              | Check that the text "No available jobs" is displayed.<br>Check that 0 job cards are present on screen.                                                                                                           |
-| 3. Mover can click toggle to switch jobs displayed from "Show All" to "Within Availability"                                                                                                         | Navigate to Find Jobs screen.<br>Wait for jobs to load.<br>Check that text "Show All" is displayed.<br>Check that 2 job cards are displayed.<br>Click the `availability_switch`.<br>Wait for filtering to apply. |
-| 4. System displays unassigned jobs only within mover's availability time windows                                                                                                                    | Check that text "Show All" does not exist.  Check that text "Within Availability" is displayed.<br>Check that only 1 job card is displayed.                                                                      |
-| 4a. No unassigned jobs exist within mover's availability                                                                                                                                            | Click the `availability_switch`.<br>Wait for filtering to apply.                                                                                                                                                 |
-| 4a1. Display to mover that there are no jobs available currently with suggestion to broaden their availability                                                                                      | Check that text "No available jobs within your availability" is displayed.<br>Check that 0 job cards are present on screen.                                                                                      |
-| 5. Mover can optionally accept the job (see UC-4 "Accept Job" use case)                                                                                                                             | [See UC-4 "Accept Job" test case]                                                                                                                                                                                |
-    
+| **Scenario Steps**                                                                                                                                                                                  | **Test Case Steps**                                                                                                                                                                  |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1. Mover clicks on "Find Jobs" on the navigation bar on the bottom of the home page.                                                                                                                | Click the "Find Jobs" tab.                                                                                                                                                           |
+| 2. The system displays all unassigned jobs including the pickup, drop-off addresses, volume of items, date and time, the type of job (storage or return) and the credit they can earn from the job. | Check that the job list is displayed.<br>Check that job cards show pickup address, dropoff address, volume, date and time, job type, and credits.                                    |
+| 2a. No unassigned jobs exist                                                                                                                                                                        | Navigate to Find Jobs screen.                                                                                                                                                        |
+| 2a1. Display to mover that there are no jobs available                                                                                                                                              | Check that the text "No available jobs" is displayed.<br>Check that 0 job cards are present on screen.                                                                               |
+| 3. Mover can click toggle to switch jobs displayed from "Show All" to "Within Availability"                                                                                                         | Navigate to Find Jobs screen.<br>Check that text "Show All" is displayed.<br>Check that 2 job cards are displayed.<br>Click the availability toggle.<br>Wait for filtering to apply. |
+| 4. System displays unassigned jobs only within mover's availability time windows                                                                                                                    | Check that te0xt "Show All" does not exist.  Check that text "Within Availability" is displayed.<br>Check that only 1 job card is displayed.                                         |
+| 4a. No unassigned jobs exist within mover's availability                                                                                                                                            | Click the availability toggle.<br>Wait for filtering to apply.                                                                                                                       |
+| 4a1. Display to mover that there are no jobs available currently with suggestion to broaden their availability                                                                                      | Check that text "No available jobs within your availability" is displayed.<br>Check that 0 job cards are present on screen.                                                          |
+| 5. Mover can optionally accept the job (see UC-4 "Accept Job" use case)                                                                                                                             | [See UC-4 "Accept Job" test case]                                                                                                                                                    |
 
-- **Test Logs:**
+
+- **Test Logs:** (for all tests in file)
     ```
-    [Placeholder for Espresso test execution logs]
+    Pixel_7(AVD) - 13 Tests 0/1 completed. (0 skipped) (0 failed)
+    Pixel_7(AVD) - 13 Tests 1/1 completed. (0 skipped) (0 failed)
+    Finished 1 tests on Pixel_7(AVD) - 13
     ```
 
 
@@ -369,13 +372,85 @@ _(Placeholder for Jest coverage screenshot both with and without mocking)_
 
 | **Scenario Steps**                                                                                                                                                                                      | **Test Case Steps**                                                                                                                                                                                                                        |
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1. Mover clicks on “Accept” for the corresponding job they’d like to accept.                                                                                                                            | Click the "Find Jobs" tab and wait for the jobs to load <br>Verify the "Accept" button is displayed, enabled. <br>Record the initial number of Jobs. Click the "Accept" button.                                                            |
+| 1. Mover clicks on “Accept” for the corresponding job they’d like to accept.                                                                                                                            | Click the "Find Jobs" tab. <br>Verify the "Accept" button is displayed, enabled. <br>Record the initial number of Jobs. Click the "Accept" button.                                                                                         |
 | 2. System assigns the job to the mover, Firebase Cloud Messaging Service notifies the student who created the order that it has been accepted, and a live update occurs for the student’s order status. | After acceptance, navigate to the "Current Jobs" tab.                                                                                                                                                                                      |
 | 3. Mover sees the job listed under “Current Jobs”                                                                                                                                                       | Confirm the accepted job appears in Current Job List and the job status is shown.<br>Return to "Find Jobs", wait for the list to refresh, and assert that the number of Job entries decreased by 1 compared to the recorded initial count. |
 
+- **Note:** Before running this test, manually log in as a student and create an order to ensure there is at least one unassigned job available for acceptance.
+
 - **Test Logs:**
     ```
-    [Placeholder for Espresso test execution logs]
+    Pixel_7(AVD) - 13 Tests 0/1 completed. (0 skipped) (0 failed)
+    Pixel_7(AVD) - 13 Tests 1/1 completed. (0 skipped) (0 failed)
+    Finished 1 tests on Pixel_7(AVD) - 13
+    ```
+  
+- **Use Case: View Recommended Route**
+
+  **Expected Behaviors:**
+
+| **Scenario Steps**                                                                                                                                                             | **Test Case Steps**                                                                                                                                                                                                                                                         |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1. Mover clicks on "Get Optimal Route" button                                                                                                                                  | Navigate to Find Jobs screen.<br>Click the "Get Optimal Route" button.                                                                                                                                                                                                      |
+| 2. System prompts mover for their desired max shift duration                                                                                                                   | Check that the duration selection screen is displayed.<br>Check that the duration slider is present.                                                                                                                                                                        |
+| 3. Mover enters their max duration by using the slider and clicks "Find Smart Route" button                                                                                    | Use the slider to select desired shift duration (e.g., 4 hours).<br>Click the "Find Smart Route" button.                                                                                                                                                                    |
+| 4. System prompts mover to allow access to their current location                                                                                                              | Check that Android location permission dialog appears.                                                                                                                                                                                                                      |
+| 5. Mover allows access to location by pressing "Only this time" or "While using the app" button                                                                                | Click "While using the app" or "Only this time" button in the permission dialog.                                                                                                                                                                                            |
+| 5a. Mover does not allow access to location                                                                                                                                    | Navigate to Find Jobs screen.<br>Click "Get Optimal Route".<br>Click "Find Smart Route".<br>Click "Don't allow" or "Deny" button in the permission dialog.                                                                                                                  |
+| 5a1. Display that location permission is required with suggestion to grant permission                                                                                          | Check that "Location Permission Required" message is displayed.<br>Check that explanation text "We need your location to calculate the optimal route" is shown.                                                                                                             |
+| 6. System displays a route summary and a list of jobs within the mover's availability and maximum duration window, with details of the pickup address, travel time and credits | Check that route summary is displayed.<br>Check that total earnings is shown.<br>Check that total duration is shown.<br>Check that number of jobs is shown.<br>Check that the job list is displayed.<br>Check that each job shows pickup address, travel time, and credits. |
+| 7. Mover can accept all (using “Accept all jobs” button) or some of the suggested jobs (“Accept job” button)                                                                   | Check that "Accept all jobs" button is displayed.<br>Click "Accept all jobs" button.<br>Navigate to Current Jobs tab.<br>Check that current jobs list is displayed.<br>Check that multiple jobs now appear in Current Jobs.                                                 |
+
+- **Test Logs:**
+    ```
+    Pixel_7(AVD) - 13 Tests 0/1 completed. (0 skipped) (0 failed)
+    Pixel_7(AVD) - 13 Tests 1/1 completed. (0 skipped) (0 failed)
+    Finished 1 tests on Pixel_7(AVD) - 13
+    ```
+  For deny location test: (fails due to location not being denied properly)
+    ``` 
+       java.lang.IllegalStateException: No compose hierarchies found in the app. Possible reasons include: (1) the Activity that calls setContent did not launch; (2) setContent was not called; (3) setContent was called before the ComposeTestRule ran. If setContent is called by the Activity, make sure the Activity is launched after the ComposeTestRule runs
+    
+    ```
+
+- **Use Case: Set Availability**
+
+  **Expected Behaviors:**
+
+| **Scenario Steps**                                                                       | **Test Case Steps**                                                                                                                                  |
+|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1. Mover clicks on "Availability" on the navigation bar                                  | Navigate to Availability screen.                                                                                                                     |
+| 2. System displays a list of days of the week with option to add time slots for each day | Check that the days list is displayed.<br>Check that each day shows a "+" button.                                                                    |
+| 3. Mover clicks "+" button for a specific day                                            | Click the "+" button for desired day (e.g., Monday).                                                                                                 |
+| 4. System displays a dialog to enter start time and end time                             | Check that "Add Time Slot" dialog is displayed.<br>Check that start time input field is present.<br>Check that end time input field is present.      |
+| 5. Mover enters start time and end time                                                  | Enter start time (e.g., "09:00").<br>Enter end time (e.g., "17:00").                                                                                 |
+| 5a. Mover enters invalid time                                                            | Enter invalid time  (e.g., "25:00").                                                                                                                 |
+| 5a1. System displays error message for invalid format                                    | Check that error message "Use HH:mm format" is displayed.                                                                                            |
+| 5b. Mover enters start time that is after end time                                       | Enter start time (e.g., "17:00").<br>Enter end time (e.g., "09:00").                                                                                 |
+| 5b1. System disables the "Add" button                                                    | Check that "Add" button is disabled.                                                                                                                 |
+| 6. Mover clicks "Add" to confirm the time slot                                           | Click "Add" button in dialog.<br>Check that the time slot appears in the day's list.                                                                 |
+| 7. Mover repeats steps 3-6 for other days as needed                                      | Add time slots for additional days.<br>Check that all time slots are displayed.                                                                      |
+| 8. Mover can add multiple time slots to the same day                                     | Click "+" button for the same day again.<br>Enter start and end times.<br>Click "Add" button.<br>Check that both time slots appear for the same day. |
+| 9. Mover can remove a time slot                                                          | Click delete button next to a time slot.<br>Check that the time slot is removed from the list.                                                       |
+| 10. Mover clicks "Save Availability"                                                     | Click "Save Availability" button.                                                                                                                    |
+| 11. System saves the availability and displays success message                           | Check that "Availability updated successfully!" message is displayed.                                                                                |
+
+- **Test Logs:**
+    ``` 
+        > Task :app:connectedDebugAndroidTest
+        Starting 5 tests on Pixel_7(AVD) - 13
+        
+        Pixel_7(AVD) - 13 Tests 0/5 completed. (0 skipped) (0 failed)
+        Pixel_7(AVD) - 13 Tests 1/5 completed. (0 skipped) (0 failed)
+        Pixel_7(AVD) - 13 Tests 2/5 completed. (0 skipped) (0 failed)
+        Pixel_7(AVD) - 13 Tests 3/5 completed. (0 skipped) (0 failed)
+        Pixel_7(AVD) - 13 Tests 4/5 completed. (0 skipped) (0 failed)
+        Finished 5 tests on Pixel_7(AVD) - 13
+        
+        BUILD SUCCESSFUL in 1m 35s
+        76 actionable tasks: 9 executed, 67 up-to-date
+        
+        Build Analyzer results available
     ```
 
 ---
