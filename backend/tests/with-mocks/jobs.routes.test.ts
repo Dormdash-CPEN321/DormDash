@@ -1375,6 +1375,53 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
 
 
 
+    test('should cover confirmDelivery with null updatedJob immediately after update (line 777)', async () => {
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const moverId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: moverId,
+            jobType: JobType.RETURN,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        // Make update return null to trigger line 777 immediately after update
+        mockJobModel.update.mockResolvedValue(null as any);
+
+        // Set testUserId to match the job's studentId
+        const originalTestUserId = testUserId;
+        const originalTestUserRole = testUserRole;
+        testUserId = studentId;
+        testUserRole = 'STUDENT';
+
+        try {
+            // Should return 500 because updatedJob is null (line 777)
+            const response = await request(app)
+                .post(`/api/jobs/${jobId}/confirm-delivery`)
+                .set('Authorization', `Bearer fake-token`)
+                .expect(500);
+
+            expect(response.status).toBe(500);
+            expect(mockJobModel.update).toHaveBeenCalled();
+        } finally {
+            testUserId = originalTestUserId;
+            testUserRole = originalTestUserRole;
+        }
+    });
+
     test('should cover confirmDelivery with invalid orderId (line 779)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
@@ -2248,6 +2295,52 @@ describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => 
                 .expect(400);
 
             expect(response.status).toBe(400);
+        } finally {
+            testUserId = originalTestUserId;
+            testUserRole = originalTestUserRole;
+        }
+    });
+
+    test('should cover confirmPickup with null updatedJob immediately after update (line 628)', async () => {
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const studentId = new mongoose.Types.ObjectId();
+        const orderId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: new mongoose.Types.ObjectId(),
+            jobType: JobType.STORAGE,
+            status: JobStatus.AWAITING_STUDENT_CONFIRMATION,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        // Make update return null to trigger line 628 immediately after update
+        mockJobModel.update.mockResolvedValue(null as any);
+
+        // Set testUserId to match the job's studentId
+        const originalTestUserId = testUserId;
+        const originalTestUserRole = testUserRole;
+        testUserId = studentId;
+        testUserRole = 'STUDENT';
+
+        try {
+            // Should return 500 because updatedJob is null (line 628)
+            const response = await request(app)
+                .post(`/api/jobs/${jobId}/confirm-pickup`)
+                .set('Authorization', `Bearer fake-token`)
+                .expect(500);
+
+            expect(response.status).toBe(500);
+            expect(mockJobModel.update).toHaveBeenCalled();
         } finally {
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
