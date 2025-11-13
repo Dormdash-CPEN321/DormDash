@@ -1,4 +1,4 @@
-name: Backend CI - Tests
+name: Backend Tests
 
 on:
   push:
@@ -83,35 +83,16 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
-      - name: Archive test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: backend/coverage/
-          retention-days: 30
+      - name: Run load test
+        run: npm run load-test
+        
+      - name: Cleanup after load test
+        run: npm run load-test:cleanup
 
-  # lint:
-  #   name: Lint Backend Code
-  #   runs-on: ubuntu-latest
-
-  #   defaults:
-  #     run:
-  #       working-directory: backend
-
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '20.x'
-  #         cache: 'npm'
-  #         cache-dependency-path: backend/package-lock.json
-
-  #     - name: Install dependencies
-  #       run: npm ci
-
-  #     - name: Run Prettier format check
-  #       run: npm run format
+      # - name: Archive test results
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: test-results
+      #     path: backend/coverage/
+      #     retention-days: 30
