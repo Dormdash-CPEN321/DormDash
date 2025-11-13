@@ -268,10 +268,10 @@ export class JobService {
     updateData: UpdateJobStatusRequest
   ): Promise<JobResponse> {
     // Input validation
-    if (!jobId) {
-      logger.error('updateJobStatus: Missing jobId');
-      throw new Error('jobId is required');
-    }
+    // if (!jobId) { //redundant
+    //   logger.error('updateJobStatus: Missing jobId');
+    //   throw new Error('jobId is required');
+    // }
 
     try {
       logger.info(
@@ -531,13 +531,13 @@ export class JobService {
   // Mover requests student confirmation when arrived at pickup (storage jobs only)
   async requestPickupConfirmation(jobId: string, moverId: string) {
     // Input validation
-    if (!jobId || !moverId) {
-      logger.error('requestPickupConfirmation: Missing required parameters', {
-        jobId,
-        moverId,
-      });
-      throw new Error('jobId and moverId are required');
-    }
+    // if (!jobId || !moverId) { // redundant
+    //   logger.error('requestPickupConfirmation: Missing required parameters', {
+    //     jobId,
+    //     moverId,
+    //   });
+    //   throw new Error('jobId and moverId are required');
+    // }
 
     try {
       logger.info(
@@ -591,13 +591,13 @@ export class JobService {
   // Student confirms the mover has the items (moves to PICKED_UP and updates order)
   async confirmPickup(jobId: string, studentId: string) {
     // Input validation
-    if (!jobId || !studentId) {
-      logger.error('confirmPickup: Missing required parameters', {
-        jobId,
-        studentId,
-      });
-      throw new Error('jobId and studentId are required');
-    }
+    // if (!jobId || !studentId) { //redundant
+    //   logger.error('confirmPickup: Missing required parameters', {
+    //     jobId,
+    //     studentId,
+    //   });
+    //   throw new Error('jobId and studentId are required');
+    // }
 
     try {
       logger.info(`confirmPickup: jobId=${jobId}, studentId=${studentId}`);
@@ -674,13 +674,13 @@ export class JobService {
   // Mover requests student confirmation when delivered items (return jobs only)
   async requestDeliveryConfirmation(jobId: string, moverId: string) {
     // Input validation
-    if (!jobId || !moverId) {
-      logger.error('requestDeliveryConfirmation: Missing required parameters', {
-        jobId,
-        moverId,
-      });
-      throw new Error('jobId and moverId are required');
-    }
+    // if (!jobId || !moverId) { // redundant
+    //   logger.error('requestDeliveryConfirmation: Missing required parameters', {
+    //     jobId,
+    //     moverId,
+    //   });
+    //   throw new Error('jobId and moverId are required');
+    // }
 
     try {
       logger.info(
@@ -736,13 +736,13 @@ export class JobService {
   // Student confirms the mover delivered the items (moves job to COMPLETED and order to COMPLETED)
   async confirmDelivery(jobId: string, studentId: string) {
     // Input validation
-    if (!jobId || !studentId) {
-      logger.error('confirmDelivery: Missing required parameters', {
-        jobId,
-        studentId,
-      });
-      throw new Error('jobId and studentId are required');
-    }
+    // if (!jobId || !studentId) { // redundant
+    //   logger.error('confirmDelivery: Missing required parameters', {
+    //     jobId,
+    //     studentId,
+    //   });
+    //   throw new Error('jobId and studentId are required');
+    // }
 
     try {
       logger.info(`confirmDelivery: jobId=${jobId}, studentId=${studentId}`);
