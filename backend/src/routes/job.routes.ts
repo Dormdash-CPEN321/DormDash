@@ -1,9 +1,9 @@
-import { NextFunction, Router } from 'express';
+import { NextFunction, Router, Request, Response } from 'express';
 import { JobController } from '../controllers/job.controller';
 import { jobService } from '../services/job.service';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validation.middleware';
-import { CreateJobRequest, jobSchema } from '../types/job.type';
+import { CreateJobRequest, jobSchema, UpdateJobStatusRequest, updateJobStatusSchema, JobResponse } from '../types/job.type';
 
 const router = Router();
 const jobController = new JobController(jobService);
@@ -55,11 +55,15 @@ router.post(
 );
 
 // PATCH /api/jobs/:id/status - Update job status (assign, start, complete)
-router.patch('/:id/status', (req, res, next: NextFunction) => {
-  jobController.updateJobStatus(req, res, next).catch((err: unknown) => {
-    next(err);
-  });
-});
+router.patch(
+  '/:id/status',
+  validateBody<UpdateJobStatusRequest>(updateJobStatusSchema),
+  (req: Request<{ id: string }, object, UpdateJobStatusRequest>, res: Response<JobResponse>, next: NextFunction) => {
+    jobController.updateJobStatus(req, res, next).catch((err: unknown) => {
+      next(err);
+    });
+  }
+);
 
 // POST /api/jobs/:id/arrived - mover indicates arrival and requests student confirmation
 router.post('/:id/arrived', (req, res, next: NextFunction) => {

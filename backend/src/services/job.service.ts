@@ -310,7 +310,7 @@ export class JobService {
 
         if (!updatedJob) {
           // No document returned -> job was not AVAILABLE (already accepted or not available)
-          throw new Error('Job has already been accepted or is not available');
+          throw new BadRequestError('Job has already been accepted or is not available');
         }
 
         logger.info(
@@ -530,7 +530,8 @@ export class JobService {
       };
     } catch (error) {
       logger.error('Error in updateJobStatus service:', error);
-      throw new Error('Failed to update job status');
+      if (error instanceof JobNotFoundError || error instanceof BadRequestError) throw error;
+      throw new InternalServerError('Internal server error', error as Error);
     }
   }
 

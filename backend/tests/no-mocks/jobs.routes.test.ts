@@ -685,9 +685,9 @@ describe('PATCH /api/jobs/:id/status', () => {
             .set('Authorization', `Bearer ${moverAuthToken}`)
             .send({ status: JobStatus.ACCEPTED })
             .expect(200);
-        expect(response.body.data.status).toBe(JobStatus.ACCEPTED);
-        expect(response.body.data.moverId).toBe(testMoverId.toString());
-        expect(response.body.data.orderId).toBe(order._id.toString());
+        expect(response.body.status).toBe(JobStatus.ACCEPTED);
+        expect(response.body.moverId).toBe(testMoverId.toString());
+        expect(response.body.orderId).toBe(order._id.toString());
     });
 
     // Input: PATCH request with valid job ID, status: PICKED_UP, mover authentication token, job exists with status ACCEPTED
@@ -717,7 +717,7 @@ describe('PATCH /api/jobs/:id/status', () => {
             .send({ status: JobStatus.PICKED_UP })
             .expect(200);
 
-        expect(response.body.data.status).toBe(JobStatus.PICKED_UP);
+        expect(response.body.status).toBe(JobStatus.PICKED_UP);
     });
 
     // Input: PATCH request with valid job ID, status: COMPLETED, mover authentication token, STORAGE job exists with status PICKED_UP and has associated order
@@ -761,7 +761,7 @@ describe('PATCH /api/jobs/:id/status', () => {
             .send({ status: JobStatus.COMPLETED })
             .expect(200);
 
-        expect(response.body.data.status).toBe(JobStatus.COMPLETED);
+        expect(response.body.status).toBe(JobStatus.COMPLETED);
     });
 
     // Input: PATCH request with valid job ID, status: COMPLETED, mover authentication token, RETURN job exists with status PICKED_UP and has associated order
@@ -805,7 +805,7 @@ describe('PATCH /api/jobs/:id/status', () => {
             .send({ status: JobStatus.COMPLETED })
             .expect(200);
 
-        expect(response.body.data.status).toBe(JobStatus.COMPLETED);
+        expect(response.body.status).toBe(JobStatus.COMPLETED);
     });
 
     // Input: PATCH request with valid job ID, status: "INVALID_STATUS", mover authentication token

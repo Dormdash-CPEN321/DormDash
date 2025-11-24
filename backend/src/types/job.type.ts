@@ -108,6 +108,15 @@ export interface GetJobResponse {
   };
 }
 
+// Update Job Status zod Schema
+export const updateJobStatusSchema = z.object({
+  status: z.nativeEnum(JobStatus),
+  moverId: z.string().optional().refine(
+    (val) => !val || mongoose.isValidObjectId(val),
+    { message: 'Invalid mover ID' }
+  ),
+});
+
 export interface UpdateJobStatusRequest {
   status: JobStatus;
   moverId?: string; // When assigning job to mover
