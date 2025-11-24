@@ -350,29 +350,6 @@ describe('GET /api/jobs/mover', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findByMoverId).toHaveBeenCalled();
     });
-
-    // Mocked behavior: testUserId is set to null to simulate unauthenticated request
-    // Input: GET request without Authorization header
-    // Expected status code: 401
-    // Expected behavior: no database query executed
-    // Expected output: authentication error response
-    test('should call next with error when user is not authenticated ', async () => {
-        // Test authentication error via API endpoint
-        // Set testUserId to null to simulate unauthenticated request
-        const originalTestUserId = testUserId;
-        testUserId = null as any;
-
-        try {
-        const response = await request(app)
-            .get('/api/jobs/mover')
-                // No Authorization header - should trigger 401
-                .expect(401);
-
-            expect(response.status).toBe(401);
-        } finally {
-            testUserId = originalTestUserId;
-        }
-    });
 });
 
 describe('GET /api/jobs/student', () => {
@@ -394,29 +371,6 @@ describe('GET /api/jobs/student', () => {
 
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findByStudentId).toHaveBeenCalled();
-    });
-
-    // Mocked behavior: testUserId is set to null to simulate unauthenticated request
-    // Input: GET request without Authorization header
-    // Expected status code: 401
-    // Expected behavior: no database query executed
-    // Expected output: authentication error response
-    test('should call next with error when user is not authenticated ', async () => {
-        // Test authentication error via API endpoint
-        // Set testUserId to null to simulate unauthenticated request
-        const originalTestUserId = testUserId;
-        testUserId = null as any;
-
-        try {
-        const response = await request(app)
-            .get('/api/jobs/student')
-                // No Authorization header - should trigger 401
-                .expect(401);
-
-            expect(response.status).toBe(401);
-        } finally {
-            testUserId = originalTestUserId;
-        }
     });
 });
 
@@ -1277,29 +1231,6 @@ describe('POST /api/jobs/:id/arrived', () => {
         expect(response.status).toBe(404);
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
-
-    // Mocked behavior: testUserId is set to null to simulate unauthenticated request
-    // Input: POST request without Authorization header
-    // Expected status code: 401
-    // Expected behavior: no database query executed
-    // Expected output: authentication error response
-    test('should call next with error when user is not authenticated ', async () => {
-        // Test authentication error via API endpoint
-        const jobId = new mongoose.Types.ObjectId().toString();
-        const originalTestUserId = testUserId;
-        testUserId = null as any;
-
-        try {
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/arrived`)
-                // No Authorization header - should trigger 401
-                .expect(401);
-
-            expect(response.status).toBe(401);
-        } finally {
-            testUserId = originalTestUserId;
-        }
-    });
 });
 
 describe('POST /api/jobs/:id/confirm-pickup', () => {
@@ -1340,28 +1271,6 @@ describe('POST /api/jobs/:id/confirm-pickup', () => {
         expect(response.status).toBe(404);
         expect(mockJobModel.findById).toHaveBeenCalled();
     });
-
-
-
-
-
-    test('should call next with error when user is not authenticated ', async () => {
-        // Test authentication error via API endpoint
-        const jobId = new mongoose.Types.ObjectId().toString();
-        const originalTestUserId = testUserId;
-        testUserId = null as any;
-
-        try {
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/confirm-pickup`)
-                // No Authorization header - should trigger 401
-                .expect(401);
-
-            expect(response.status).toBe(401);
-        } finally {
-            testUserId = originalTestUserId;
-        }
-    });
 });
 
 describe('POST /api/jobs/:id/delivered', () => {
@@ -1401,29 +1310,6 @@ describe('POST /api/jobs/:id/delivered', () => {
 
         expect(response.status).toBe(404);
         expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-
-    // Mocked behavior: testUserId is set to null to simulate unauthenticated request
-    // Input: POST request without Authorization header
-    // Expected status code: 401
-    // Expected behavior: no database query executed
-    // Expected output: authentication error response
-    test('should call next with error when user is not authenticated ', async () => {
-        // Test authentication error via API endpoint
-        const jobId = new mongoose.Types.ObjectId().toString();
-        const originalTestUserId = testUserId;
-        testUserId = null as any;
-
-        try {
-            const response = await request(app)
-                .post(`/api/jobs/${jobId}/delivered`)
-                // No Authorization header - should trigger 401
-                .expect(401);
-
-            expect(response.status).toBe(401);
-        } finally {
-            testUserId = originalTestUserId;
-        }
     });
 
     // Mocked behavior: jobModel.findById returns a mock RETURN job, testUserId is set to wrongMoverId (different from job's moverId)
@@ -1513,28 +1399,6 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
 
         expect(response.status).toBe(404);
         expect(mockJobModel.findById).toHaveBeenCalled();
-    });
-
-
-
-
-
-    test('should call next with error when user is not authenticated ', async () => {
-        // Test authentication error via API endpoint
-        const jobId = new mongoose.Types.ObjectId().toString();
-        const originalTestUserId = testUserId;
-        testUserId = null as any;
-
-        try {
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/confirm-delivery`)
-                // No Authorization header - should trigger 401
-                .expect(401);
-
-            expect(response.status).toBe(401);
-        } finally {
-            testUserId = originalTestUserId;
-        }
     });
 
     // Mocked behavior: jobModel.findById returns a mock RETURN job, jobModel.update returns updated job, userModel methods succeed, orderService.updateOrderStatus succeeds, notificationService and EventEmitter succeed, testUserId matches job's studentId

@@ -60,6 +60,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
+      // justification: ts requires null check
       if (!req.user?._id) {
         throw new Error('User not authenticated');
       }
@@ -78,6 +79,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
+      // justification: ts requires null check
       if (!req.user?._id) {
         throw new Error('User not authenticated');
       }
