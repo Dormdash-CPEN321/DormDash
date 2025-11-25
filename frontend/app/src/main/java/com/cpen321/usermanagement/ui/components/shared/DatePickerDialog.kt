@@ -19,6 +19,71 @@ import androidx.compose.ui.unit.dp
 import java.time.*
 import java.util.*
 
+private fun LocalDate.toUtcMillis(): Long =
+    this.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+private fun getTodayUtcMillis(): Long = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+    set(Calendar.HOUR_OF_DAY, 0)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+    set(Calendar.MILLISECOND, 0)
+}.timeInMillis
+
+private fun getMinSelectableUtcMillis(todayUTC: Long, offsetDays: Int): Long =
+    Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        timeInMillis = todayUTC
+        add(Calendar.DAY_OF_YEAR, offsetDays)
+    }.timeInMillis
+
+private fun buildCalendarDays(visibleMonth: LocalDate): List<LocalDate?> {
+    val daysInMonth = visibleMonth.lengthOfMonth()
+    val firstDayOfWeekOffset = visibleMonth.dayOfWeek.value % 7
+    
+    return buildList {
+        repeat(firstDayOfWeekOffset) { add(null) }
+        for (d in 1..daysInMonth) add(LocalDate.of(visibleMonth.year, visibleMonth.month, d))
+    }
+}
+
+@Composable
+private fun CalendarDay(
+    date: LocalDate,
+    selectedDate: LocalDate,
+    minSelectableUTC: Long,
+    onDateClick: (LocalDate) -> Unit
+) {
+    val utc = date.toUtcMillis()
+    val enabled = utc >= minSelectableUTC
+    val isSelected = date == selectedDate
+
+    val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        else -> androidx.compose.ui.graphics.Color.Transparent
+    }
+    val textColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+        isSelected -> MaterialTheme.colorScheme.onPrimary
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .background(color = backgroundColor, shape = CircleShape)
+            .testTag("day_${date.toEpochDay()}")
+            .semantics { if (!enabled) disabled() }
+            .let { base -> if (enabled) base.clickable { onDateClick(date) } else base },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = date.dayOfMonth.toString(),
+            textAlign = TextAlign.Center,
+            color = textColor,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerDialog(
@@ -28,66 +93,34 @@ fun DatePickerDialog(
     initialDateMillis: Long? = null,
     minDateOffsetDays: Int = 0
 ) {
-    // ----- UTC today -----
-    val todayUTC = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
-
-    val minSelectableUTC = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-        timeInMillis = todayUTC
-        add(Calendar.DAY_OF_YEAR, minDateOffsetDays)
-    }.timeInMillis
-
-    // ----- Convert millis -> LocalDate (UTC) -----
+    val todayUTC = getTodayUtcMillis()
+    val minSelectableUTC = getMinSelectableUtcMillis(todayUTC, minDateOffsetDays)
+    
     val initialDate = initialDateMillis ?: todayUTC
     val initialLocalDate = Instant.ofEpochMilli(initialDate)
         .atZone(ZoneOffset.UTC).toLocalDate()
 
     var selectedDate by remember { mutableStateOf(initialLocalDate) }
     val visibleMonth by remember { mutableStateOf(initialLocalDate.withDayOfMonth(1)) }
-
-    // Helper: convert LocalDate -> UTC millis
-    fun LocalDate.toUtcMillis(): Long =
-        this.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-
-    // ---- Build calendar grid ----
-    val daysInMonth = visibleMonth.lengthOfMonth()
-    val firstDayOfWeekOffset = visibleMonth.dayOfWeek.value % 7
-
-    val days = buildList {
-        repeat(firstDayOfWeekOffset) { add(null) }
-        for (d in 1..daysInMonth) add(LocalDate.of(visibleMonth.year, visibleMonth.month, d))
-    }
+    val days = remember(visibleMonth) { buildCalendarDays(visibleMonth) }
 
     androidx.compose.material3.DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(
-                onClick = {
-                    onDateSelected(selectedDate.toUtcMillis())
-                }
-            ) { Text("OK") }
+            TextButton(onClick = { onDateSelected(selectedDate.toUtcMillis()) }) {
+                Text("OK")
+            }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     ) {
         Column(Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge)
-
             Spacer(Modifier.height(16.dp))
-
-            // --- Month / Year ---
             Text(
                 "${visibleMonth.month} ${visibleMonth.year}",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-
-            // --- Days Grid ---
             LazyVerticalGrid(
                 columns = GridCells.Fixed(7),
                 modifier = Modifier.fillMaxWidth(),
@@ -97,48 +130,12 @@ fun DatePickerDialog(
                     if (date == null) {
                         Spacer(Modifier.size(40.dp))
                     } else {
-                        val utc = date.toUtcMillis()
-                        val enabled = utc >= minSelectableUTC
-                        val isSelected = date == selectedDate
-
-                        // Choose colors based on state
-                        val backgroundColor = when {
-                            isSelected -> MaterialTheme.colorScheme.primary
-                            else       -> androidx.compose.ui.graphics.Color.Transparent
-                        }
-                        val textColor = when {
-                            !enabled   -> MaterialTheme.colorScheme.onSurfaceVariant
-                            isSelected -> MaterialTheme.colorScheme.onPrimary
-                            else       -> MaterialTheme.colorScheme.onSurface
-                        }
-
-                        Box(
-                            modifier = Modifier
-                            .size(40.dp)
-                            .background(
-                                color = backgroundColor,
-                                shape = CircleShape
-                            )                                       // ✅ background first
-                            .testTag("day_${date.toEpochDay()}")   // stays on the same node
-                            .semantics {
-                                if (!enabled) disabled()
-                            }
-                            .let { base ->
-                                if (enabled) {
-                                    base.clickable {
-                                        selectedDate = date
-                                    }
-                                } else base
-                            },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = date.dayOfMonth.toString(),
-                                textAlign = TextAlign.Center,
-                                color = textColor,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+                        CalendarDay(
+                            date = date,
+                            selectedDate = selectedDate,
+                            minSelectableUTC = minSelectableUTC,
+                            onDateClick = { selectedDate = it }
+                        )
                     }
                 }
             }
