@@ -86,10 +86,6 @@ const mockJobModel: any = {
     tryAcceptJob: jest.fn(),
 };
 
-const mockOrderService: any = {
-    updateOrderStatus: jest.fn(),
-};
-
 const mockNotificationService: any = {
     sendJobStatusNotification: jest.fn(),
 };
@@ -100,10 +96,6 @@ const mockEventEmitter: any = {
     emitOrderUpdated: jest.fn(),
 };
 
-const mockJobMapper: any = {
-    toJobListItems: jest.fn((jobs: any) => jobs),
-};
-
 const mockUserModel: any = {
     findByIdAndUpdate: jest.fn(),
     findById: jest.fn(),
@@ -111,17 +103,13 @@ const mockUserModel: any = {
     clearInvalidFcmToken: jest.fn(),
 };
 
-// Mock all external dependencies
+// Mock only external dependencies (DB models, external services)
+// DO NOT mock: JobService, JobController, OrderService, JobMapper (these are part of our codebase)
 jest.mock('../../src/models/job.model', () => ({
     jobModel: mockJobModel,
 }));
 
-jest.mock('../../src/services/order.service', () => ({
-    orderService: mockOrderService,
-    OrderService: {
-        getInstance: jest.fn(() => mockOrderService),
-    },
-}));
+// OrderService is NOT mocked - it's part of our codebase and should be tested through HTTP
 
 jest.mock('../../src/services/notification.service', () => ({
     notificationService: mockNotificationService,
@@ -134,9 +122,7 @@ jest.mock('../../src/utils/eventEmitter.util', () => ({
     emitOrderUpdated: mockEventEmitter.emitOrderUpdated,
 }));
 
-jest.mock('../../src/mappers/job.mapper', () => ({
-    JobMapper: mockJobMapper,
-}));
+// JobMapper is NOT mocked - it's part of our codebase and should be tested through HTTP
 
 jest.mock('../../src/models/user.model', () => ({
     userModel: mockUserModel,
@@ -590,15 +576,23 @@ describe('PATCH /api/jobs/:id/status', () => {
 
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.tryAcceptJob.mockResolvedValue(mockUpdatedJob as any);
-        mockOrderService.updateOrderStatus.mockRejectedValue(new Error('Order service error') as any);
+        
+        // Mock orderModel.update to throw error - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockRejectedValue(new Error('Order service error') as any);
 
-        const response = await request(app)
-            .patch(`/api/jobs/${jobId}/status`)
-            .set('Authorization', `Bearer fake-token`)
-            .send({ status: JobStatus.ACCEPTED, moverId });
+        try {
+            const response = await request(app)
+                .patch(`/api/jobs/${jobId}/status`)
+                .set('Authorization', `Bearer fake-token`)
+                .send({ status: JobStatus.ACCEPTED, moverId });
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
+            expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(orderModel.update).toHaveBeenCalled();
+        } finally {
+            orderModel.update = originalUpdate;
+        }
     });
 
     // Mocked behavior: jobModel.findById returns a mock job, jobModel.tryAcceptJob returns updated job, orderService.updateOrderStatus succeeds, EventEmitter.emitJobUpdated throws an error
@@ -635,7 +629,12 @@ describe('PATCH /api/jobs/:id/status', () => {
 
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.tryAcceptJob.mockResolvedValue(mockUpdatedJob as any);
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update to succeed - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.ACCEPTED } as any);
+        
         mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
         
         mockEventEmitter.emitJobUpdated.mockReset();
@@ -643,14 +642,18 @@ describe('PATCH /api/jobs/:id/status', () => {
             throw new Error('EventEmitter error');
         });
 
-        // Should not throw, just log warning - request should succeed
-        const response = await request(app)
-            .patch(`/api/jobs/${jobId}/status`)
-            .set('Authorization', `Bearer fake-token`)
-            .send({ status: JobStatus.ACCEPTED, moverId });
+        try {
+            // Should not throw, just log warning - request should succeed
+            const response = await request(app)
+                .patch(`/api/jobs/${jobId}/status`)
+                .set('Authorization', `Bearer fake-token`)
+                .send({ status: JobStatus.ACCEPTED, moverId });
 
-        expect(response.status).toBe(200);
-        expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
+            expect(response.status).toBe(200);
+            expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
+        } finally {
+            orderModel.update = originalUpdate;
+        }
         expect(mockNotificationService.sendJobStatusNotification).toHaveBeenCalled();
     });
 
@@ -690,17 +693,26 @@ describe('PATCH /api/jobs/:id/status', () => {
             .mockResolvedValueOnce(mockJob as any) // First call for initial check
             .mockResolvedValueOnce(mockJob as any); // Second call in PICKED_UP flow
         mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.PICKED_UP } as any);
+        
         mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
 
-        const response = await request(app)
-            .patch(`/api/jobs/${jobId}/status`)
-            .set('Authorization', `Bearer fake-token`)
-            .send({ status: JobStatus.PICKED_UP, moverId });
+        try {
+            const response = await request(app)
+                .patch(`/api/jobs/${jobId}/status`)
+                .set('Authorization', `Bearer fake-token`)
+                .send({ status: JobStatus.PICKED_UP, moverId });
 
-        expect(response.status).toBe(200);
-        expect(response.body.status).toBe(JobStatus.PICKED_UP);
-        expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
+            expect(response.status).toBe(200);
+            expect(response.body.status).toBe(JobStatus.PICKED_UP);
+            expect(orderModel.update).toHaveBeenCalled();
+        } finally {
+            orderModel.update = originalUpdate;
+        }
     });
 
     // Mocked behavior: jobModel.findById returns a mock job, jobModel.update returns null
@@ -786,8 +798,6 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
     });
 
-    // Mocked behavior: jobModel.findById returns a mock job initially, jobModel.update returns updated job, jobModel.findById returns null on second call (in COMPLETED flow)
-
     // Mocked behavior: jobModel.findById returns a mock job with null orderId, jobModel.update returns updated job with null orderId
     // Input: PATCH request with valid job ID, status: COMPLETED, and authentication token
     // Expected status code: 500
@@ -864,15 +874,23 @@ describe('PATCH /api/jobs/:id/status', () => {
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
         mockUserModel.findByIdAndUpdate.mockResolvedValue({} as any); // addCreditsToMover
-        mockOrderService.updateOrderStatus.mockRejectedValue(new Error('Order service error') as any);
+        
+        // Mock orderModel.update to throw error - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockRejectedValue(new Error('Order service error') as any);
 
-        const response = await request(app)
-            .patch(`/api/jobs/${jobId}/status`)
-            .set('Authorization', `Bearer fake-token`)
-            .send({ status: JobStatus.COMPLETED });
+        try {
+            const response = await request(app)
+                .patch(`/api/jobs/${jobId}/status`)
+                .set('Authorization', `Bearer fake-token`)
+                .send({ status: JobStatus.COMPLETED });
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
-        expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
+            expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(orderModel.update).toHaveBeenCalled();
+        } finally {
+            orderModel.update = originalUpdate;
+        }
     });
 
     // Mocked behavior: jobModel.findById returns a mock job, jobModel.tryAcceptJob returns updated job, orderService is unmocked and uses real implementation, orderModel.update returns null
@@ -908,18 +926,13 @@ describe('PATCH /api/jobs/:id/status', () => {
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.tryAcceptJob.mockResolvedValue(mockUpdatedJob as any);
         
-        // Temporarily restore the real orderService and mock orderModel instead
-        jest.unmock('../../src/services/order.service');
-        const { orderService: realOrderService } = require('../../src/services/order.service');
+        // Mock orderModel to return null, triggering line 423
+        // OrderService is NOT mocked - it's part of our codebase and tested through HTTP
         const { orderModel } = require('../../src/models/order.model');
         const originalUpdate = orderModel.update;
         
         // Mock orderModel.update to return null, triggering line 423
         orderModel.update = jest.fn(async () => null as any);
-        
-        // Temporarily replace mockOrderService with real one
-        const originalMockUpdate = mockOrderService.updateOrderStatus;
-        mockOrderService.updateOrderStatus = realOrderService.updateOrderStatus.bind(realOrderService);
 
         try {
             const response = await request(app)
@@ -933,7 +946,6 @@ describe('PATCH /api/jobs/:id/status', () => {
         } finally {
             // Restore mocks
             orderModel.update = originalUpdate;
-            mockOrderService.updateOrderStatus = originalMockUpdate;
         }
     });
 
@@ -973,9 +985,8 @@ describe('PATCH /api/jobs/:id/status', () => {
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.tryAcceptJob.mockResolvedValue(mockUpdatedJob as any);
         
-        // Temporarily restore the real orderService and mock orderModel instead
-        jest.unmock('../../src/services/order.service');
-        const { orderService: realOrderService } = require('../../src/services/order.service');
+        // Mock orderModel.update to throw error, triggering catch block
+        // OrderService is NOT mocked - it's part of our codebase and tested through HTTP
         const { orderModel } = require('../../src/models/order.model');
         const originalUpdate = orderModel.update;
         
@@ -983,10 +994,6 @@ describe('PATCH /api/jobs/:id/status', () => {
         orderModel.update = jest.fn(async () => {
             throw new Error('Database update failed');
         }) as any;
-        
-        // Temporarily replace mockOrderService with real one
-        const originalMockUpdate = mockOrderService.updateOrderStatus;
-        mockOrderService.updateOrderStatus = realOrderService.updateOrderStatus.bind(realOrderService);
 
         try {
             const response = await request(app)
@@ -1000,7 +1007,6 @@ describe('PATCH /api/jobs/:id/status', () => {
         } finally {
             // Restore mocks
             orderModel.update = originalUpdate;
-            mockOrderService.updateOrderStatus = originalMockUpdate;
         }
     });
 
@@ -1147,7 +1153,12 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             credits: 100,
         } as any);
         mockUserModel.update.mockResolvedValue({} as any);
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.COMPLETED } as any);
+        
         mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
         mockEventEmitter.emitJobUpdated.mockReturnValue(undefined);
 
@@ -1165,21 +1176,24 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
 
             expect(response.body.success).toBe(true);
             expect(response.body.data.status).toBe(JobStatus.COMPLETED);
-            expect(mockOrderService.updateOrderStatus).toHaveBeenCalledWith(
+            expect(orderModel.update).toHaveBeenCalledWith(
                 orderId,
-                expect.any(String),
-                expect.any(String)
+                expect.objectContaining({ status: OrderStatus.COMPLETED })
             );
             expect(mockUserModel.findById).toHaveBeenCalledWith(moverId);
         expect(mockEventEmitter.emitJobUpdated).toHaveBeenCalled();
         } finally {
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
+            orderModel.update = originalUpdate;
         }
     });
 
-
-
+    // Mocked behavior: jobModel.findById returns a mock RETURN job, jobModel.update returns null
+    // Input: POST request with valid job ID and authentication token
+    // Expected status code: 500
+    // Expected behavior: updatedJob is null immediately after update, error thrown at line 777
+    // Expected output: error response
     test('should cover confirmDelivery with null updatedJob immediately after update (line 777)', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
@@ -1328,8 +1342,11 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             credits: 100,
         } as any);
         mockUserModel.update.mockResolvedValue({} as any);
-        // Make updateOrderStatus throw an error to trigger catch block (lines 791-795)
-        mockOrderService.updateOrderStatus.mockRejectedValue(new Error('Order service failed'));
+        
+        // Mock orderModel.update to throw error - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockRejectedValue(new Error('Order service failed'));
 
         // Set testUserId to match the job's studentId
         const originalTestUserId = testUserId;
@@ -1345,10 +1362,11 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
                 .expect(500);
 
             expect(response.status).toBe(500);
-        expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
+            expect(orderModel.update).toHaveBeenCalled();
         } finally {
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
+            orderModel.update = originalUpdate;
         }
     });
 
@@ -1392,7 +1410,12 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             credits: 100,
         } as any);
         mockUserModel.update.mockResolvedValue({} as any);
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.COMPLETED } as any);
+        
         mockEventEmitter.emitJobUpdated.mockImplementation(() => {
             throw new Error('Event emitter failed');
         });
@@ -1415,6 +1438,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
         } finally {
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
+            orderModel.update = originalUpdate;
         }
     });
 
@@ -1458,7 +1482,12 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
             credits: 100,
         } as any);
         mockUserModel.update.mockResolvedValue({} as any);
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.COMPLETED } as any);
+        
         mockEventEmitter.emitJobUpdated.mockReturnValue(undefined);
 
         // Set testUserId to match the job's studentId
@@ -1481,6 +1510,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
         } finally {
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
+            orderModel.update = originalUpdate;
         }
     });
 });
@@ -2068,7 +2098,11 @@ describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => 
 
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
-        mockOrderService.updateOrderStatus.mockRejectedValue(new Error('Order service failed'));
+        
+        // Mock orderModel.update to throw error - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockRejectedValue(new Error('Order service failed'));
 
         // Set testUserId to match the job's studentId
         const originalTestUserId = testUserId;
@@ -2083,10 +2117,11 @@ describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => 
                 .expect(500);
 
             expect(response.status).toBe(500);
-        expect(mockOrderService.updateOrderStatus).toHaveBeenCalled();
+            expect(orderModel.update).toHaveBeenCalled();
         } finally {
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
+            orderModel.update = originalUpdate;
         }
     });
 
@@ -2123,7 +2158,12 @@ describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => 
 
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.PICKED_UP } as any);
+        
         mockEventEmitter.emitJobUpdated.mockImplementation(() => {
             throw new Error('Event emitter failed');
         });
@@ -2135,7 +2175,7 @@ describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => 
         testUserRole = 'STUDENT';
 
         try {
-            // Should still succeed despite emitter error
+        // Should still succeed despite emitter error
             const response = await request(app)
                 .post(`/api/jobs/${jobId}/confirm-pickup`)
                 .set('Authorization', `Bearer fake-token`)
@@ -2146,6 +2186,7 @@ describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => 
         } finally {
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
+            orderModel.update = originalUpdate;
         }
     });
 });
@@ -2370,16 +2411,25 @@ describe('JobService - Additional Coverage Tests', () => {
             .mockResolvedValueOnce(mockJob as any) // First call
             .mockResolvedValueOnce(mockJob as any); // Second call
         mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
-        mockOrderService.updateOrderStatus.mockRejectedValue(new Error('Order service error') as any);
-
-        // Should not throw, error is caught and logged (line 410)
-        const response = await request(app)
-            .patch(`/api/jobs/${jobId}/status`)
-            .set('Authorization', `Bearer fake-token`)
-            .send({ status: JobStatus.PICKED_UP })
-            .expect(200);
         
-        expect(response.body.status).toBe(JobStatus.PICKED_UP);
+        // Mock orderModel.update to throw error - OrderService is NOT mocked, it's part of our codebase
+        // Error is caught and logged (line 410), so request should still succeed
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockRejectedValue(new Error('Order service error') as any);
+
+        try {
+            // Should not throw, error is caught and logged (line 410)
+            const response = await request(app)
+                .patch(`/api/jobs/${jobId}/status`)
+                .set('Authorization', `Bearer fake-token`)
+                .send({ status: JobStatus.PICKED_UP })
+                .expect(200);
+            
+            expect(response.body.status).toBe(JobStatus.PICKED_UP);
+        } finally {
+            orderModel.update = originalUpdate;
+        }
     });
 
     // Mocked behavior: jobModel.findById returns a mock STORAGE job with null orderId, jobModel.update returns updated job with null orderId, userModel.findByIdAndUpdate succeeds
@@ -2502,7 +2552,12 @@ describe('JobService - Additional Coverage Tests', () => {
 
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.update.mockResolvedValue(null as any); // Return null to trigger line 661
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.PICKED_UP } as any);
+        
         mockEventEmitter.emitJobUpdated.mockResolvedValue(undefined as any);
 
         await request(app)
@@ -2561,16 +2616,24 @@ describe('JobService - Additional Coverage Tests', () => {
             credits: 100,
         } as any);
         mockUserModel.update.mockResolvedValue({} as any);
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.COMPLETED } as any);
+        
         mockEventEmitter.emitJobUpdated.mockResolvedValue(undefined as any);
 
-        await request(app)
-            .post(`/api/jobs/${jobId}/confirm-delivery`)
-            .set('Authorization', `Bearer fake-token`)
-            .expect(403);
-
-        // Restore original function
-        mongooseUtil.extractObjectId = originalExtractObjectId;
+        try {
+            await request(app)
+                .post(`/api/jobs/${jobId}/confirm-delivery`)
+                .set('Authorization', `Bearer fake-token`)
+                .expect(403);
+        } finally {
+            // Restore original function
+            mongooseUtil.extractObjectId = originalExtractObjectId;
+            orderModel.update = originalUpdate;
+        }
     });
 
     // Mocked behavior: jobModel.findById returns a mock STORAGE job with invalid moverId object, jobModel.update returns updated job, userModel.findByIdAndUpdate succeeds, orderService and notificationService succeed
@@ -2607,7 +2670,12 @@ describe('JobService - Additional Coverage Tests', () => {
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
         mockUserModel.findByIdAndUpdate.mockResolvedValue({} as any);
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.COMPLETED } as any);
+        
         mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
 
         // Should not throw, invalid moverId is handled gracefully (extractObjectId returns null)
@@ -2655,7 +2723,12 @@ describe('JobService - Additional Coverage Tests', () => {
         mockJobModel.findById.mockResolvedValue(mockJob as any);
         mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
         mockUserModel.findById.mockRejectedValue(new Error('Database error') as any); // Trigger catch block
-        mockOrderService.updateOrderStatus.mockResolvedValue(undefined as any);
+        
+        // Mock orderModel.update - OrderService is NOT mocked, it's part of our codebase
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.COMPLETED } as any);
+        
         mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
 
         // Should not throw, credit error is caught and logged
@@ -2723,21 +2796,13 @@ describe('JobService - Additional Coverage Tests', () => {
             status: OrderStatus.CANCELLED,
         };
 
-        // Temporarily restore the real order service and mock orderModel instead
-        jest.unmock('../../src/services/order.service');
-        const { orderService: realOrderService } = require('../../src/services/order.service');
+        // Mock orderModel - OrderService is NOT mocked, it's part of our codebase and tested through HTTP
         const { orderModel } = require('../../src/models/order.model');
         const originalFindActiveOrder = orderModel.findActiveOrder;
         const originalUpdate = orderModel.update;
         
         orderModel.findActiveOrder = jest.fn().mockResolvedValue(mockOrder);
         orderModel.update = jest.fn().mockResolvedValue(mockUpdatedOrder);
-
-        // Temporarily replace mockOrderService with real one
-        const originalMockUpdate = mockOrderService.updateOrderStatus;
-        mockOrderService.updateOrderStatus = realOrderService.updateOrderStatus.bind(realOrderService);
-        const originalCancelOrder = mockOrderService.cancelOrder;
-        mockOrderService.cancelOrder = realOrderService.cancelOrder.bind(realOrderService);
 
         mockJobModel.findByOrderId.mockResolvedValue(mockJobs as any);
         mockJobModel.update
@@ -2765,10 +2830,6 @@ describe('JobService - Additional Coverage Tests', () => {
             // Restore mocks
             orderModel.findActiveOrder = originalFindActiveOrder;
             orderModel.update = originalUpdate;
-            mockOrderService.updateOrderStatus = originalMockUpdate;
-            if (originalCancelOrder) {
-                mockOrderService.cancelOrder = originalCancelOrder;
-            }
             // Restore testUserId
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
@@ -2808,9 +2869,7 @@ describe('JobService - Additional Coverage Tests', () => {
             status: OrderStatus.CANCELLED,
         };
 
-        // Temporarily restore the real order service and mock orderModel instead
-        jest.unmock('../../src/services/order.service');
-        const { orderService: realOrderService } = require('../../src/services/order.service');
+        // Mock orderModel - OrderService is NOT mocked, it's part of our codebase and tested through HTTP
         const { orderModel } = require('../../src/models/order.model');
         const originalFindActiveOrder = orderModel.findActiveOrder;
         const originalUpdate = orderModel.update;
@@ -2818,11 +2877,7 @@ describe('JobService - Additional Coverage Tests', () => {
         orderModel.findActiveOrder = jest.fn().mockResolvedValue(mockOrder);
         orderModel.update = jest.fn().mockResolvedValue(mockUpdatedOrder);
 
-        const originalMockUpdate = mockOrderService.updateOrderStatus;
-        mockOrderService.updateOrderStatus = realOrderService.updateOrderStatus.bind(realOrderService);
-        const originalCancelOrder = mockOrderService.cancelOrder;
-        mockOrderService.cancelOrder = realOrderService.cancelOrder.bind(realOrderService);
-
+        // OrderService is NOT mocked - it's part of our codebase and will use the mocked orderModel above
         mockJobModel.findByOrderId.mockResolvedValue(mockJobs as any);
         mockJobModel.update.mockResolvedValue(null as any); // Return null to trigger lines 100-104
 
@@ -2845,10 +2900,6 @@ describe('JobService - Additional Coverage Tests', () => {
             // Restore mocks
             orderModel.findActiveOrder = originalFindActiveOrder;
             orderModel.update = originalUpdate;
-            mockOrderService.updateOrderStatus = originalMockUpdate;
-            if (originalCancelOrder) {
-                mockOrderService.cancelOrder = originalCancelOrder;
-            }
             // Restore testUserId
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
@@ -2905,9 +2956,7 @@ describe('JobService - Additional Coverage Tests', () => {
             status: OrderStatus.CANCELLED,
         };
 
-        // Temporarily restore the real order service and mock orderModel instead
-        jest.unmock('../../src/services/order.service');
-        const { orderService: realOrderService } = require('../../src/services/order.service');
+        // Mock orderModel - OrderService is NOT mocked, it's part of our codebase and tested through HTTP
         const { orderModel } = require('../../src/models/order.model');
         const originalFindActiveOrder = orderModel.findActiveOrder;
         const originalUpdate = orderModel.update;
@@ -2915,11 +2964,7 @@ describe('JobService - Additional Coverage Tests', () => {
         orderModel.findActiveOrder = jest.fn().mockResolvedValue(mockOrder);
         orderModel.update = jest.fn().mockResolvedValue(mockUpdatedOrder);
 
-        const originalMockUpdate = mockOrderService.updateOrderStatus;
-        mockOrderService.updateOrderStatus = realOrderService.updateOrderStatus.bind(realOrderService);
-        const originalCancelOrder = mockOrderService.cancelOrder;
-        mockOrderService.cancelOrder = realOrderService.cancelOrder.bind(realOrderService);
-
+        // OrderService is NOT mocked - it's part of our codebase and will use the mocked orderModel above
         mockJobModel.findByOrderId.mockResolvedValue(mockJobs as any);
         mockJobModel.update
             .mockResolvedValueOnce(mockUpdatedJob1 as any)
@@ -2943,10 +2988,6 @@ describe('JobService - Additional Coverage Tests', () => {
             // Restore mocks
             orderModel.findActiveOrder = originalFindActiveOrder;
             orderModel.update = originalUpdate;
-            mockOrderService.updateOrderStatus = originalMockUpdate;
-            if (originalCancelOrder) {
-                mockOrderService.cancelOrder = originalCancelOrder;
-            }
             // Restore testUserId
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
@@ -2975,9 +3016,7 @@ describe('JobService - Additional Coverage Tests', () => {
             status: OrderStatus.CANCELLED,
         };
 
-        // Temporarily restore the real order service and mock orderModel instead
-        jest.unmock('../../src/services/order.service');
-        const { orderService: realOrderService } = require('../../src/services/order.service');
+        // Mock orderModel - OrderService is NOT mocked, it's part of our codebase and tested through HTTP
         const { orderModel } = require('../../src/models/order.model');
         const originalFindActiveOrder = orderModel.findActiveOrder;
         const originalUpdate = orderModel.update;
@@ -2985,11 +3024,7 @@ describe('JobService - Additional Coverage Tests', () => {
         orderModel.findActiveOrder = jest.fn().mockResolvedValue(mockOrder);
         orderModel.update = jest.fn().mockResolvedValue(mockUpdatedOrder);
 
-        const originalMockUpdate = mockOrderService.updateOrderStatus;
-        mockOrderService.updateOrderStatus = realOrderService.updateOrderStatus.bind(realOrderService);
-        const originalCancelOrder = mockOrderService.cancelOrder;
-        mockOrderService.cancelOrder = realOrderService.cancelOrder.bind(realOrderService);
-
+        // OrderService will use the mocked orderModel above
         mockJobModel.findByOrderId.mockRejectedValue(new Error('Database error') as any); // Trigger catch block (lines 127-129)
 
         // Set testUserId to match studentId so the order can be found
@@ -3010,10 +3045,6 @@ describe('JobService - Additional Coverage Tests', () => {
             // Restore mocks
             orderModel.findActiveOrder = originalFindActiveOrder;
             orderModel.update = originalUpdate;
-            mockOrderService.updateOrderStatus = originalMockUpdate;
-            if (originalCancelOrder) {
-                mockOrderService.cancelOrder = originalCancelOrder;
-            }
             // Restore testUserId
             testUserId = originalTestUserId;
             testUserRole = originalTestUserRole;
@@ -3733,250 +3764,299 @@ describe('NotificationService Coverage Tests', () => {
 });
 
 describe('Route Handler Catch Blocks Coverage', () => {
-    let originalMethods: any = {};
-
     beforeEach(() => {
         jest.clearAllMocks();
-        // Restore original methods before each test
-        if (Object.keys(originalMethods).length > 0) {
-            const { JobController } = require('../../src/controllers/job.controller');
-            Object.keys(originalMethods).forEach(method => {
-                if (originalMethods[method]) {
-                    JobController.prototype[method] = originalMethods[method];
-                }
-            });
-            originalMethods = {};
-        }
     });
 
-    afterEach(() => {
-        // Restore original methods after each test
-        if (Object.keys(originalMethods).length > 0) {
-            const { JobController } = require('../../src/controllers/job.controller');
-            Object.keys(originalMethods).forEach(method => {
-                if (originalMethods[method]) {
-                    JobController.prototype[method] = originalMethods[method];
-                }
-            });
-            originalMethods = {};
-        }
-    });
+    // NOTE: These tests temporarily mock controller methods to return rejected promises
+    // to cover the route handler .catch() blocks. This is necessary because the controller's
+    // try-catch blocks catch all errors and call next(error), which resolves the promise.
+    // The route handler .catch() is a safety net that only triggers if the controller
+    // method returns a rejected promise. We restore the original methods after each test.
 
-    // Mocked behavior: JobController.getAllJobs returns a rejected promise directly (bypassing controller try-catch)
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 14) is executed
     // Input: GET /api/jobs
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 14) is executed
     // Expected output: error response
     test('should cover route handler catch block for getAllJobs (line 14)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.getAllJobs = JobController.prototype.getAllJobs;
+        const originalMethod = JobController.prototype.getAllJobs;
         
-        JobController.prototype.getAllJobs = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        // Temporarily mock to return rejected promise to trigger route handler .catch()
+        JobController.prototype.getAllJobs = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const response = await request(app)
-            .get('/api/jobs')
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const response = await request(app)
+                .get('/api/jobs')
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            // Restore original method
+            JobController.prototype.getAllJobs = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.getAllAvailableJobs returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 21) is executed
     // Input: GET /api/jobs/available
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 21) is executed
     // Expected output: error response
     test('should cover route handler catch block for getAllAvailableJobs (line 21)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.getAllAvailableJobs = JobController.prototype.getAllAvailableJobs;
+        const originalMethod = JobController.prototype.getAllAvailableJobs;
         
-        JobController.prototype.getAllAvailableJobs = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getAllAvailableJobs = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const response = await request(app)
-            .get('/api/jobs/available')
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const response = await request(app)
+                .get('/api/jobs/available')
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.getAllAvailableJobs = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.getMoverJobs returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 28) is executed
     // Input: GET /api/jobs/mover
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 28) is executed
     // Expected output: error response
     test('should cover route handler catch block for getMoverJobs (line 28)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.getMoverJobs = JobController.prototype.getMoverJobs;
+        const originalMethod = JobController.prototype.getMoverJobs;
         
-        JobController.prototype.getMoverJobs = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getMoverJobs = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const response = await request(app)
-            .get('/api/jobs/mover')
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const response = await request(app)
+                .get('/api/jobs/mover')
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.getMoverJobs = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.getStudentJobs returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 35) is executed
     // Input: GET /api/jobs/student
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 35) is executed
     // Expected output: error response
     test('should cover route handler catch block for getStudentJobs (line 35)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.getStudentJobs = JobController.prototype.getStudentJobs;
+        const originalMethod = JobController.prototype.getStudentJobs;
         
-        JobController.prototype.getStudentJobs = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getStudentJobs = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const response = await request(app)
-            .get('/api/jobs/student')
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const response = await request(app)
+                .get('/api/jobs/student')
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.getStudentJobs = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.getJobById returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 42) is executed
     // Input: GET /api/jobs/:id
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 42) is executed
     // Expected output: error response
     test('should cover route handler catch block for getJobById (line 42)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.getJobById = JobController.prototype.getJobById;
+        const originalMethod = JobController.prototype.getJobById;
         
-        JobController.prototype.getJobById = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getJobById = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const jobId = new mongoose.Types.ObjectId();
-        const response = await request(app)
-            .get(`/api/jobs/${jobId}`)
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const jobId = new mongoose.Types.ObjectId();
+            const response = await request(app)
+                .get(`/api/jobs/${jobId}`)
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.getJobById = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.createJob returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 52) is executed
     // Input: POST /api/jobs
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 52) is executed
     // Expected output: error response
     test('should cover route handler catch block for createJob (line 52)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.createJob = JobController.prototype.createJob;
+        const originalMethod = JobController.prototype.createJob;
         
-        JobController.prototype.createJob = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.createJob = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const reqData = {
-            orderId: new mongoose.Types.ObjectId().toString(),
-            studentId: new mongoose.Types.ObjectId().toString(),
-            jobType: JobType.STORAGE,
-            volume: 10,
-            price: 50,
-            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
-            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
-            scheduledTime: new Date().toISOString()
-        };
+        try {
+            const reqData = {
+                orderId: new mongoose.Types.ObjectId().toString(),
+                studentId: new mongoose.Types.ObjectId().toString(),
+                jobType: JobType.STORAGE,
+                volume: 10,
+                price: 50,
+                pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+                dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+                scheduledTime: new Date().toISOString()
+            };
 
-        const response = await request(app)
-            .post('/api/jobs')
-            .set('Authorization', `Bearer fake-token`)
-            .send(reqData);
+            const response = await request(app)
+                .post('/api/jobs')
+                .set('Authorization', `Bearer fake-token`)
+                .send(reqData);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.createJob = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.updateJobStatus returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 63) is executed
     // Input: PATCH /api/jobs/:id/status
     // Expected status code: 500
-    // Expected behavior: route handler catch block (line 60) is executed
+    // Expected behavior: route handler catch block (line 63) is executed
     // Expected output: error response
-    test('should cover route handler catch block for updateJobStatus (line 60)', async () => {
+    test('should cover route handler catch block for updateJobStatus (line 63)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.updateJobStatus = JobController.prototype.updateJobStatus;
+        const originalMethod = JobController.prototype.updateJobStatus;
         
-        JobController.prototype.updateJobStatus = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.updateJobStatus = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const jobId = new mongoose.Types.ObjectId();
-        const response = await request(app)
-            .patch(`/api/jobs/${jobId}/status`)
-            .set('Authorization', `Bearer fake-token`)
-            .send({ status: JobStatus.ACCEPTED });
+        try {
+            const jobId = new mongoose.Types.ObjectId();
+            const response = await request(app)
+                .patch(`/api/jobs/${jobId}/status`)
+                .set('Authorization', `Bearer fake-token`)
+                .send({ status: JobStatus.ACCEPTED });
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.updateJobStatus = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.send_arrival_confirmation returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 73) is executed
     // Input: POST /api/jobs/:id/arrived
     // Expected status code: 500
-    // Expected behavior: route handler catch block (line 69) is executed
+    // Expected behavior: route handler catch block (line 73) is executed
     // Expected output: error response
-    test('should cover route handler catch block for send_arrival_confirmation (line 69)', async () => {
+    test('should cover route handler catch block for send_arrival_confirmation (line 73)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.send_arrival_confirmation = JobController.prototype.send_arrival_confirmation;
+        const originalMethod = JobController.prototype.send_arrival_confirmation;
         
-        JobController.prototype.send_arrival_confirmation = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.send_arrival_confirmation = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const jobId = new mongoose.Types.ObjectId();
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/arrived`)
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const jobId = new mongoose.Types.ObjectId();
+            const response = await request(app)
+                .post(`/api/jobs/${jobId}/arrived`)
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.send_arrival_confirmation = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.confirmPickup returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 80) is executed
     // Input: POST /api/jobs/:id/confirm-pickup
     // Expected status code: 500
-    // Expected behavior: route handler catch block (line 76) is executed
+    // Expected behavior: route handler catch block (line 80) is executed
     // Expected output: error response
-    test('should cover route handler catch block for confirmPickup (line 76)', async () => {
+    test('should cover route handler catch block for confirmPickup (line 80)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.confirmPickup = JobController.prototype.confirmPickup;
+        const originalMethod = JobController.prototype.confirmPickup;
         
-        JobController.prototype.confirmPickup = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.confirmPickup = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const jobId = new mongoose.Types.ObjectId();
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/confirm-pickup`)
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const jobId = new mongoose.Types.ObjectId();
+            const response = await request(app)
+                .post(`/api/jobs/${jobId}/confirm-pickup`)
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.confirmPickup = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.delivered returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 87) is executed
     // Input: POST /api/jobs/:id/delivered
     // Expected status code: 500
-    // Expected behavior: route handler catch block (line 83) is executed
+    // Expected behavior: route handler catch block (line 87) is executed
     // Expected output: error response
-    test('should cover route handler catch block for delivered (line 83)', async () => {
+    test('should cover route handler catch block for delivered (line 87)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.delivered = JobController.prototype.delivered;
+        const originalMethod = JobController.prototype.delivered;
         
-        JobController.prototype.delivered = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.delivered = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const jobId = new mongoose.Types.ObjectId();
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/delivered`)
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const jobId = new mongoose.Types.ObjectId();
+            const response = await request(app)
+                .post(`/api/jobs/${jobId}/delivered`)
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.delivered = originalMethod;
+        }
     });
 
-    // Mocked behavior: JobController.confirmDelivery returns a rejected promise directly
+    // Mocked behavior: Controller method returns rejected promise, route handler catch block (line 94) is executed
     // Input: POST /api/jobs/:id/confirm-delivery
     // Expected status code: 500
-    // Expected behavior: route handler catch block (line 90) is executed
+    // Expected behavior: route handler catch block (line 94) is executed
     // Expected output: error response
-    test('should cover route handler catch block for confirmDelivery (line 90)', async () => {
+    test('should cover route handler catch block for confirmDelivery (line 94)', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
-        originalMethods.confirmDelivery = JobController.prototype.confirmDelivery;
+        const originalMethod = JobController.prototype.confirmDelivery;
         
-        JobController.prototype.confirmDelivery = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.confirmDelivery = jest.fn().mockImplementation(() => 
+            Promise.reject(new Error('Route handler catch test'))
+        );
 
-        const jobId = new mongoose.Types.ObjectId();
-        const response = await request(app)
-            .post(`/api/jobs/${jobId}/confirm-delivery`)
-            .set('Authorization', `Bearer fake-token`);
+        try {
+            const jobId = new mongoose.Types.ObjectId();
+            const response = await request(app)
+                .post(`/api/jobs/${jobId}/confirm-delivery`)
+                .set('Authorization', `Bearer fake-token`);
 
-        expect(response.status).toBeGreaterThanOrEqual(500);
+            expect(response.status).toBeGreaterThanOrEqual(500);
+        } finally {
+            JobController.prototype.confirmDelivery = originalMethod;
+        }
     });
 });
 
