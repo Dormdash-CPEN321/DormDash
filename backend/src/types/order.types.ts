@@ -129,6 +129,7 @@ export interface Order {
 export interface CancelOrderResponse {
   success: boolean;
   message: string;
+  orderStatus?: OrderStatus; // present on failure to indicate current status
 }
 
 export interface GetAllOrdersResponse {

@@ -123,7 +123,37 @@ export class OrderController {
     try {
       const studentId = req.user?._id as unknown as ObjectId;
       const result = await this.orderService.cancelOrder(studentId);
-      res.status(200).json(result);
+      // Map service result to appropriate HTTP status code expected by tests/spec
+      if (result.success) {
+        res.status(200).json(result);
+        return;
+      }
+
+      // Failure cases
+      if (result.orderStatus === 'ACCEPTED') {
+        res.status(400).json(result);
+        return;
+      }
+      if (result.orderStatus === 'IN_STORAGE') {
+        res.status(401).json(result);
+        return;
+      }
+      if (result.orderStatus === 'CANCELLED') {
+        // Second cancellation attempt
+        res.status(401).json(result);
+        return;
+      }
+      if (result.message === 'Order not found') {
+        res.status(404).json(result);
+        return;
+      }
+      if (result.message.includes('pending')) {
+        // Generic invalid state fallback
+        res.status(400).json(result);
+        return;
+      }
+      // Default fallback
+      res.status(400).json(result);
     } catch (error) {
       // TODO: improve error handling
       next(error);

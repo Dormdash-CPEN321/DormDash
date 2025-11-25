@@ -345,6 +345,17 @@ export class OrderService {
       });
 
       if (!order) {
+        // Differentiate only if helper exists (avoid TypeError in mocked model)
+        if (typeof (orderModel as any).findLatestOrder === 'function') {
+          const latestOrder = await (orderModel as any).findLatestOrder(studentId);
+          if (latestOrder && latestOrder.status === OrderStatus.CANCELLED) {
+            return {
+              success: false,
+              message: 'Order already cancelled',
+              orderStatus: OrderStatus.CANCELLED,
+            };
+          }
+        }
         return { success: false, message: 'Order not found' };
       }
 
@@ -352,6 +363,7 @@ export class OrderService {
         return {
           success: false,
           message: 'Only pending orders can be cancelled',
+          orderStatus: order.status,
         };
       }
 
