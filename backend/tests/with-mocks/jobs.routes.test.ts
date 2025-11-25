@@ -3771,7 +3771,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.getAllJobs = JobController.prototype.getAllJobs;
         
-        JobController.prototype.getAllJobs = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getAllJobs = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const response = await request(app)
             .get('/api/jobs')
@@ -3789,7 +3789,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.getAllAvailableJobs = JobController.prototype.getAllAvailableJobs;
         
-        JobController.prototype.getAllAvailableJobs = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getAllAvailableJobs = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const response = await request(app)
             .get('/api/jobs/available')
@@ -3807,7 +3807,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.getMoverJobs = JobController.prototype.getMoverJobs;
         
-        JobController.prototype.getMoverJobs = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getMoverJobs = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const response = await request(app)
             .get('/api/jobs/mover')
@@ -3825,7 +3825,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.getStudentJobs = JobController.prototype.getStudentJobs;
         
-        JobController.prototype.getStudentJobs = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getStudentJobs = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const response = await request(app)
             .get('/api/jobs/student')
@@ -3843,7 +3843,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.getJobById = JobController.prototype.getJobById;
         
-        JobController.prototype.getJobById = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.getJobById = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const jobId = new mongoose.Types.ObjectId();
         const response = await request(app)
@@ -3862,7 +3862,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.createJob = JobController.prototype.createJob;
         
-        JobController.prototype.createJob = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.createJob = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const reqData = {
             orderId: new mongoose.Types.ObjectId().toString(),
@@ -3892,7 +3892,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.updateJobStatus = JobController.prototype.updateJobStatus;
         
-        JobController.prototype.updateJobStatus = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.updateJobStatus = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const jobId = new mongoose.Types.ObjectId();
         const response = await request(app)
@@ -3912,7 +3912,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.send_arrival_confirmation = JobController.prototype.send_arrival_confirmation;
         
-        JobController.prototype.send_arrival_confirmation = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.send_arrival_confirmation = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const jobId = new mongoose.Types.ObjectId();
         const response = await request(app)
@@ -3931,7 +3931,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.confirmPickup = JobController.prototype.confirmPickup;
         
-        JobController.prototype.confirmPickup = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.confirmPickup = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const jobId = new mongoose.Types.ObjectId();
         const response = await request(app)
@@ -3950,7 +3950,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.delivered = JobController.prototype.delivered;
         
-        JobController.prototype.delivered = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.delivered = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const jobId = new mongoose.Types.ObjectId();
         const response = await request(app)
@@ -3969,7 +3969,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
         const { JobController } = require('../../src/controllers/job.controller');
         originalMethods.confirmDelivery = JobController.prototype.confirmDelivery;
         
-        JobController.prototype.confirmDelivery = jest.fn().mockReturnValue(Promise.reject(new Error('Route handler catch test')));
+        JobController.prototype.confirmDelivery = jest.fn().mockImplementation(() => Promise.reject(new Error('Route handler catch test')));
 
         const jobId = new mongoose.Types.ObjectId();
         const response = await request(app)
