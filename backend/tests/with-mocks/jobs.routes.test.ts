@@ -2508,7 +2508,7 @@ describe('JobService - Additional Coverage Tests', () => {
         await request(app)
             .post(`/api/jobs/${jobId}/confirm-pickup`)
             .set('Authorization', `Bearer fake-token`)
-            .expect(500);
+            .expect(403);
 
         // Restore original function
         mongooseUtil.extractObjectId = originalExtractObjectId;
@@ -2567,7 +2567,7 @@ describe('JobService - Additional Coverage Tests', () => {
         await request(app)
             .post(`/api/jobs/${jobId}/confirm-delivery`)
             .set('Authorization', `Bearer fake-token`)
-            .expect(500);
+            .expect(403);
 
         // Restore original function
         mongooseUtil.extractObjectId = originalExtractObjectId;
@@ -2746,9 +2746,15 @@ describe('JobService - Additional Coverage Tests', () => {
         mockEventEmitter.emitJobUpdated.mockReturnValue(undefined);
         mockPaymentService.refundPayment.mockResolvedValue(undefined);
 
+        // Set testUserId to match studentId so the order can be found
+        const originalTestUserId = testUserId;
+        const originalTestUserRole = testUserRole;
+        testUserId = studentId;
+        testUserRole = 'STUDENT';
+
         try {
             const response = await request(app)
-                .delete('/api/orders/cancel-order')
+                .delete('/api/order/cancel-order')
                 .set('Authorization', `Bearer fake-token`)
                 .expect(200);
 
@@ -2763,6 +2769,9 @@ describe('JobService - Additional Coverage Tests', () => {
             if (originalCancelOrder) {
                 mockOrderService.cancelOrder = originalCancelOrder;
             }
+            // Restore testUserId
+            testUserId = originalTestUserId;
+            testUserRole = originalTestUserRole;
         }
     });
 
@@ -2817,9 +2826,15 @@ describe('JobService - Additional Coverage Tests', () => {
         mockJobModel.findByOrderId.mockResolvedValue(mockJobs as any);
         mockJobModel.update.mockResolvedValue(null as any); // Return null to trigger lines 100-104
 
+        // Set testUserId to match studentId so the order can be found
+        const originalTestUserId = testUserId;
+        const originalTestUserRole = testUserRole;
+        testUserId = studentId;
+        testUserRole = 'STUDENT';
+
         try {
             const response = await request(app)
-                .delete('/api/orders/cancel-order')
+                .delete('/api/order/cancel-order')
                 .set('Authorization', `Bearer fake-token`)
                 .expect(200);
 
@@ -2834,6 +2849,9 @@ describe('JobService - Additional Coverage Tests', () => {
             if (originalCancelOrder) {
                 mockOrderService.cancelOrder = originalCancelOrder;
             }
+            // Restore testUserId
+            testUserId = originalTestUserId;
+            testUserRole = originalTestUserRole;
         }
     });
 
@@ -2907,9 +2925,15 @@ describe('JobService - Additional Coverage Tests', () => {
             .mockResolvedValueOnce(mockUpdatedJob1 as any)
             .mockRejectedValueOnce(new Error('Update failed') as any); // Second update fails (lines 118-123)
 
+        // Set testUserId to match studentId so the order can be found
+        const originalTestUserId = testUserId;
+        const originalTestUserRole = testUserRole;
+        testUserId = studentId;
+        testUserRole = 'STUDENT';
+
         try {
             const response = await request(app)
-                .delete('/api/orders/cancel-order')
+                .delete('/api/order/cancel-order')
                 .set('Authorization', `Bearer fake-token`)
                 .expect(200);
 
@@ -2923,6 +2947,9 @@ describe('JobService - Additional Coverage Tests', () => {
             if (originalCancelOrder) {
                 mockOrderService.cancelOrder = originalCancelOrder;
             }
+            // Restore testUserId
+            testUserId = originalTestUserId;
+            testUserRole = originalTestUserRole;
         }
     });
 
@@ -2965,9 +2992,15 @@ describe('JobService - Additional Coverage Tests', () => {
 
         mockJobModel.findByOrderId.mockRejectedValue(new Error('Database error') as any); // Trigger catch block (lines 127-129)
 
+        // Set testUserId to match studentId so the order can be found
+        const originalTestUserId = testUserId;
+        const originalTestUserRole = testUserRole;
+        testUserId = studentId;
+        testUserRole = 'STUDENT';
+
         try {
             const response = await request(app)
-                .delete('/api/orders/cancel-order')
+                .delete('/api/order/cancel-order')
                 .set('Authorization', `Bearer fake-token`)
                 .expect(200); // Order cancellation still succeeds, job cancellation error is caught
 
@@ -2981,6 +3014,9 @@ describe('JobService - Additional Coverage Tests', () => {
             if (originalCancelOrder) {
                 mockOrderService.cancelOrder = originalCancelOrder;
             }
+            // Restore testUserId
+            testUserId = originalTestUserId;
+            testUserRole = originalTestUserRole;
         }
     });
 
