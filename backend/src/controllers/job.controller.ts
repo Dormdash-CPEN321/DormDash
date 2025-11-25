@@ -60,10 +60,8 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      // justification: ts requires null check
-      if (!req.user?._id) {
-        throw new Error('User not authenticated');
-      }
+      if (!req.user?._id) return;
+
       const result = await this.jobService.getMoverJobs(
         req.user._id.toString()
       );
@@ -79,10 +77,8 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      // justification: ts requires null check
-      if (!req.user?._id) {
-        throw new Error('User not authenticated');
-      }
+      if (!req.user?._id) return;
+      
       const result = await this.jobService.getStudentJobs(
         req.user._id.toString()
       );

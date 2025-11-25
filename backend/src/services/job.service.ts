@@ -30,11 +30,9 @@ export class JobService {
   }
   
   // Helper to add credits to mover when job is completed
-  private async addCreditsToMover(job: Job | null) {
-    if (!job?.moverId) {
-      logger.warn('No mover assigned to job, skipping credits');
-      return;
-    }
+  private async addCreditsToMover(job: Job | null) { 
+    if (!job?.moverId) return;
+    
 
     try {
       // Extract moverId using utility
@@ -66,12 +64,6 @@ export class JobService {
 
   // Cancel (mark as CANCELLED) all jobs for a given orderId that are not already terminal
   async cancelJobsForOrder(orderId: string, actorId?: string) {
-    // Input validation
-    if (!orderId) {
-      logger.error('cancelJobsForOrder: Missing orderId');
-      throw new Error('orderId is required');
-    }
-
     try {
       logger.info(
         `cancelJobsForOrder: orderId=${orderId}, actorId=${actorId ?? 'system'}`
