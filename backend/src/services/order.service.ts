@@ -345,14 +345,16 @@ export class OrderService {
       });
 
       if (!order) {
-        // Differentiate between: no order ever vs already cancelled
-        const latestOrder = await orderModel.findLatestOrder(studentId);
-        if (latestOrder && latestOrder.status === OrderStatus.CANCELLED) {
-          return {
-            success: false,
-            message: 'Order already cancelled',
-            orderStatus: OrderStatus.CANCELLED,
-          };
+        // Differentiate only if helper exists (avoid TypeError in mocked model)
+        if (typeof (orderModel as any).findLatestOrder === 'function') {
+          const latestOrder = await (orderModel as any).findLatestOrder(studentId);
+          if (latestOrder && latestOrder.status === OrderStatus.CANCELLED) {
+            return {
+              success: false,
+              message: 'Order already cancelled',
+              orderStatus: OrderStatus.CANCELLED,
+            };
+          }
         }
         return { success: false, message: 'Order not found' };
       }

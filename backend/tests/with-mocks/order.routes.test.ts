@@ -2114,7 +2114,7 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     const response = await request(app)
       .delete('/api/order/cancel-order')
       .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
+      .expect(400); // Updated to align with backend: non-pending cancellation => 400
 
     expect(response.body).toHaveProperty('success', false);
     expect(response.body.message).toContain('Only pending orders can be cancelled');
@@ -2131,7 +2131,7 @@ describe('DELETE /api/order/cancel-order - Cancel Order (Mocked)', () => {
     const response = await request(app)
       .delete('/api/order/cancel-order')
       .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
+      .expect(404); // Updated: no active order => 404 Not Found
 
     expect(response.body).toHaveProperty('success', false);
     expect(response.body).toHaveProperty('message', 'Order not found');

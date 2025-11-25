@@ -138,6 +138,16 @@ export class OrderModel {
     }
   }
 
+  // Simple wrapper used by tests to spy on .findById behavior
+  async findById(orderId: mongoose.Types.ObjectId): Promise<Order | null> {
+    try {
+      return await this.order.findById(orderId);
+    } catch (error) {
+      logger.error('Error finding order by id:', error);
+      throw new Error('Failed to find order by id');
+    }
+  }
+
   // Find the most recently created order for a student regardless of status
   async findLatestOrder(studentId: ObjectId | undefined): Promise<Order | null> {
     try {
