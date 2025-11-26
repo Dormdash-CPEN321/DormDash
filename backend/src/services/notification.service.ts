@@ -73,7 +73,7 @@ class NotificationService {
       const studentIdStr = studentDoc?._id ? String(studentDoc._id) : String(job.studentId);
 
       if (!studentFcmToken) {
-        logger.warn(`No FCM token found for student ${studentIdStr || 'unknown'}`);
+        logger.warn(`No FCM token found for student ${studentIdStr}`);
         return;
       }
 
@@ -115,7 +115,7 @@ class NotificationService {
 
       await this.sendNotificationToDevice(notification);
       logger.info(
-        `Notification sent to student ${studentIdStr || 'unknown'} for job ${job._id.toString()} with status ${status}`
+        `Notification sent to student ${studentIdStr} for job ${job._id.toString()} with status ${status}`
       );
     } catch (error: unknown) {
       logger.error('Failed to send job status notification:', String(error));
