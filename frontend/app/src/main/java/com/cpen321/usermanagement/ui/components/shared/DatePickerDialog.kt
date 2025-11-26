@@ -50,6 +50,36 @@ private fun buildCalendarDays(visibleMonth: LocalDate): List<LocalDate?> {
     }
 }
 
+private data class DatePickerInitialState(
+    val initialLocalDate: LocalDate,
+    val minSelectableUTC: Long,
+    val minSelectableLocalDate: LocalDate,
+    val initialVisibleMonth: LocalDate
+)
+
+private fun computeDatePickerInitialState(initialDateMillis: Long?, minDateOffsetDays: Int): DatePickerInitialState {
+    val todayUTC = getTodayUtcMillis()
+    val minSelectableUTC = getMinSelectableUtcMillis(todayUTC, minDateOffsetDays)
+
+    val initialDate = initialDateMillis ?: todayUTC
+    val initialLocalDate = Instant.ofEpochMilli(initialDate).atZone(ZoneOffset.UTC).toLocalDate()
+
+    val minSelectableLocalDate = Instant.ofEpochMilli(minSelectableUTC).atZone(ZoneOffset.UTC).toLocalDate()
+
+    val initialVisibleMonth = if (minSelectableLocalDate.isBefore(initialLocalDate)) {
+        minSelectableLocalDate.withDayOfMonth(1)
+    } else {
+        initialLocalDate.withDayOfMonth(1)
+    }
+
+    return DatePickerInitialState(
+        initialLocalDate = initialLocalDate,
+        minSelectableUTC = minSelectableUTC,
+        minSelectableLocalDate = minSelectableLocalDate,
+        initialVisibleMonth = initialVisibleMonth
+    )
+}
+
 @Composable
 private fun CalendarDay(
     date: LocalDate,
@@ -89,6 +119,72 @@ private fun CalendarDay(
     }
 }
 
+@Composable
+private fun MonthHeader(
+    visibleMonth: LocalDate,
+    minSelectableLocalDate: LocalDate,
+    onPrev: () -> Unit,
+    onNext: () -> Unit
+) {
+    val monthLabel = visibleMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+    val prevEnabled = visibleMonth.isAfter(minSelectableLocalDate.withDayOfMonth(1))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onPrev,
+            enabled = prevEnabled,
+            modifier = Modifier.testTag("date_picker_prev_month")
+        ) {
+            Icon(Icons.Filled.ArrowBack, contentDescription = "Previous month")
+        }
+
+        Text(
+            monthLabel,
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        IconButton(
+            onClick = onNext,
+            modifier = Modifier.testTag("date_picker_next_month")
+        ) {
+            Icon(Icons.Filled.ArrowForward, contentDescription = "Next month")
+        }
+    }
+}
+
+@Composable
+private fun CalendarGrid(
+    days: List<LocalDate?>,
+    selectedDate: LocalDate,
+    minSelectableUTC: Long,
+    onDateClick: (LocalDate) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(7),
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(4.dp)
+    ) {
+        items(days) { date ->
+            if (date == null) {
+                Spacer(Modifier.size(40.dp))
+            } else {
+                CalendarDay(
+                    date = date,
+                    selectedDate = selectedDate,
+                    minSelectableUTC = minSelectableUTC,
+                    onDateClick = onDateClick
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerDialog(
@@ -98,26 +194,10 @@ fun DatePickerDialog(
     initialDateMillis: Long? = null,
     minDateOffsetDays: Int = 0
 ) {
-    val todayUTC = getTodayUtcMillis()
-    val minSelectableUTC = getMinSelectableUtcMillis(todayUTC, minDateOffsetDays)
-    
-    val initialDate = initialDateMillis ?: todayUTC
-    val initialLocalDate = Instant.ofEpochMilli(initialDate)
-        .atZone(ZoneOffset.UTC).toLocalDate()
+    val state = computeDatePickerInitialState(initialDateMillis, minDateOffsetDays)
 
-    val minSelectableLocalDate = Instant.ofEpochMilli(minSelectableUTC)
-        .atZone(ZoneOffset.UTC).toLocalDate()
-
-    var selectedDate by remember { mutableStateOf(initialLocalDate) }
-    // Start the calendar on the earlier month between the initially-provided date
-    // and the minimum-selectable date so tests can pick earlier allowed dates
-    var visibleMonth by remember { mutableStateOf(
-        if (minSelectableLocalDate.isBefore(initialLocalDate)) {
-            minSelectableLocalDate.withDayOfMonth(1)
-        } else {
-            initialLocalDate.withDayOfMonth(1)
-        }
-    ) }
+    var selectedDate by remember { mutableStateOf(state.initialLocalDate) }
+    var visibleMonth by remember { mutableStateOf(state.initialVisibleMonth) }
 
     val days = remember(visibleMonth) { buildCalendarDays(visibleMonth) }
 
@@ -133,55 +213,18 @@ fun DatePickerDialog(
         Column(Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(16.dp))
-            // Month header with navigation
-            val monthLabel = visibleMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
-            val prevEnabled = visibleMonth.isAfter(minSelectableLocalDate.withDayOfMonth(1))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { if (prevEnabled) visibleMonth = visibleMonth.minusMonths(1) },
-                    enabled = prevEnabled,
-                    modifier = Modifier.testTag("date_picker_prev_month")
-                ) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Previous month")
-                }
-
-                Text(
-                    monthLabel,
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                IconButton(
-                    onClick = { visibleMonth = visibleMonth.plusMonths(1) },
-                    modifier = Modifier.testTag("date_picker_next_month")
-                ) {
-                    Icon(Icons.Filled.ArrowForward, contentDescription = "Next month")
-                }
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(7),
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(4.dp)
-            ) {
-                items(days) { date ->
-                    if (date == null) {
-                        Spacer(Modifier.size(40.dp))
-                    } else {
-                        CalendarDay(
-                            date = date,
-                            selectedDate = selectedDate,
-                            minSelectableUTC = minSelectableUTC,
-                            onDateClick = { selectedDate = it }
-                        )
-                    }
-                }
-            }
+            MonthHeader(
+                visibleMonth = visibleMonth,
+                minSelectableLocalDate = state.minSelectableLocalDate,
+                onPrev = { visibleMonth = visibleMonth.minusMonths(1) },
+                onNext = { visibleMonth = visibleMonth.plusMonths(1) }
+            )
+            CalendarGrid(
+                days = days,
+                selectedDate = selectedDate,
+                minSelectableUTC = state.minSelectableUTC,
+                onDateClick = { selectedDate = it }
+            )
         }
     }
 }

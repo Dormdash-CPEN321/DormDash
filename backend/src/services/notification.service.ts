@@ -48,7 +48,7 @@ class NotificationService {
     }
   }
 
-  // TODO: figure out where to call this function
+  
   // sends job status update notifications to student
   async sendJobStatusNotification(
     jobId: mongoose.Types.ObjectId,

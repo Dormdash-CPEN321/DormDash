@@ -14,7 +14,8 @@
 | 2025-11-12 | Requirement | We changed the requirements to not mention user can change profile picture. Why: we are no longer having profile picture in our app and need to ensure our documentation matches the functionality |
 | 2025-11-12 | Use Case Specification | We changed the 'View Recommended Route' use case to use a slider, instead of a multiple choice list. For selecting the duration of the route. |
 | 2025-11-12 | Requirements: Non-Functional Requirement | Changed our first non-functional requirement to 200 concurrent requests, of which 70% are to create orders and 30% are to get jobs. Why: We are restricted by our free-tier service, 400 was not feasible.               
-| 2025-11-12 | Requirements: Non-Functional Requirement | Changed our second non-functional requirement to a response to core functionalites independent of a backend response. Why: Between network failures, and the limitation of our backend tier, 0.1s for a response to arrive and be reflected was not reasible. Additionally, the applicated is not always open. So student and movers not seeing changes (job creation, order and job status updates) reflected from the backend within 0.1s, does not reduce the app's appeal.              
+| 2025-11-12 | Requirements: Non-Functional Requirement | Changed our second non-functional requirement to a response to core functionalites independent of a backend response. Why: Between network failures, and the limitation of our backend tier, 0.1s for a response to arrive and be reflected was not reasible. Additionally, the applicated is not always open. So student and movers not seeing changes (job creation, order and job status updates) reflected from the backend within 0.1s, does not reduce the app's appeal. |
+| 2025-11-26| Depencies Diagram | Fixed Diagram, to reflect actual communications.|         
 
 ---
 
