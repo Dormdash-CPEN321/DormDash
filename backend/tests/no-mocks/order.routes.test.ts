@@ -1048,6 +1048,38 @@ describe('Unmocked DELETE /api/order/cancel-order', () => {
       .delete('/api/order/cancel-order')
       .expect(401);
   });
+
+  // Input: DELETE /api/order/cancel-order when the underlying MongoDB query fails
+  // Expected behavior: Error is caught, logged, and re-thrown as 'Failed to find latest order'
+  test('should handle findLatestOrder error gracefully', async () => {
+    // Access the internal mongoose model to spy on findOne
+    const internalModel = (orderModel as any).order;
+    const originalFindOne = internalModel.findOne.bind(internalModel);
+    
+    // Create a mock that throws on specific call pattern (for findLatestOrder)
+    let findOneCallCount = 0;
+    internalModel.findOne = jest.fn().mockImplementation((...args: any[]) => {
+      findOneCallCount++;
+      // findLatestOrder is called after findActiveOrder (which also uses findOne)
+      // Make the second findOne call fail (which is findLatestOrder)
+      if (findOneCallCount === 2) {
+        throw new Error('Database connection failed');
+      }
+      return originalFindOne(...args);
+    });
+
+    try {
+      const response = await request(app)
+        .delete('/api/order/cancel-order')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      // When findLatestOrder fails, it throws "Failed to find latest order"
+      expect([500]).toContain(response.status);
+    } finally {
+      // Restore original
+      internalModel.findOne = originalFindOne;
+    }
+  });
 });
 
 // Socket event tests for order-related operations
