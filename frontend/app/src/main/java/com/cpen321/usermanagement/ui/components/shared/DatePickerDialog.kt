@@ -17,7 +17,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.*
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 
 private fun LocalDate.toUtcMillis(): Long =
     this.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
@@ -100,8 +105,20 @@ fun DatePickerDialog(
     val initialLocalDate = Instant.ofEpochMilli(initialDate)
         .atZone(ZoneOffset.UTC).toLocalDate()
 
+    val minSelectableLocalDate = Instant.ofEpochMilli(minSelectableUTC)
+        .atZone(ZoneOffset.UTC).toLocalDate()
+
     var selectedDate by remember { mutableStateOf(initialLocalDate) }
-    val visibleMonth by remember { mutableStateOf(initialLocalDate.withDayOfMonth(1)) }
+    // Start the calendar on the earlier month between the initially-provided date
+    // and the minimum-selectable date so tests can pick earlier allowed dates
+    var visibleMonth by remember { mutableStateOf(
+        if (minSelectableLocalDate.isBefore(initialLocalDate)) {
+            minSelectableLocalDate.withDayOfMonth(1)
+        } else {
+            initialLocalDate.withDayOfMonth(1)
+        }
+    ) }
+
     val days = remember(visibleMonth) { buildCalendarDays(visibleMonth) }
 
     androidx.compose.material3.DatePickerDialog(
@@ -116,11 +133,37 @@ fun DatePickerDialog(
         Column(Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(16.dp))
-            Text(
-                "${visibleMonth.month} ${visibleMonth.year}",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            // Month header with navigation
+            val monthLabel = visibleMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+            val prevEnabled = visibleMonth.isAfter(minSelectableLocalDate.withDayOfMonth(1))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { if (prevEnabled) visibleMonth = visibleMonth.minusMonths(1) },
+                    enabled = prevEnabled,
+                    modifier = Modifier.testTag("date_picker_prev_month")
+                ) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Previous month")
+                }
+
+                Text(
+                    monthLabel,
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                IconButton(
+                    onClick = { visibleMonth = visibleMonth.plusMonths(1) },
+                    modifier = Modifier.testTag("date_picker_next_month")
+                ) {
+                    Icon(Icons.Filled.ArrowForward, contentDescription = "Next month")
+                }
+            }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(7),
                 modifier = Modifier.fillMaxWidth(),

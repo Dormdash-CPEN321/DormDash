@@ -350,9 +350,14 @@ Notification. Service: The branches that are not covered are defensive checks to
 
     - **Execution Logs / Notes:**
       ```
-      java.lang.AssertionError: Failed to inject touch input.
-      Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains
-       '15' (ignoreCase: false))
+      > Task :app:connectedDebugAndroidTest
+      Starting 1 tests on Pixel_7(AVD) - 13
+
+      Pixel_7(AVD) - 13 Tests 0/1 completed. (0 skipped) (0 failed)
+      Finished 1 tests on Pixel_7(AVD) - 13
+
+      BUILD SUCCESSFUL in 1m 42s
+      76 actionable tasks: 13 executed, 63 up-to-date
       ```
 
   - **Use case: Pay**

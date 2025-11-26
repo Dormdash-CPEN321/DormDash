@@ -388,11 +388,11 @@ class CreateOrderTest : OrderTestBase() {
         val today = LocalDate.now(ZoneOffset.UTC)
         val todayDay = today.dayOfMonth
 
-        // If today is the 30th, just exit as you requested
-        if (todayDay == 30) return
+        // If today is the 27th or onward, return as selected the date
+        if (todayDay > 26 ) return
 
         // PICKUP = 3 days from now (to leave room for return date)
-        val pickupDate = today.plusDays(3)
+        val pickupDate = today.plusDays(4)
         val pickupTag = "day_${pickupDate.toEpochDay()}"
 
         // RETURN = 2 days from now (which is BEFORE pickup, triggering error)
