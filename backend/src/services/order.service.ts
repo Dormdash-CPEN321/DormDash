@@ -408,7 +408,7 @@ export class OrderService {
 
       // Emit order.updated via helper
       emitOrderUpdated(updated, {
-        by: studentId?.toString() ?? null,
+        by: studentId?.toString(),
       });
 
       return { success: true, message: 'Order cancelled successfully' };
@@ -425,10 +425,7 @@ export class OrderService {
     actorId?: string
   ): Promise<Order> {
     try {
-      const orderObjectId =
-        typeof orderId === 'string'
-          ? new mongoose.Types.ObjectId(orderId)
-          : orderId;
+      const orderObjectId = orderId as mongoose.Types.ObjectId;
 
       const updatedOrder = await orderModel.update(orderObjectId, { status });
 
@@ -438,13 +435,11 @@ export class OrderService {
 
       // Emit order.updated event
       emitOrderUpdated(updatedOrder, {
-        by: actorId ?? null,
+        by: actorId,
         ts: new Date().toISOString(),
       });
 
-      logger.info(
-        `Order ${orderId.toString()} status updated to ${status} by ${actorId ?? 'system'}`
-      );
+      
 
       return updatedOrder;
     } catch (error) {

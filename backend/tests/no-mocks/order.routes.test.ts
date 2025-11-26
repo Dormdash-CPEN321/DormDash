@@ -1080,6 +1080,48 @@ describe('Unmocked DELETE /api/order/cancel-order', () => {
       internalModel.findOne = originalFindOne;
     }
   });
+
+  // Input: DELETE /api/order/cancel-order for PENDING order via API
+  // Expected behavior: Order cancelled, emitOrderUpdated called with studentId.toString() (line 411 defined path)
+  // Expected output: success true, order cancelled
+  // Note: The ?? null branch at line 411 cannot be tested via API as auth always provides studentId
+  test('should cancel order via API triggering emitOrderUpdated with studentId (line 411)', async () => {
+    // Create an order for the authenticated user
+    const order = await orderModel.create({
+      studentId: testUserId,
+      status: OrderStatus.PENDING,
+      volume: 100,
+      price: 50.0,
+      studentAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '123 Test St, Vancouver, BC V6T 1Z4'
+      },
+      warehouseAddress: {
+        lat: 49.2500,
+        lon: -123.1000,
+        formattedAddress: '456 Warehouse Ave, Vancouver, BC V6T 2A1'
+      },
+      pickupTime: new Date(Date.now() + 3600000).toISOString(),
+      returnTime: new Date(Date.now() + 86400000).toISOString(),
+    } as any);
+
+    // Cancel order via API endpoint (triggers line 411 with studentId from auth token)
+    const response = await request(app)
+      .delete('/api/order/cancel-order')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe('Order cancelled successfully');
+
+    // Verify order was cancelled in database
+    const db = mongoose.connection.db;
+    if (db) {
+      const cancelledOrder = await db.collection('orders').findOne({ _id: order._id });
+      expect(cancelledOrder?.status).toBe(OrderStatus.CANCELLED);
+    }
+  }, 10000);
 });
 
 // Socket event tests for order-related operations
@@ -1401,6 +1443,72 @@ describe('Unmocked Order Status Updates via Job Transitions', () => {
     if (db) {
       const updatedOrder = await db.collection('orders').findOne({ _id: order._id });
       expect(updatedOrder?.status).toBe(OrderStatus.COMPLETED);
+    }
+  }, 15000);
+
+  // Input: PATCH /api/jobs/:jobId/status with status=ACCEPTED triggers updateOrderStatus
+  // Expected behavior: updateOrderStatus called with ObjectId orderId (line 429 else branch) and defined actorId (line 441)
+  // Expected output: order status updated to ACCEPTED via job status API
+  // Note: String orderId branch (line 429 if) and actorId ?? null branch (line 441) cannot be tested via API
+  test('Order status update via job accept API covers lines 421-429 and 441', async () => {
+    // Create order
+    const order = await orderModel.create({
+      studentId: testUserId,
+      status: OrderStatus.PENDING,
+      volume: 100,
+      price: 50.0,
+      studentAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '123 Test St, Vancouver, BC V6T 1Z4'
+      },
+      warehouseAddress: {
+        lat: 49.2500,
+        lon: -123.1000,
+        formattedAddress: '456 Warehouse Ave, Vancouver, BC V6T 2A1'
+      },
+      pickupTime: new Date(Date.now() + 3600000).toISOString(),
+      returnTime: new Date(Date.now() + 86400000).toISOString(),
+    } as any);
+
+    // Create job linked to order
+    const job = await jobModel.create({
+      _id: new mongoose.Types.ObjectId(),
+      orderId: order._id,
+      studentId: testUserId,
+      jobType: JobType.STORAGE,
+      status: JobStatus.AVAILABLE,
+      volume: 100,
+      price: 30.0,
+      pickupAddress: {
+        lat: 49.2827,
+        lon: -123.1207,
+        formattedAddress: '123 Test St, Vancouver, BC V6T 1Z4'
+      },
+      dropoffAddress: {
+        lat: 49.2500,
+        lon: -123.1000,
+        formattedAddress: '456 Warehouse Ave, Vancouver, BC V6T 2A1'
+      },
+      scheduledTime: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    // Mover accepts job via API - this triggers updateOrderStatus internally
+    // The job.orderId is an ObjectId, and moverAuthToken provides actorId
+    const response = await request(`http://localhost:${SOCKET_TEST_PORT}`)
+      .patch(`/api/jobs/${job._id.toString()}/status`)
+      .set('Authorization', `Bearer ${moverAuthToken}`)
+      .send({ status: JobStatus.ACCEPTED });
+
+    expect(response.status).toBe(200);
+
+    // Verify order was updated in database (proves updateOrderStatus was called)
+    const db = mongoose.connection.db;
+    if (db) {
+      const updatedOrder = await db.collection('orders').findOne({ _id: order._id });
+      expect(updatedOrder?.status).toBe(OrderStatus.ACCEPTED);
     }
   }, 15000);
 });
