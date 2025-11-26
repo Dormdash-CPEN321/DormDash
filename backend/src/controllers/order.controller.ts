@@ -148,15 +148,7 @@ export class OrderController {
         res.status(404).json(result);
         return;
       }
-      if (result.message.includes('pending')) {
-        // Generic invalid state fallback
-        res.status(400).json(result);
-        return;
-      }
-      // Default fallback
-      res.status(400).json(result);
     } catch (error) {
-      // TODO: improve error handling
       next(error);
     }
   }
