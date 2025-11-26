@@ -65,9 +65,6 @@ export class JobService {
   // Cancel (mark as CANCELLED) all jobs for a given orderId that are not already terminal
   async cancelJobsForOrder(orderId: string, actorId?: string) {
     try {
-      logger.info(
-        `cancelJobsForOrder: orderId=${orderId}, actorId=${actorId ?? 'system'}`
-      );
       const foundJobs: Job[] = await jobModel.findByOrderId(
         new mongoose.Types.ObjectId(orderId)
       );

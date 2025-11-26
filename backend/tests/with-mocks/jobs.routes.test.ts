@@ -2741,6 +2741,67 @@ describe('JobService - Additional Coverage Tests', () => {
         expect(response.body.status).toBe(JobStatus.COMPLETED);
     });
 
+    // Branch Coverage: Lines 47-48 - addCreditsToMover with mover.credits being null/undefined
+    // Input: Complete job where mover has no credits property (undefined)
+    // Expected status code: 200
+    // Expected behavior: credits ?? 0 branch executes, mover gets credits added starting from 0
+    test('should handle mover with undefined credits (line 48 - nullish coalescing)', async () => {
+        const jobId = new mongoose.Types.ObjectId().toString();
+        const orderId = new mongoose.Types.ObjectId();
+        const studentId = new mongoose.Types.ObjectId();
+        const moverId = new mongoose.Types.ObjectId();
+        
+        const mockJob = {
+            _id: new mongoose.Types.ObjectId(jobId),
+            orderId: orderId,
+            studentId: studentId,
+            moverId: moverId,
+            jobType: JobType.STORAGE,
+            status: JobStatus.PICKED_UP,
+            volume: 10,
+            price: 50,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const mockUpdatedJob = {
+            ...mockJob,
+            status: JobStatus.COMPLETED,
+        };
+
+        const mockMover = {
+            _id: moverId,
+            userRole: 'MOVER',
+            // credits property is undefined (not set)
+        };
+
+        mockJobModel.findById.mockResolvedValue(mockJob as any);
+        mockJobModel.update.mockResolvedValue(mockUpdatedJob as any);
+        mockUserModel.findById.mockResolvedValue(mockMover as any);
+        mockUserModel.update.mockResolvedValue({} as any);
+        
+        const { orderModel } = require('../../src/models/order.model');
+        const originalUpdate = orderModel.update;
+        orderModel.update = jest.fn().mockResolvedValue({ _id: orderId, status: OrderStatus.IN_STORAGE } as any);
+        
+        mockNotificationService.sendJobStatusNotification.mockResolvedValue(undefined as any);
+
+        const response = await request(app)
+            .patch(`/api/jobs/${jobId}/status`)
+            .set('Authorization', `Bearer fake-token`)
+            .send({ status: JobStatus.COMPLETED })
+            .expect(200);
+        
+        expect(response.body.status).toBe(JobStatus.COMPLETED);
+        // Verify userModel.update was called with credits set to 50 (0 + 50)
+        expect(mockUserModel.update).toHaveBeenCalledWith(moverId, { credits: 50 });
+
+        orderModel.update = originalUpdate;
+    });
+
     // Mocked behavior: orderService is unmocked and uses real implementation, orderModel.findActiveOrder returns a mock order, orderModel.update succeeds, jobModel.findByOrderId returns mock jobs array, jobModel.update succeeds for both jobs, paymentService.refundPayment succeeds, EventEmitter succeeds
     // Input: DELETE request to /api/orders/cancel-order with valid authentication token
     // Expected status code: 200

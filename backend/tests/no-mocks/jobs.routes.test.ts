@@ -1078,6 +1078,57 @@ describe('PATCH /api/jobs/:id/status', () => {
         expect(moverAfter?.credits ?? 0).toBe(creditsBefore + 75.0);
     });
 
+    // Branch Coverage: Lines 55-59 - addCreditsToMover else branch (mover not found or wrong role)
+    // Input: Complete job with moverId pointing to a STUDENT (not MOVER role)
+    // Expected status code: 200
+    // Expected behavior: job completes successfully, no credits added (wrong role)
+    test('should complete job without adding credits when moverId has wrong role (lines 55-59)', async () => {
+        const order = await orderModel.create({
+            studentId: testUserId,
+            status: OrderStatus.PICKED_UP,
+            volume: 100,
+            price: 75.0,
+            studentAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Student Address' },
+            warehouseAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Warehouse Address' },
+            pickupTime: new Date().toISOString(),
+            returnTime: new Date(Date.now() + 86400000).toISOString()
+        } as any);
+
+        // Create job with studentId (STUDENT role) as moverId - this triggers the else branch
+        const job = await jobModel.create({
+            _id: new mongoose.Types.ObjectId(),
+            orderId: order._id,
+            studentId: testUserId,
+            moverId: testUserId, // Using student ID as mover ID - wrong role!
+            jobType: JobType.STORAGE,
+            status: JobStatus.PICKED_UP,
+            volume: 100,
+            price: 75.0,
+            pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
+            dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
+            scheduledTime: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        const studentBefore = await (userModel as any).user.findById(testUserId);
+        const creditsBefore = studentBefore?.credits ?? 0;
+
+        // Complete the job using mover token (even though moverId points to STUDENT)
+        // The auth middleware needs a valid token, but the moverId in the job is what matters for credits
+        const response = await request(app)
+            .patch(`/api/jobs/${job._id.toString()}/status`)
+            .set('Authorization', `Bearer ${moverAuthToken}`) // Using mover token for auth
+            .send({ status: JobStatus.COMPLETED });
+
+        // Job should complete successfully even if moverId points to non-mover
+        expect(response.status).toBe(200);
+
+        // Verify NO credits were added (because moverId in job points to STUDENT role)
+        const studentAfter = await (userModel as any).user.findById(testUserId);
+        expect(studentAfter?.credits ?? 0).toBe(creditsBefore); // Credits unchanged
+    });
+
     // Branch Coverage: Line 517 - Generic error handling in updateJobStatus
     // Input: PATCH request to update status on non-existent job
     // Expected status code: 404
