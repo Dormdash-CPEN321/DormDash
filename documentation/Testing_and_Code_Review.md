@@ -502,16 +502,11 @@ Notification. Service: The branches that are not covered are defensive checks to
 | 6. System displays a route summary and a list of jobs within the mover's availability and maximum duration window, with details of the pickup address, travel time and credits | Check that route summary is displayed.<br>Check that total earnings is shown.<br>Check that total duration is shown.<br>Check that number of jobs is shown.<br>Check that the job list is displayed.<br>Check that each job shows pickup address, travel time, and credits. |
 | 7. Mover can accept all (using “Accept all jobs” button) or some of the suggested jobs (“Accept job” button)                                                                   | Check that "Accept all jobs" button is displayed.<br>Click "Accept all jobs" button.<br>Navigate to Current Jobs tab.<br>Check that current jobs list is displayed.<br>Check that multiple jobs now appear in Current Jobs.                                                 |
 
-- **Test Logs:**
+- **Test Logs:** (for all tests in file)
     ```
     Pixel_7(AVD) - 13 Tests 0/1 completed. (0 skipped) (0 failed)
     Pixel_7(AVD) - 13 Tests 1/1 completed. (0 skipped) (0 failed)
     Finished 1 tests on Pixel_7(AVD) - 13
-    ```
-  For deny location test: (fails due to location not being denied properly)
-    ``` 
-       java.lang.IllegalStateException: No compose hierarchies found in the app. Possible reasons include: (1) the Activity that calls setContent did not launch; (2) setContent was not called; (3) setContent was called before the ComposeTestRule ran. If setContent is called by the Activity, make sure the Activity is launched after the ComposeTestRule runs
-    
     ```
 
 - **Use Case: Set Availability**

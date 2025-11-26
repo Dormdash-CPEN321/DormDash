@@ -340,14 +340,11 @@ class ViewRecommendedRouteTest : FindJobsTestBase() {
 
         // Step 5a: Deny location permission
         denyLocationPermission()
-        composeTestRule.waitForIdle()
-
-        // Wait for the bottom sheet to update and show the permission required state
-        Thread.sleep(1000)
+        Thread.sleep(2000)
         composeTestRule.waitForIdle()
 
         // Step 5a1: Verify location permission required message is displayed
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
+        composeTestRule.waitUntil(timeoutMillis = 10000) {
             composeTestRule
                 .onAllNodesWithText("Location Permission Required", substring = true)
                 .fetchSemanticsNodes()

@@ -391,18 +391,33 @@ abstract class FindJobsTestBase {
      * Deny location permission using UI Automator
      */
     protected fun denyLocationPermission() {
-        device.wait(
-            androidx.test.uiautomator.Until.findObject(
-                androidx.test.uiautomator.By.text("Don't allow")
-            ),
+        val dialogAppeared = device.wait(
+            Until.hasObject(By.pkg("com.google.android.permissioncontroller")),
             5000
-        )?.click()
-            ?: device.wait(
-                androidx.test.uiautomator.Until.findObject(
-                    androidx.test.uiautomator.By.text("Deny")
-                ),
-                5000
-            )?.click()
+        ) || device.wait(
+            Until.hasObject(By.pkg("com.android.permissioncontroller")),
+            2000
+        )
+
+        if (!dialogAppeared) {
+            device.wait(
+                Until.hasObject(By.textContains("allow")),
+                2000
+            )
+        }
+        Thread.sleep(500)
+        val denyButton = device.findObject(By.text("Don't allow"))
+            ?: device.findObject(By.res("com.android.permissioncontroller:id/permission_deny_button"))
+            ?: device.findObject(By.res("com.google.android.permissioncontroller:id/permission_deny_button"))
+
+        if (denyButton != null) {
+            denyButton.click()
+            Thread.sleep(1000)
+        } else {
+            // If we can't find the deny button, try pressing back to dismiss the dialog
+            device.pressBack()
+            Thread.sleep(1000)
+        }
     }
 
     /**
