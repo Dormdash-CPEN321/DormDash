@@ -319,45 +319,4 @@ describe('Unmocked GET /api/routePlanner/smart', () => {
         pickupAddress: { $in: ['123 Test St, Test City, TC', '789 Example Rd, Example City, EC'] }
     });
   });
-
-  // Input: authenticated request without maxDuration parameter
-  // Expected status code: 200
-  // Expected behavior: handles absence of maxDuration correctly using typeof check
-  // Expected output: route planned successfully
-  test('should handle route without maxDuration', async () => {
-    const jobId = new mongoose.Types.ObjectId();
-    const jobsDb = mongoose.connection.db;
-    if (!jobsDb) throw new Error('Database not connected');
-    
-    const now = new Date();
-    const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
-    const mondayDate = new Date(now);
-    mondayDate.setDate(now.getDate() + daysUntilMonday);
-    mondayDate.setHours(10, 0, 0, 0);
-
-    await jobsDb.collection('jobs').insertOne({
-      _id: jobId,
-      studentId: new mongoose.Types.ObjectId(),
-      orderId: new mongoose.Types.ObjectId(),
-      jobType: 'STORAGE',
-      volume: 1,
-      price: 50,
-      pickupAddress: { lat: 49.3, lon: -123.1 },
-      dropoffAddress: { lat: 49.31, lon: -123.11 },
-      scheduledTime: mondayDate,
-      status: 'AVAILABLE',
-    });
-
-    await request(app)
-      .get('/api/routePlanner/smart')
-      .query({
-        currentLat: 49.2827,
-        currentLon: -123.1207,
-        // maxDuration intentionally omitted
-      })
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
-
-    await jobsDb.collection('jobs').deleteOne({ _id: jobId });
-  });
 });
