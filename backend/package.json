@@ -54,7 +54,9 @@
     "format": "prettier --check \"src/**/*.{ts,js,json}\"",
     "format:fix": "prettier --write \"src/**/*.{ts,js,json}\"",
     "test:file": "jest $npm_config_file",
-    "test:file:coverage": "jest $npm_config_file --coverage"
+    "test:file:coverage": "jest $npm_config_file --coverage",
+    "test:integration": "jest tests/integration",
+    "test:integration:coverage": "jest tests/integration --coverage"
   },
   "author": "",
   "license": "ISC",
