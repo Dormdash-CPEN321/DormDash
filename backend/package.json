@@ -34,7 +34,7 @@
     "test:nomock:routePlanner:coverage": "node test-runner.js",
     "test:nomock:user": "node test-runner.js",
     "test:nomock:user:coverage": "node test-runner.js",
-    "update-test-scripts": "node update-test-scripts.js",
+    "update-test-scripts": "node scripts/update-test-scripts.js",
     "clear-jobs": "ts-node scripts/clear-jobs.ts",
     "load-test:seed-data": "ts-node tests/load-test/seed-data-locally.ts",
     "load-test:generate-tokens": "node tests/load-test/generate-tokens.js",
