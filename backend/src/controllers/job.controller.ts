@@ -12,6 +12,7 @@ import {
 } from '../types/job.type';
 import { IUser } from '../types/user.types';
 import logger from '../utils/logger.util';
+import { ObjectId } from 'mongoose';
 
 export class JobController {
   constructor(private jobService: JobService) {}
@@ -62,7 +63,7 @@ export class JobController {
   ) {
     try {
       const result = await this.jobService.getMoverJobs(
-        (req.user as IUser)._id.toString()
+        ((req as unknown as { user?: { _id: unknown } }).user?._id as ObjectId).toString()
       );
       res.status(200).json(result);
     } catch (error) {
@@ -77,7 +78,7 @@ export class JobController {
   ) {
     try {
       const result = await this.jobService.getStudentJobs(
-        (req.user as IUser)._id.toString()
+        ((req as unknown as { user?: { _id: unknown } }).user?._id as ObjectId).toString()
       );
       res.status(200).json(result);
     } catch (error) {
@@ -137,7 +138,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      const moverId = (req.user as IUser)._id.toString();
+      const moverId = ((req as unknown as { user?: { _id: unknown } }).user?._id as ObjectId).toString();
       const result = await this.jobService.requestPickupConfirmation(
         req.params.id,
         moverId
@@ -159,7 +160,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      const studentId = (req.user as IUser)._id.toString();
+      const studentId = ((req as unknown as { user?: { _id: unknown } }).user?._id as ObjectId).toString();
       const result = await this.jobService.confirmPickup(
         req.params.id,
         studentId

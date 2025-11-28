@@ -6,7 +6,7 @@ import { userModel } from '../models/user.model';
 
 export class UserController {
   getProfile(req: Request, res: Response<GetProfileResponse>) {
-    const user = req.user as IUser;
+    const user = (req as unknown as { user?: { _id: unknown } }).user as IUser;
 
     res.status(200).json({
       message: 'Profile fetched successfully',
