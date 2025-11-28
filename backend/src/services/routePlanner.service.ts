@@ -61,7 +61,7 @@ export class RoutePlannerService {
       logger.debug('getAllAvailableJobs response:', JSON.stringify({ 
         hasData: !!resp.data, 
         hasJobs: !!resp.data?.jobs, 
-        jobsLength: resp.data?.jobs?.length,
+        jobsLength: resp.data?.jobs.length,
         message: resp.message 
       }));
       
@@ -76,7 +76,7 @@ export class RoutePlannerService {
       const validJobs = availableJobs.filter(job =>
         this.validateJobLocationData(job)
       );
-      const invalidLocationJobs = (availableJobs || []).filter(
+      const invalidLocationJobs = (availableJobs).filter(
         job => !this.validateJobLocationData(job)
       );
     
@@ -199,7 +199,7 @@ export class RoutePlannerService {
     // When retrieved from MongoDB, availability is a Map object
     if (availability instanceof Map) {
       const slots = availability.get(dayOfWeek) as TimeRange[];
-      return slots || [];  // Ensure we always return an array
+      return slots;  // Ensure we always return an array
     }
 
     // Use explicit property access (dot access) for plain objects
