@@ -225,23 +225,17 @@ describe('Unmocked Stripe Service - Error Handling and Coverage', () => {
     const originalKey = process.env.STRIPE_SECRET_KEY;
     
     try {
+      // Get the StripeService instance and reset its internal stripe property
+      // This forces it to re-initialize and check for STRIPE_SECRET_KEY
+      const { stripeService } = require('../../src/services/stripe.service');
+      
+      // Reset the internal stripe instance to force re-initialization
+      (stripeService as any).stripe = undefined;
+      
       // Remove the key
       delete process.env.STRIPE_SECRET_KEY;
       
-      // Clear require cache to force re-initialization
-      jest.resetModules();
-      
-      // Clear specific module caches
-      const stripeServicePath = require.resolve('../../src/services/stripe.service');
-      const appPath = require.resolve('../../src/app');
-      delete require.cache[stripeServicePath];
-      delete require.cache[appPath];
-      
-      // Re-import app to get fresh instance with new StripeService
-      const freshAppModule = require('../../src/app');
-      const freshApp = freshAppModule.default || freshAppModule;
-      
-      const response = await request(freshApp)
+      const response = await request(app)
         .post('/api/payment/create-intent')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -257,8 +251,9 @@ describe('Unmocked Stripe Service - Error Handling and Coverage', () => {
       if (originalKey) {
         process.env.STRIPE_SECRET_KEY = originalKey;
       }
-      // Reset modules again to restore normal behavior
-      jest.resetModules();
+      // Reset the stripe instance to allow normal operation
+      const { stripeService } = require('../../src/services/stripe.service');
+      (stripeService as any).stripe = undefined;
     }
   });
 
