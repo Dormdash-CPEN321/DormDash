@@ -117,30 +117,30 @@ export class StripeService {
     }
   }
 
-  /**
-   * Get payment intent status
-   */
-  async getPaymentIntent(paymentIntentId: string): Promise<PaymentResult> {
-    try {
-      const stripe = this.initializeStripe();
-      const paymentIntent =
-        await stripe.paymentIntents.retrieve(paymentIntentId);
+  // /**
+  //  * Get payment intent status
+  //  */
+  // async getPaymentIntent(paymentIntentId: string): Promise<PaymentResult> {
+  //   try {
+  //     const stripe = this.initializeStripe();
+  //     const paymentIntent =
+  //       await stripe.paymentIntents.retrieve(paymentIntentId);
 
-      // Explicitly type the status from Stripe
-      const stripeStatus: string = paymentIntent.status;
+  //     // Explicitly type the status from Stripe
+  //     const stripeStatus: string = paymentIntent.status;
 
-      return {
-        paymentId: paymentIntent.id,
-        status: this.mapStripeStatusToPaymentStatus(stripeStatus),
-        amount: paymentIntent.amount / 100,
-        currency: paymentIntent.currency.toUpperCase(),
-        failureReason: paymentIntent.last_payment_error?.message,
-      };
-    } catch (error) {
-      logger.error('Error retrieving payment intent:', error);
-      throw new Error('Failed to retrieve payment status');
-    }
-  }
+  //     return {
+  //       paymentId: paymentIntent.id,
+  //       status: this.mapStripeStatusToPaymentStatus(stripeStatus),
+  //       amount: paymentIntent.amount / 100,
+  //       currency: paymentIntent.currency.toUpperCase(),
+  //       failureReason: paymentIntent.last_payment_error?.message,
+  //     };
+  //   } catch (error) {
+  //     logger.error('Error retrieving payment intent:', error);
+  //     throw new Error('Failed to retrieve payment status');
+  //   }
+  // }
 
   /**
    * Refund a payment intent
