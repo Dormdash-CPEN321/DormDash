@@ -51,6 +51,7 @@ jest.mock('../../src/utils/mongoose.util', () => ({
 
 // Import app after mocking dependencies (but NOT the service itself)
 import app from '../../src/app';
+import { mock } from 'node:test';
 
 describe('GET /api/routePlanner/smart - Get Smart Route', () => {
     const testMoverId = new mongoose.Types.ObjectId();
@@ -605,7 +606,7 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
                 price: 50,
                 pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup Address' },
                 dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff Address' },
-                scheduledTime: new Date(Date.now() + 86400000).toISOString(), // Tomorrow (different day)
+                scheduledTime: new Date('2024-12-01T20:00:00Z').toISOString(), // Outside MON 9-5
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             },
@@ -966,6 +967,59 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         expect(mockUserModel.findById).toHaveBeenCalled();
     });
 
+    // Mocked behavior: userModel.findById returns mover with MON availability, jobService returns Monday jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: correctly handles Monday availability and matches Monday jobs
+    // Expected output: route with Monday jobs matching MON availability window
+    test('should handle Monday availability', async () => {
+        const nextMonday = new Date();
+        nextMonday.setDate(nextMonday.getDate() + ((1 + 7 - nextMonday.getDay()) % 7 || 7));
+        nextMonday.setHours(10, 0, 0, 0);
+        
+        const mockMover = {
+            _id: testMoverId,
+            availability: {
+                MON: [['09:00', '17:00']],
+            },
+        };
+
+        const mockJobs = [
+            {
+                id: new mongoose.Types.ObjectId().toString(),
+                orderId: new mongoose.Types.ObjectId().toString(),
+                studentId: new mongoose.Types.ObjectId().toString(),
+                jobType: 'STORAGE',
+                status: 'AVAILABLE',
+                volume: 1,
+                price: 50,
+                pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+                dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+                scheduledTime: nextMonday.toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+        ];
+
+        mockUserModel.findById.mockResolvedValue(mockMover);
+        mockJobService.getAllAvailableJobs.mockResolvedValue({
+            message: 'Available jobs retrieved successfully',
+            data: { jobs: mockJobs },
+        });
+
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: testLocation.lat,
+                currentLon: testLocation.lon,
+            })
+            .set('Authorization', `Bearer fake-token`)
+            .expect(200);
+
+        expect(response.body).toHaveProperty('data');
+        expect(mockUserModel.findById).toHaveBeenCalled();
+    });
+
     // Mocked behavior: userModel.findById returns mover with TUE availability, jobService returns Tuesday jobs
     // Input: GET /api/routePlanner/smart with currentLat, currentLon
     // Expected status code: 200
@@ -1000,6 +1054,112 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
             },
         ];
 
+        mockUserModel.findById.mockResolvedValue(mockMover);
+        mockJobService.getAllAvailableJobs.mockResolvedValue({
+            message: 'Available jobs retrieved successfully',
+            data: { jobs: mockJobs },
+        });
+
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: testLocation.lat,
+                currentLon: testLocation.lon,
+            })
+            .set('Authorization', `Bearer fake-token`)
+            .expect(200);
+
+        expect(response.body).toHaveProperty('data');
+        expect(mockUserModel.findById).toHaveBeenCalled();
+    });
+
+    // Mocked behavior: userModel.findById returns mover with WED availability, jobService returns Wednesday jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: correctly handles Wednesday availability and matches Wednesday jobs
+    // Expected output: route with Wednesday jobs matching WED availability window
+    test('should handle Wednesday availability', async () => {
+        const nextWednesday = new Date();
+        nextWednesday.setDate(nextWednesday.getDate() + ((3 + 7 - nextWednesday.getDay()) % 7 || 7));
+        nextWednesday.setHours(10, 0, 0, 0);
+        
+        const mockMover = {
+            _id: testMoverId,
+            availability: {
+                WED: [],
+            },
+        };
+        
+        const mockJobs = [
+            {
+                id: new mongoose.Types.ObjectId().toString(),
+                orderId: new mongoose.Types.ObjectId().toString(),
+                studentId: new mongoose.Types.ObjectId().toString(),
+                jobType: 'STORAGE',
+                status: 'AVAILABLE',
+                volume: 1,
+                price: 50,
+                pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+                dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+                scheduledTime: nextWednesday.toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+        ];
+        
+        mockUserModel.findById.mockResolvedValue(mockMover);
+        mockJobService.getAllAvailableJobs.mockResolvedValue({
+            message: 'Available jobs retrieved successfully',
+            data: { jobs: mockJobs },
+        });
+
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: testLocation.lat,
+                currentLon: testLocation.lon,
+            })
+            .set('Authorization', `Bearer fake-token`)
+            .expect(200);
+
+        expect(response.body).toHaveProperty('data');
+        expect(mockUserModel.findById).toHaveBeenCalled();
+    });
+
+    // Mocked behavior: userModel.findById returns mover with THURS availability, jobService returns Thursday jobs
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: correctly handles Thursday availability and matches Thursday jobs
+    // Expected output: route with Thursday jobs matching THURS availability window
+    test('should handle Thursday availability', async () => {
+        const nextThursday = new Date();
+        nextThursday.setDate(nextThursday.getDate() + ((4 + 7 - nextThursday.getDay()) % 7 || 7));
+        nextThursday.setHours(10, 0, 0, 0);
+        
+        const mockMover = {
+            _id: testMoverId,
+            availability: {
+                THU: [['09:00', '17:00']],
+            },
+        };
+        
+        const mockJobs = [
+            {
+                id: new mongoose.Types.ObjectId().toString(),
+                orderId: new mongoose.Types.ObjectId().toString(),
+                studentId: new mongoose.Types.ObjectId().toString(),
+                jobType: 'STORAGE',
+                status: 'AVAILABLE',
+                volume: 1,
+                price: 50,
+                pickupAddress: { lat: 49.2827, lon: -123.1207, formattedAddress: 'Pickup' },
+                dropoffAddress: { lat: 49.2827, lon: -123.1300, formattedAddress: 'Dropoff' },
+                scheduledTime: nextThursday.toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            },
+        ];
+        
         mockUserModel.findById.mockResolvedValue(mockMover);
         mockJobService.getAllAvailableJobs.mockResolvedValue({
             message: 'Available jobs retrieved successfully',
@@ -1718,5 +1878,141 @@ describe('GET /api/routePlanner/smart - Get Smart Route', () => {
         Date.prototype.getDay = originalGetDay;
     });
 
-    
+    // Mocked behavior: userModel.findById returns mover with availability as Map object
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: handles availability stored as Map correctly
+    // Expected output: route planned successfully using Map-based availability
+    test('should handle availability as a Map object', async () => {
+        const moverId = new mongoose.Types.ObjectId();
+        mockExtractObjectId.mockReturnValue(moverId);
+
+        mockUserModel.findById.mockResolvedValue({
+            _id: moverId,
+            userRole: 'MOVER',
+            availability: new Map([
+                ['MON', [['08:00', '17:00']]],
+                ['TUE', [['09:00', '11:00']]],
+            ]),
+        });
+
+        // Create a job on Monday
+        const now = new Date();
+        const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
+        const mondayDate = new Date(now);
+        mondayDate.setDate(now.getDate() + daysUntilMonday);
+        mondayDate.setHours(10, 0, 0, 0);
+
+        const mockJobs = [
+            {
+                id: new mongoose.Types.ObjectId().toString(),
+                orderId: new mongoose.Types.ObjectId().toString(),
+                studentId: new mongoose.Types.ObjectId().toString(),
+                jobType: 'STORAGE',
+                status: 'AVAILABLE',
+                volume: 1,
+                price: 50,
+                pickupAddress: { lat: 49.3, lon: -123.1, formattedAddress: 'Pickup' },
+                dropoffAddress: { lat: 49.31, lon: -123.11, formattedAddress: 'Dropoff' },
+                scheduledTime: mondayDate.toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            }
+        ];
+
+        // Mock the job service to return the jobs
+        mockJobService.getAllAvailableJobs.mockResolvedValue({
+            message: 'Available jobs retrieved successfully',
+            data: { jobs: mockJobs },
+        });
+
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: 49.2827,
+                currentLon: -123.1207,
+            })
+            .set('Authorization', `Bearer fake-token`)
+            .expect(200);
+
+        // Verify the response and that Map-based availability was handled correctly
+        expect(response.body).toHaveProperty('data');
+        expect(response.body.data).toHaveProperty('route');
+        expect(Array.isArray(response.body.data.route)).toBe(true);
+        expect(mockUserModel.findById).toHaveBeenCalled();
+    });
+
+    // Mocked behavior: userModel.findById returns mover with some days having null availability
+    // Input: GET /api/routePlanner/smart with currentLat, currentLon
+    // Expected status code: 200
+    // Expected behavior: handles null/undefined availability days correctly using ?? [] operator
+    // Expected output: route planned successfully, jobs on days with null availability are filtered out
+    test('should handle availability with undefined/null days', async () => {
+        // Mock user with availability where some days have values and some are null/undefined
+        // This covers the nullish coalescing operators (?? []) in routePlanner.service.ts lines 203-214
+        mockExtractObjectId.mockReturnValue(testMoverId);
+        mockUserModel.findById.mockResolvedValue({
+            _id: testMoverId,
+            googleId: 'test-google-id-null-availability',
+            email: 'null-availability@example.com',
+            name: 'Null Availability Test Mover',
+            userRole: 'MOVER',
+            phoneNumber: '1234567890',
+            availability: {
+                SUN: [['09:00', '17:00']], // SUN has availability to process jobs
+                MON: null,      // These will hit the ?? [] operators (lines 203-213)
+                TUE: null,
+                WED: null,
+                THU: null,
+                FRI: null,
+                SAT: null,
+            },
+        });
+
+        // Create jobs specifically for MON, TUE, WED, THU, FRI, SAT to cover lines 203-213
+        // and also SUN to ensure the route planner runs
+        const now = new Date();
+        const jobsForAllDays = [];
+        
+        // Create a job for each day of the week to ensure all ?? [] operators are hit
+        const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        for (let dayNum = 0; dayNum < 7; dayNum++) {
+            const daysUntil = (dayNum - now.getDay() + 7) % 7 || 7;
+            const targetDate = new Date(now);
+            targetDate.setDate(now.getDate() + daysUntil);
+            targetDate.setHours(10, 0, 0, 0);
+            
+            jobsForAllDays.push({
+                id: new mongoose.Types.ObjectId().toString(),
+                studentId: new mongoose.Types.ObjectId().toString(),
+                orderId: new mongoose.Types.ObjectId().toString(),
+                jobType: 'STORAGE',
+                volume: 1,
+                price: 50,
+                pickupAddress: { lat: 49.3, lon: -123.1 },
+                dropoffAddress: { lat: 49.31, lon: -123.11 },
+                scheduledTime: targetDate.toISOString(),
+                status: 'AVAILABLE',
+            });
+        }
+
+        mockJobService.getAllAvailableJobs.mockResolvedValue({
+            message: 'Available jobs retrieved successfully',
+            data: { jobs: jobsForAllDays },
+        });
+
+        const response = await request(app)
+            .get('/api/routePlanner/smart')
+            .query({
+                currentLat: 49.2827,
+                currentLon: -123.1207,
+            })
+            .expect(200);
+
+        expect(response.body).toHaveProperty('data');
+        expect(response.body.data).toHaveProperty('route');
+        expect(Array.isArray(response.body.data.route)).toBe(true);
+        expect(mockUserModel.findById).toHaveBeenCalled();
+        expect(mockJobService.getAllAvailableJobs).toHaveBeenCalled();
+    });
 });

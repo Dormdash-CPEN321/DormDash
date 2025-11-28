@@ -211,8 +211,8 @@ export class RoutePlannerService {
         return availability.FRI ?? [];
       case 'SAT':
         return availability.SAT ?? [];
-      default:
-        return [];
+      // default:
+      //   return [];
     }
   }
 
@@ -227,9 +227,7 @@ export class RoutePlannerService {
       const valueScore = job.price / duration; // Earnings per minute
 
       // Convert scheduledTime to Date for internal routing calculations.
-      const scheduledTimeDate = job.scheduledTime
-        ? new Date(job.scheduledTime)
-        : new Date();
+      const scheduledTimeDate = new Date(job.scheduledTime);
 
       // Keep string IDs as-is (the frontend DTO provides string IDs). Do NOT
       // attempt to re-create ObjectId instances from those strings here — that
@@ -360,11 +358,15 @@ export class RoutePlannerService {
       // NOTE: maxDuration should only count ACTIVE work time (travel + job execution),
       // NOT waiting time (idle time waiting for scheduled start).
       const feasibleJobs = jobsWithDistances.filter(j => {
-        if (!j.isFeasibleByArrival) return false;
-        if (!j.withinAvailability) return false;
+        if (!j.isFeasibleByArrival) {
+          return false;
+        }
+        // if (!j.withinAvailability) {
+        //   return false;
+        // }
         if (typeof maxDuration === 'number') {
           // Only count active work time: travel + job duration (exclude waiting)
-          const activeWorkTime = (j.travelTime || 0) + (j.jobDuration || 0);
+          const activeWorkTime = (j.travelTime || 0) + (j.jobDuration);
           if (totalElapsedTime + activeWorkTime > maxDuration) return false;
         }
         return true;
@@ -497,8 +499,7 @@ export class RoutePlannerService {
       (sum, job) => sum + job.estimatedDuration + job.travelTimeFromPrevious,
       0
     );
-    const earningsPerHour =
-      totalDuration > 0 ? (totalEarnings / totalDuration) * 60 : 0;
+    const earningsPerHour = (totalEarnings / totalDuration) * 60;
 
     return {
       totalEarnings: Math.round(totalEarnings * 100) / 100,

@@ -15,22 +15,20 @@ const originalConsole = {
 };
 
 let authToken: string;
-const testUserId = new mongoose.Types.ObjectId(); // Generate unique ID
+const testUserId = new mongoose.Types.ObjectId();
 
 beforeAll(async () => {
-  // Suppress all console output during tests
   console.warn = jest.fn();
   console.info = jest.fn();
-  // Connect to test database
   await connectDB();
 
-  // Clean up any existing test user by googleId
+  // Clean up any existing test user
   const db = mongoose.connection.db;
   if (db) {
     await db.collection('users').deleteMany({ googleId: `test-google-id-route-planner-${testUserId.toString()}` });
   }
 
-  // Create a test user in DB with specific _id
+  // Create a test user
   await (userModel as any).user.create({
     _id: testUserId,
     googleId: `test-google-id-route-planner-${testUserId.toString()}`,
@@ -39,7 +37,7 @@ beforeAll(async () => {
     userRole: 'STUDENT'
   });
 
-  // Generate a real JWT token for testing
+  // Generate a JWT token for testing
   const payload = { id: testUserId };
   authToken = jwt.sign(payload, process.env.JWT_SECRET || 'default-secret');
 });
@@ -320,5 +318,5 @@ describe('Unmocked GET /api/routePlanner/smart', () => {
     mongoose.connection.db.collection('jobs').deleteMany({
         pickupAddress: { $in: ['123 Test St, Test City, TC', '789 Example Rd, Example City, EC'] }
     });
-  });   
+  });
 });

@@ -13,14 +13,20 @@
    npm install
    ```
 
-2. **Environment Configuration**: Create a `.env` file in the root directory using the following format:
+2. **API Keys:** Obtain a [Stripe](https://docs.stripe.com/keys) API key
+
+3. **Environment Configuration**: Create a `.env` file in the root directory using the following format:
 
    ```
     PORT=3000
     JWT_SECRET=your_generated_secret_value
     GOOGLE_CLIENT_ID=google_web_client_id
     MONGODB_URI=mongodb_uri
+    STRIPE_SECRET_KEY=stripe_secret_key
+    STRIPE_PUBLISHABLE_KEY=stripe_publishable_key
    ```
+
+4. **Firebase Setup:** Obtain `serviceAccountKey.json` from Firebase console and add it to the root directory
 
 3. **Start development server**: Start development server with ts-node with auto-reload
    ```
@@ -44,9 +50,12 @@ The server runs on port 3000 (configurable via PORT env var) with the following 
 
 - `/api/auth/*` - Authentication
 - `/api/user/*` - User management
-- `/api/hobbies/*` - Hobby management
-- `/api/media/*` - Media uploads
-  - Uploaded files are stored in the `uploads/` directory. Ensure this directory exists and has write permissions.
+- `/api/order/*` - Order management
+- `/api/jobs/*` - Job management
+- `/api/payment/*` - Payment
+- `/api/routePlanner/*` - Optimal route management
+- `/api/load-test/*` - For running non-functional requirement load test
+- `/api/dev/*` - For automation of E2E tests
 
 ## Code Formatting
 

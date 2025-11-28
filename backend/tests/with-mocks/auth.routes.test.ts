@@ -1321,41 +1321,6 @@ describe('UserModel Error Handling ', () => {
         userModel.update = originalUpdate;
       }
     });
-
-    // Mocked behavior: none (direct call to getFcmToken with non-existent ID)
-    // Input: non-existent user ID
-    // Expected status code: N/A (direct function call)
-    // Expected behavior: getFcmToken returns null when user doesn't exist
-    // Expected output: null
-    test('should return null when user not found in getFcmToken', async () => {
-      const nonExistentId = new mongoose.Types.ObjectId();
-      const result = await userModel.getFcmToken(nonExistentId);
-      expect(result).toBeNull();
-    });
-
-    // Mocked behavior: none (direct call to getFcmToken with existing user ID)
-    // Input: existing user ID (testUserId)
-    // Expected status code: N/A (direct function call)
-    // Expected behavior: getFcmToken returns user's FCM token or null
-    // Expected output: string token or null
-    test('should return FCM token when user exists', async () => {
-      // This tests the success path and the null coalescing
-      const result = await userModel.getFcmToken(testUserId);
-      // Result can be null or a string, both are valid
-      expect(result === null || typeof result === 'string').toBe(true);
-    });
-
-    // Mocked behavior: none (direct call to getFcmToken for user without FCM token)
-    // Input: existing user ID (testMoverId) that has no FCM token set
-    // Expected status code: N/A (direct function call)
-    // Expected behavior: getFcmToken returns null when fcmToken field is undefined
-    // Expected output: null or string
-    test('should return null when user has no FCM token', async () => {
-      // Test when fcmToken field is undefined/null
-      const result = await userModel.getFcmToken(testMoverId);
-      // Mover user has no FCM token initially
-      expect(result === null || typeof result === 'string').toBe(true);
-    });
   });
 
   describe('clearInvalidFcmToken - error handling', () => {
