@@ -198,8 +198,8 @@ export class RoutePlannerService {
     // Handle both Mongoose Map and plain object
     // When retrieved from MongoDB, availability is a Map object
     if (availability instanceof Map) {
-      const slots = availability.get(dayOfWeek) as TimeRange[];
-      return slots || []; 
+      const slots = availability.get(dayOfWeek);
+      return slots ? (slots as TimeRange[]) : [];
     }
 
     // Use explicit property access (dot access) for plain objects
