@@ -108,7 +108,7 @@ class BrowseAndFilterJobsTest : FindJobsTestBase() {
         composeTestRule.onNodeWithText("Availability").performClick()
         composeTestRule.waitForIdle()
 
-        addTimeSlot(
+        addAvailabilityTimeSlot(
             day = "MONDAY",
             startTime = "08:00",
             endTime = "17:00"

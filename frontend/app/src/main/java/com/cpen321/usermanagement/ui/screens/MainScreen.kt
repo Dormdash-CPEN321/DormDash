@@ -1,6 +1,5 @@
 package com.cpen321.usermanagement.ui.screens
 
-import Icon
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,8 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.cpen321.usermanagement.R
-import com.cpen321.usermanagement.ui.components.MessageSnackbar
-import com.cpen321.usermanagement.ui.components.MessageSnackbarState
+import com.cpen321.usermanagement.ui.components.common.MessageSnackbar
+import com.cpen321.usermanagement.ui.components.common.MessageSnackbarState
+import com.cpen321.usermanagement.ui.components.common.Icon
 import com.cpen321.usermanagement.ui.viewmodels.MainUiState
 import com.cpen321.usermanagement.ui.viewmodels.MainViewModel
 import com.cpen321.usermanagement.ui.theme.LocalFontSizes

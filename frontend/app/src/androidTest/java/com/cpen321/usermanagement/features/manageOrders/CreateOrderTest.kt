@@ -8,9 +8,11 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 import java.time.LocalDate
@@ -194,8 +196,7 @@ class CreateOrderTest : OrderTestBase() {
         emailField.performTextInput("john.doe@example.com")
 
         composeTestRule.waitForIdle()
-        Thread.sleep(500)
-
+        Espresso.closeSoftKeyboard()   // Close keyboard so button is clickable
         composeTestRule.waitForIdle()
 
         // Step 2: Process payment
@@ -218,14 +219,13 @@ class CreateOrderTest : OrderTestBase() {
         if (todayDay == 30) return
 
         // PICKUP = 3 days from now (to leave room for return date)
-        val pickupDate = today.plusDays(3)
+        val pickupDate = today
         val pickupTag = "day_${pickupDate.toEpochDay()}"
 
         // RETURN = 2 days from now (which is BEFORE pickup, triggering error)
         // Note: Return date picker has minDateOffsetDays=1, so we can only select tomorrow or later
-        val returnDate = today.plusDays(4)
+        val returnDate = today.plusDays(1)
         val returnTag = "day_${returnDate.toEpochDay()}"
-
 
         composeTestRule.onNodeWithTag("pickup_date_button", useUnmergedTree = true)
             .assertExists("Pickup date button should exist")

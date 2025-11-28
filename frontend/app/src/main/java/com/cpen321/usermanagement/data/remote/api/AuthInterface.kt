@@ -1,9 +1,9 @@
 package com.cpen321.usermanagement.data.remote.api
 
-import com.cpen321.usermanagement.data.remote.dto.ApiResponse
-import com.cpen321.usermanagement.data.remote.dto.AuthData
-import com.cpen321.usermanagement.data.remote.dto.GoogleLoginRequest
-import com.cpen321.usermanagement.data.remote.dto.User
+import com.cpen321.usermanagement.data.remote.models.ApiResponse
+import com.cpen321.usermanagement.data.remote.models.AuthData
+import com.cpen321.usermanagement.data.remote.models.GoogleLoginRequest
+import com.cpen321.usermanagement.data.remote.models.User
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST

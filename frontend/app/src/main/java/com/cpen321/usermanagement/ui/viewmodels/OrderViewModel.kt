@@ -4,9 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cpen321.usermanagement.data.local.models.Order
-import com.cpen321.usermanagement.data.local.models.OrderRequest
-import com.cpen321.usermanagement.data.local.models.CreateReturnJobRequest
-import com.cpen321.usermanagement.data.local.models.CreateReturnJobResponse
+import com.cpen321.usermanagement.data.remote.models.OrderRequest
+import com.cpen321.usermanagement.data.remote.models.CreateReturnJobRequest
+import com.cpen321.usermanagement.data.remote.models.CreateReturnJobResponse
 import com.cpen321.usermanagement.data.repository.OrderRepository
 import com.cpen321.usermanagement.network.SocketClient
 import dagger.hilt.android.lifecycle.HiltViewModel

@@ -1,9 +1,10 @@
 package com.cpen321.usermanagement.ui.screens
 
-import Button
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -33,8 +35,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.cpen321.usermanagement.R
-import com.cpen321.usermanagement.ui.components.MessageSnackbar
-import com.cpen321.usermanagement.ui.components.MessageSnackbarState
+import com.cpen321.usermanagement.ui.components.common.MessageSnackbar
+import com.cpen321.usermanagement.ui.components.common.MessageSnackbarState
+import com.cpen321.usermanagement.ui.components.common.Button
 import com.cpen321.usermanagement.ui.viewmodels.AuthUiState
 import com.cpen321.usermanagement.ui.viewmodels.AuthViewModel
 import com.cpen321.usermanagement.ui.viewmodels.ProfileViewModel
@@ -316,11 +319,22 @@ private fun GoogleLogo(
 ) {
     val spacing = LocalSpacing.current
 
-    Image(
-        painter = painterResource(id = R.drawable.ic_google),
-        contentDescription = stringResource(R.string.google_logo),
-        modifier = modifier.size(spacing.large)
-    )
+    Box(
+        modifier = modifier
+            .size(spacing.large)
+            .background(
+                color = Color.White,
+                shape = androidx.compose.foundation.shape.CircleShape
+            )
+            .padding(2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_google),
+            contentDescription = stringResource(R.string.google_logo),
+            modifier = Modifier.fillMaxSize()
+        )
+    }
 }
 
 @Composable

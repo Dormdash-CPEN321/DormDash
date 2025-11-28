@@ -3,8 +3,7 @@ package com.cpen321.usermanagement.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import android.util.Log
 import androidx.lifecycle.viewModelScope
-import com.cpen321.usermanagement.data.remote.dto.JobInRoute
-import com.cpen321.usermanagement.data.remote.dto.SmartRouteData
+import com.cpen321.usermanagement.data.remote.models.SmartRouteData
 import com.cpen321.usermanagement.data.repository.RouteRepository
 import com.cpen321.usermanagement.network.SocketClient
 import dagger.hilt.android.lifecycle.HiltViewModel

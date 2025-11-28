@@ -5,6 +5,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import com.cpen321.usermanagement.utils.TestAccountHelper
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -12,6 +14,11 @@ import org.junit.runner.RunWith
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class StudentUIResponseTimeTest : UIResponsivnessTestBase() {
+
+    override fun getTestEmail(): String = TestAccountHelper.getStudentEmail()
+    override fun getTestPassword(): String = TestAccountHelper.getStudentPassword()
+    override fun getRoleSelector(): (ComposeTestRule) -> Unit =
+        { TestAccountHelper.selectStudentRole(it) }
 
     @Test
     fun createNewOrderButtonTest() {

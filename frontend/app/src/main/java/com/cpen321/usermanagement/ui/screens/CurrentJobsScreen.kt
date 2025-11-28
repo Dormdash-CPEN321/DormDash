@@ -11,7 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cpen321.usermanagement.data.local.models.Job
-import com.cpen321.usermanagement.ui.components.CurrentJobCard
+import com.cpen321.usermanagement.ui.components.mover.CurrentJobCard
 
 @Composable
 fun CurrentJobsScreen(

@@ -1,8 +1,8 @@
 package com.cpen321.usermanagement.data.repository
 
 import android.content.Context
-import com.cpen321.usermanagement.data.remote.dto.AuthData
-import com.cpen321.usermanagement.data.remote.dto.User
+import com.cpen321.usermanagement.data.remote.models.AuthData
+import com.cpen321.usermanagement.data.remote.models.User
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 interface AuthRepository {

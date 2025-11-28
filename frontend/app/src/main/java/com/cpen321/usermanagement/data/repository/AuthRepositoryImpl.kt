@@ -12,9 +12,9 @@ import com.cpen321.usermanagement.data.local.preferences.TokenManager
 import com.cpen321.usermanagement.data.remote.api.AuthInterface
 import com.cpen321.usermanagement.data.remote.api.RetrofitClient
 import com.cpen321.usermanagement.data.remote.api.UserInterface
-import com.cpen321.usermanagement.data.remote.dto.AuthData
-import com.cpen321.usermanagement.data.remote.dto.GoogleLoginRequest
-import com.cpen321.usermanagement.data.remote.dto.User
+import com.cpen321.usermanagement.data.remote.models.AuthData
+import com.cpen321.usermanagement.data.remote.models.GoogleLoginRequest
+import com.cpen321.usermanagement.data.remote.models.User
 import com.cpen321.usermanagement.utils.JsonUtils
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential

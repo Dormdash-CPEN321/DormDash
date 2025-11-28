@@ -4,8 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cpen321.usermanagement.data.remote.dto.AuthData
-import com.cpen321.usermanagement.data.remote.dto.User
+import com.cpen321.usermanagement.data.remote.models.AuthData
+import com.cpen321.usermanagement.data.remote.models.User
 import com.cpen321.usermanagement.data.repository.AuthRepository
 import com.cpen321.usermanagement.network.SocketClient
 import com.cpen321.usermanagement.ui.navigation.NavRoutes

@@ -36,6 +36,7 @@
     "test:nomock:user:coverage": "node scripts/test-runner.js",
     "update-test-scripts": "node scripts/update-test-scripts.js",
     "clear-jobs": "ts-node scripts/clear-jobs.ts",
+    "seed-availability-test-jobs": "ts-node scripts/seed-availability-test-jobs.ts",
     "load-test:seed-data": "ts-node tests/load-test/seed-data-locally.ts",
     "load-test:generate-tokens": "node tests/load-test/generate-tokens.js",
     "load-test:setup-local": "npm run load-test:seed-data && npm run load-test:generate-tokens",

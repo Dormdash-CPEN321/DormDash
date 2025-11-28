@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.CheckCircle
@@ -26,8 +25,8 @@ import com.cpen321.usermanagement.data.local.models.Job
 import com.cpen321.usermanagement.data.local.models.JobStatus
 import com.cpen321.usermanagement.data.local.models.JobType
 import com.cpen321.usermanagement.ui.viewmodels.JobViewModel
-import com.cpen321.usermanagement.ui.components.OrderMapView
-import com.cpen321.usermanagement.data.remote.dto.Address
+import com.cpen321.usermanagement.ui.components.common.OrderMapView
+import com.cpen321.usermanagement.data.remote.models.Address
 import com.cpen321.usermanagement.utils.TimeUtils
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

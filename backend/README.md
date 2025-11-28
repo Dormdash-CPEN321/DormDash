@@ -26,7 +26,7 @@
     STRIPE_PUBLISHABLE_KEY=stripe_publishable_key
    ```
 
-4. **Firebase Setup:** Obtain `serviceAccountKey.json`
+4. **Firebase Setup:** Obtain `serviceAccountKey.json` and put it in the root backend folder
 - Go to the Firebase Console
 - Open Project Settings → Service Accounts
 - Click Generate New Private Key

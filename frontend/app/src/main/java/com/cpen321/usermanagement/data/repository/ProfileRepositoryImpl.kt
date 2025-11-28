@@ -5,8 +5,8 @@ import android.util.Log
 import com.cpen321.usermanagement.data.local.preferences.TokenManager
 import com.cpen321.usermanagement.data.remote.api.RetrofitClient
 import com.cpen321.usermanagement.data.remote.api.UserInterface
-import com.cpen321.usermanagement.data.remote.dto.UpdateProfileRequest
-import com.cpen321.usermanagement.data.remote.dto.User
+import com.cpen321.usermanagement.data.remote.models.UpdateProfileRequest
+import com.cpen321.usermanagement.data.remote.models.User
 import com.cpen321.usermanagement.utils.JsonUtils.parseErrorMessage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject

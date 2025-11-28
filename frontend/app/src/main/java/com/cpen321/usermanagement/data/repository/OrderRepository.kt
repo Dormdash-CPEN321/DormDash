@@ -3,6 +3,10 @@ package com.cpen321.usermanagement.data.repository
 import com.cpen321.usermanagement.data.local.models.*
 import com.cpen321.usermanagement.data.remote.api.OrderInterface
 import com.cpen321.usermanagement.data.remote.api.RetrofitClient
+import com.cpen321.usermanagement.data.remote.models.CreateOrderRequest
+import com.cpen321.usermanagement.data.remote.models.CreateReturnJobRequest
+import com.cpen321.usermanagement.data.remote.models.CreateReturnJobResponse
+import com.cpen321.usermanagement.data.remote.models.OrderRequest
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -26,8 +30,8 @@ class OrderRepository @Inject constructor(
     
     
     private suspend fun transformToCreateOrderRequest(
-        orderRequest: OrderRequest, 
-        studentAddr: Address? = null, 
+        orderRequest: OrderRequest,
+        studentAddr: Address? = null,
         warehouseAddr: Address? = null,
         paymentIntentId: String? = null
     ): CreateOrderRequest? {

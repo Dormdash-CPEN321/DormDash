@@ -2,11 +2,11 @@ package com.cpen321.usermanagement.data.remote.api
 
 import com.cpen321.usermanagement.data.local.models.GetQuoteRequest
 import com.cpen321.usermanagement.data.local.models.GetQuoteResponse
-import com.cpen321.usermanagement.data.local.models.CreateOrderRequest
-import com.cpen321.usermanagement.data.local.models.GetAllOrdersResponse
-import com.cpen321.usermanagement.data.local.models.CreateReturnJobRequest
-import com.cpen321.usermanagement.data.local.models.CreateReturnJobResponse
-import com.cpen321.usermanagement.data.local.models.CancelOrderResponse
+import com.cpen321.usermanagement.data.remote.models.CreateOrderRequest
+import com.cpen321.usermanagement.data.remote.models.GetAllOrdersResponse
+import com.cpen321.usermanagement.data.remote.models.CreateReturnJobRequest
+import com.cpen321.usermanagement.data.remote.models.CreateReturnJobResponse
+import com.cpen321.usermanagement.data.remote.models.CancelOrderResponse
 import com.cpen321.usermanagement.data.local.models.Order
 import retrofit2.Response
 import retrofit2.http.Body

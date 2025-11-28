@@ -1,8 +1,8 @@
 package com.cpen321.usermanagement.data.remote.api
 
-import com.cpen321.usermanagement.data.remote.dto.ApiResponse
-import com.cpen321.usermanagement.data.remote.dto.ProfileData
-import com.cpen321.usermanagement.data.remote.dto.UpdateProfileRequest
+import com.cpen321.usermanagement.data.remote.models.ApiResponse
+import com.cpen321.usermanagement.data.remote.models.ProfileData
+import com.cpen321.usermanagement.data.remote.models.UpdateProfileRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE

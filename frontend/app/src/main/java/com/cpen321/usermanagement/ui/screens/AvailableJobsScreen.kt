@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cpen321.usermanagement.data.local.models.Job
 import com.cpen321.usermanagement.di.SocketClientEntryPoint
-import com.cpen321.usermanagement.ui.components.AvailableJobCard
-import com.cpen321.usermanagement.ui.components.SmartRouteBottomSheet
+import com.cpen321.usermanagement.ui.components.mover.AvailableJobCard
+import com.cpen321.usermanagement.ui.components.mover.SmartRouteBottomSheet
 import com.cpen321.usermanagement.ui.viewmodels.JobViewModel
 import com.cpen321.usermanagement.ui.viewmodels.MoverAvailabilityViewModel
 import com.cpen321.usermanagement.utils.TimeUtils

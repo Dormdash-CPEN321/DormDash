@@ -1,16 +1,11 @@
 package com.cpen321.usermanagement.ui.screens
 
-import Button
-import Icon
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,17 +37,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.cpen321.usermanagement.R
 import com.cpen321.usermanagement.data.remote.api.RetrofitClient
-import com.cpen321.usermanagement.data.remote.dto.User
-import com.cpen321.usermanagement.ui.components.ImagePicker
-import com.cpen321.usermanagement.ui.components.MessageSnackbar
-import com.cpen321.usermanagement.ui.components.MessageSnackbarState
+import com.cpen321.usermanagement.data.remote.models.User
+import com.cpen321.usermanagement.ui.components.common.MessageSnackbar
+import com.cpen321.usermanagement.ui.components.common.MessageSnackbarState
+import com.cpen321.usermanagement.ui.components.common.Icon
+import com.cpen321.usermanagement.ui.components.common.Button
 import com.cpen321.usermanagement.ui.viewmodels.ProfileUiState
 import com.cpen321.usermanagement.ui.viewmodels.ProfileViewModel
 import com.cpen321.usermanagement.ui.theme.LocalSpacing
@@ -77,7 +72,6 @@ private data class ManageProfileScreenActions(
     val onBioChange: (String) -> Unit,
     val onEditPictureClick: () -> Unit,
     val onSaveClick: () -> Unit,
-    val onImagePickerDismiss: () -> Unit,
     val onImageSelected: (Uri) -> Unit,
     val onLoadingPhotoChange: (Boolean) -> Unit,
     val onSuccessMessageShown: () -> Unit,
@@ -122,7 +116,6 @@ fun ManageProfileScreen(
     val uiState by profileViewModel.uiState.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
 
-    var showImagePickerDialog by remember { mutableStateOf(false) }
 
     // Form state
     var formState by remember {
@@ -159,7 +152,6 @@ fun ManageProfileScreen(
         onSaveClick = {
             profileViewModel.updateProfile(formState.name, formState.bio, formState.profilePicture ?: "")
         },
-        onImagePickerDismiss = { showImagePickerDialog = false },
         onImageSelected = { _ -> /* Profile picture upload removed */ },
         onLoadingPhotoChange = profileViewModel::setLoadingPhoto,
         onSuccessMessageShown = profileViewModel::clearSuccessMessage,
@@ -170,7 +162,6 @@ fun ManageProfileScreen(
         uiState = uiState,
         formState = formState,
         snackBarHostState = snackBarHostState,
-        showImagePickerDialog = showImagePickerDialog,
         actions = actions
     )
 }
@@ -181,7 +172,6 @@ private fun ManageProfileContent(
     uiState: ProfileUiState,
     formState: ProfileFormState,
     snackBarHostState: SnackbarHostState,
-    showImagePickerDialog: Boolean,
     actions: ManageProfileScreenActions,
     modifier: Modifier = Modifier
 ) {
@@ -213,13 +203,6 @@ private fun ManageProfileContent(
                 onSaveClick = actions.onSaveClick,
                 onLoadingPhotoChange = actions.onLoadingPhotoChange
             )
-        )
-    }
-
-    if (showImagePickerDialog) {
-        ImagePicker(
-            onDismiss = actions.onImagePickerDismiss,
-            onImageSelected = actions.onImageSelected
         )
     }
 }

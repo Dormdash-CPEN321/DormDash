@@ -1,6 +1,6 @@
 package com.cpen321.usermanagement.data.repository
 
-import com.cpen321.usermanagement.data.remote.dto.User
+import com.cpen321.usermanagement.data.remote.models.User
 
 interface ProfileRepository {
     suspend fun getProfile(): Result<User>

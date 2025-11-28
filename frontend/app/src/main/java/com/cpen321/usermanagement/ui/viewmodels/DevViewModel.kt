@@ -2,7 +2,7 @@ package com.cpen321.usermanagement.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cpen321.usermanagement.data.remote.api.DevApiService
+import com.cpen321.usermanagement.data.remote.api.DevInterface
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +17,7 @@ data class DevUiState(
 
 @HiltViewModel
 class DevViewModel @Inject constructor(
-    private val devApiService: DevApiService
+    private val devInterface: DevInterface
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DevUiState())
@@ -27,7 +27,7 @@ class DevViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = DevUiState(isLoading = true)
             try {
-                val response = devApiService.seedTestJobs()
+                val response = devInterface.seedTestJobs()
                 if (response.isSuccessful) {
                     _uiState.value = DevUiState(
                         isLoading = false,
@@ -57,7 +57,7 @@ class DevViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = DevUiState(isLoading = true)
             try {
-                val response = devApiService.seedAvailabilityTestJobs()
+                val response = devInterface.seedAvailabilityTestJobs()
                 if (response.isSuccessful) {
                     _uiState.value = DevUiState(
                         isLoading = false,
@@ -87,7 +87,7 @@ class DevViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = DevUiState(isLoading = true)
             try {
-                val response = devApiService.clearJobs()
+                val response = devInterface.clearJobs()
                 if (response.isSuccessful) {
                     _uiState.value = DevUiState(
                         isLoading = false,

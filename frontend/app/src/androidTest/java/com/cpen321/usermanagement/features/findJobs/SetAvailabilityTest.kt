@@ -50,7 +50,7 @@ class SetAvailabilityTest : FindJobsTestBase() {
 
         // Add 9:00-17:00 time slots for standard days
         standardDays.forEach { day ->
-            addTimeSlot(
+            addAvailabilityTimeSlot(
                 day = day,
                 startTime = "09:00",
                 endTime = "17:00"
@@ -137,7 +137,7 @@ class SetAvailabilityTest : FindJobsTestBase() {
         composeTestRule.waitForIdle()
 
         // Add a time slot for Monday
-        addTimeSlot(
+        addAvailabilityTimeSlot(
             day = "MONDAY",
             startTime = "09:00",
             endTime = "17:00"
@@ -187,14 +187,14 @@ class SetAvailabilityTest : FindJobsTestBase() {
         composeTestRule.waitForIdle()
 
         // Add first time slot for Monday (morning)
-        addTimeSlot(
+        addAvailabilityTimeSlot(
             day = "MONDAY",
             startTime = "09:00",
             endTime = "12:00"
         )
 
         // Add second time slot for Monday (afternoon)
-        addTimeSlot(
+        addAvailabilityTimeSlot(
             day = "MONDAY",
             startTime = "14:00",
             endTime = "18:00"

@@ -1,8 +1,5 @@
 package com.cpen321.usermanagement.ui.screens
 
-import Button
-import Icon
-import MenuButtonItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,9 +32,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cpen321.usermanagement.R
-import com.cpen321.usermanagement.data.remote.dto.User
-import com.cpen321.usermanagement.ui.components.MessageSnackbar
-import com.cpen321.usermanagement.ui.components.MessageSnackbarState
+import com.cpen321.usermanagement.data.remote.models.User
+import com.cpen321.usermanagement.ui.components.common.MessageSnackbar
+import com.cpen321.usermanagement.ui.components.common.MessageSnackbarState
+import com.cpen321.usermanagement.ui.components.common.Icon
+import com.cpen321.usermanagement.ui.components.common.Button
+import com.cpen321.usermanagement.ui.components.common.MenuButtonItem
 import com.cpen321.usermanagement.ui.viewmodels.AuthViewModel
 import com.cpen321.usermanagement.ui.viewmodels.DevViewModel
 import com.cpen321.usermanagement.ui.viewmodels.ProfileUiState

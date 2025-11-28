@@ -1,106 +1,113 @@
 package com.cpen321.usermanagement.performance.UIResponsivness
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.*
 import android.content.Intent
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.cpen321.usermanagement.MainActivity
-import dagger.hilt.android.testing.HiltAndroidRule
+import com.cpen321.usermanagement.utils.BaseTestSetup
+import com.cpen321.usermanagement.utils.TestAccountHelper
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
-import org.junit.Rule
 import org.junit.After
 
 
+/**
+ * Base class for UI responsiveness/performance tests.
+ * Extends BaseTestSetup to inherit common test infrastructure.
+ * Uses TestAccountHelper for authentication with specific roles.
+ * 
+ * Subclasses must override getTestEmail(), getTestPassword(), and getRoleSelector()
+ * to provide role-specific authentication.
+ */
 @HiltAndroidTest
-abstract class UIResponsivnessTestBase {
+abstract class UIResponsivnessTestBase : BaseTestSetup() {
 
-    @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
-
-    @get:Rule(order = 1)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
-
-    protected lateinit var device: UiDevice
     protected val appPackage = "com.cpen321.usermanagement"
     private val launchTimeout = 5000L
-    protected val timeout = 100L // 0.1 seconds time out for elements to appear
+    protected val timeout = 100L // 0.1 seconds timeout for elements to appear
 
-    companion object {
-        @Volatile
-        private var isSetupDone = false
-        private val setupLock = Any()
-    }
+    /**
+     * Return the test email for this role (student or mover).
+     */
+    protected abstract fun getTestEmail(): String
+
+    /**
+     * Return the test password for this role (student or mover).
+     */
+    protected abstract fun getTestPassword(): String
+
+    /**
+     * Return the role selector function for this role.
+     */
+    protected abstract fun getRoleSelector(): (ComposeTestRule) -> Unit
 
     @Before
-    fun baseSetup() {
-        // Initialize device and inject for this test instance
-        device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        hiltRule.inject()
+    override fun baseSetup() {
+        super.baseSetup()
         
-        if (isSetupDone) return
+        // Check if we're already signed in by looking for role-specific screens
+        val alreadySignedIn = isAlreadySignedIn()
         
-        synchronized(setupLock) {
-            if (isSetupDone) return
-            isSetupDone = true
+        if (!alreadySignedIn) {
+            signIn()
+        }
+    }
 
-            // Wake and unlock device
-            if (!device.isScreenOn) device.wakeUp()
-            device.swipe(500, 1000, 500, 100, 10)
-            device.pressHome()
+    /**
+     * Check if already signed in by looking for main screen indicators.
+     */
+    private fun isAlreadySignedIn(): Boolean {
+        val completeProfileNodes = composeTestRule
+            .onAllNodesWithText("Complete Your Profile", useUnmergedTree = true)
+            .fetchSemanticsNodes()
 
-            // Launch MainActivity via Intent
-            val context = InstrumentationRegistry.getInstrumentation().targetContext
-            val intent = Intent(context, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-
-            // Wait for the app to appear
-            device.wait(Until.hasObject(By.pkg(appPackage).depth(0)), launchTimeout)
-
+        if (completeProfileNodes.isNotEmpty()) {
+            // Skip profile completion
+            composeTestRule
+                .onNodeWithText("Skip", useUnmergedTree = true)
+                .performClick()
             composeTestRule.waitForIdle()
-
-            grantNotificationPermission()
-            SignIn()
+            return true
         }
+
+        // Check for DormDash main screen
+        val mainScreenNodes = composeTestRule
+            .onAllNodesWithText("DormDash", useUnmergedTree = true)
+            .fetchSemanticsNodes()
+
+        return mainScreenNodes.isNotEmpty()
     }
 
-    protected fun grantNotificationPermission() {
-        device.wait(
-            Until.findObject(By.text("Allow")),
-            5000
-        )?.click()
+    /**
+     * Signs in with the appropriate test account based on role.
+     */
+    private fun signIn() {
+        // First ensure the account exists
+        setupTestAccount()
+
+        // Then sign in
+        TestAccountHelper.signIn(
+            composeTestRule = composeTestRule,
+            device = device,
+            email = getTestEmail(),
+            roleSelector = getRoleSelector()
+        )
     }
 
-    protected fun SignIn() {
-        composeTestRule.onNodeWithText("Sign in with Google", useUnmergedTree = true)
-            .performClick()
-
-        val accountPickerAppeared = device.wait(
-            Until.hasObject(By.pkg("com.google.android.gms")),
-            10_000
+    /**
+     * Sets up the test account for the appropriate role.
+     */
+    private fun setupTestAccount() {
+        TestAccountHelper.setupTestAccount(
+            composeTestRule = composeTestRule,
+            device = device,
+            email = getTestEmail(),
+            password = getTestPassword(),
+            roleSelector = getRoleSelector()
         )
-
-        if (accountPickerAppeared) {
-            device.wait(Until.hasObject(By.clickable(true)), 3_000)
-            val firstClickable = device.findObject(By.clickable(true))
-            firstClickable?.click()
-        }
-
-        val mainScreenAppeared = device.wait(
-            Until.hasObject(By.text("DormDash")),
-            10_000
-        )
-        if (!mainScreenAppeared) {
-            throw RuntimeException("Main screen did not appear after Google sign-in")
-        }
-
-        composeTestRule.waitForIdle()
     }
 
     @After

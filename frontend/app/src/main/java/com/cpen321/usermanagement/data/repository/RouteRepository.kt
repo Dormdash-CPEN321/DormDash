@@ -1,18 +1,18 @@
 package com.cpen321.usermanagement.data.repository
 
 import android.util.Log
-import com.cpen321.usermanagement.data.remote.api.RouteApiService
-import com.cpen321.usermanagement.data.remote.dto.SmartRouteData
+import com.cpen321.usermanagement.data.remote.api.RouteInterface
+import com.cpen321.usermanagement.data.remote.models.SmartRouteData
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class RouteRepository @Inject constructor(
-    private val routeApiService: RouteApiService
+    private val routeInterface: RouteInterface
 ) {
     suspend fun getSmartRoute(currentLat: Double, currentLon: Double, maxDuration: Int? = null): Result<SmartRouteData> {
         return try {
-            val response = routeApiService.getSmartRoute(currentLat, currentLon, maxDuration)
+            val response = routeInterface.getSmartRoute(currentLat, currentLon, maxDuration)
             
             if (response.isSuccessful) {
                 val smartRouteResponse = response.body()
