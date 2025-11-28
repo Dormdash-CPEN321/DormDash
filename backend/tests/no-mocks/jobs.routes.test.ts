@@ -979,7 +979,7 @@ describe('PATCH /api/jobs/:id/status', () => {
     // Input: PATCH request to complete job that has no mover assigned
     // Expected status code: 200
     // Expected behavior: job completes, but no credits added since moverId is null
-    test('should not add credits when job completed without mover (line 34)', async () => {
+    test('should not add credits when job completed without mover', async () => {
         const order = await orderModel.create({
             studentId: testUserId,
             status: OrderStatus.PENDING,
@@ -1031,7 +1031,7 @@ describe('PATCH /api/jobs/:id/status', () => {
     // Input: PATCH request to complete job with mover assigned
     // Expected status code: 200
     // Expected behavior: job completes, credits added to mover
-    test('should add credits to mover when job completed with mover (lines 48-69)', async () => {
+    test('should add credits to mover when job completed with mover', async () => {
         const order = await orderModel.create({
             studentId: testUserId,
             status: OrderStatus.PENDING,
@@ -1082,7 +1082,7 @@ describe('PATCH /api/jobs/:id/status', () => {
     // Input: Complete job with moverId pointing to a STUDENT (not MOVER role)
     // Expected status code: 200
     // Expected behavior: job completes successfully, no credits added (wrong role)
-    test('should complete job without adding credits when moverId has wrong role (lines 55-59)', async () => {
+    test('should complete job without adding credits when moverId has wrong role', async () => {
         const order = await orderModel.create({
             studentId: testUserId,
             status: OrderStatus.PICKED_UP,
@@ -1133,7 +1133,7 @@ describe('PATCH /api/jobs/:id/status', () => {
     // Input: PATCH request to update status on non-existent job
     // Expected status code: 404
     // Expected behavior: JobNotFoundError thrown and handled
-    test('should handle status update on non-existent job (triggers error path line 517)', async () => {
+    test('should handle status update on non-existent job', async () => {
         const fakeJobId = new mongoose.Types.ObjectId();
 
         const response = await request(app)
@@ -1148,7 +1148,7 @@ describe('PATCH /api/jobs/:id/status', () => {
     // Input: PATCH request to accept job, but order update fails (using spy)
     // Expected status code: 500
     // Expected behavior: Error thrown when orderService.updateOrderStatus fails
-    test('should handle order update failure when accepting job (lines 295, 327-342)', async () => {
+    test('should handle order update failure when accepting job', async () => {
         const order = await orderModel.create({
             studentId: testUserId,
             status: OrderStatus.PENDING,
@@ -1193,7 +1193,7 @@ describe('PATCH /api/jobs/:id/status', () => {
     // Branch Coverage: Line 107 - Error in cancelJobsForOrder loop
     // Input: Cancel order with jobs, but one job update fails (using stub)
     // Expected behavior: Error logged but processing continues, order still cancelled
-    test('should handle order cancellation with multiple jobs (covers cancelJobsForOrder line 107)', async () => {
+    test('should handle order cancellation with multiple jobs', async () => {
         const order = await orderModel.create({
             studentId: testUserId,
             status: OrderStatus.PENDING,

@@ -955,7 +955,6 @@ describe('PATCH /api/jobs/:id/status', () => {
     // Expected behavior: orderModel.update throws error, catch block in updateOrderStatus is executed
     // Expected output: error response
     test('should hit catch block in updateOrderStatus when orderModel.update throws', async () => {
-        // Test to cover the catch block in updateOrderStatus (lines 436-441)
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
@@ -1194,7 +1193,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
     // Expected status code: 500
     // Expected behavior: updatedJob is null immediately after update, error thrown at line 777
     // Expected output: error response
-    test('should cover confirmDelivery with null updatedJob immediately after update (line 777)', async () => {
+    test('should handle confirmDelivery with null updatedJob immediately after update', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         const moverId = new mongoose.Types.ObjectId();
@@ -1246,7 +1245,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
     // Expected status code: 500
     // Expected behavior: invalid orderId error thrown
     // Expected output: error response
-    test('should cover confirmDelivery with invalid orderId (line 779)', async () => {
+    test('should handle confirmDelivery with invalid orderId', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         const moverId = new mongoose.Types.ObjectId();
@@ -1307,7 +1306,7 @@ describe('POST /api/jobs/:id/confirm-delivery', () => {
     // Expected status code: 500
     // Expected behavior: updateOrderStatus error caught in catch block (lines 791-795)
     // Expected output: error response
-    test('should cover confirmDelivery catch block when updateOrderStatus fails (lines 791-795)', async () => {
+    test('should handle confirmDelivery catch block when updateOrderStatus fails', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         const moverId = new mongoose.Types.ObjectId();
@@ -1967,7 +1966,7 @@ describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => 
     // Expected status code: 500
     // Expected behavior: updatedJob is null immediately after update, error thrown
     // Expected output: error response
-    test('should cover confirmPickup with null updatedJob immediately after update (line 628)', async () => {
+    test('should handle confirmPickup with null updatedJob immediately after update', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         const orderId = new mongoose.Types.ObjectId();
@@ -2191,7 +2190,7 @@ describe('POST /api/jobs/:id/confirm-pickup - confirmPickup error cases', () => 
     });
 });
 
-describe('JobService - Additional Coverage Tests', () => {
+describe('GET /api/jobs/student - Additional error cases', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -2201,7 +2200,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 200
     // Expected behavior: jobs are retrieved and mapped using mapper
     // Expected output: data.jobs array with mapped job items
-    test('should cover getStudentJobs mapper call (line 239)', async () => {
+    test('should call mapper in getStudentJobs', async () => {
         const studentId = new mongoose.Types.ObjectId().toString();
         const mockJobs = [{
             _id: new mongoose.Types.ObjectId(),
@@ -2229,13 +2228,19 @@ describe('JobService - Additional Coverage Tests', () => {
         expect(Array.isArray(response.body.data.jobs)).toBe(true);
         expect(mockJobModel.findByStudentId).toHaveBeenCalled();
     });
+});
+
+describe('PATCH /api/jobs/:id/status - Additional error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: route parameter is a space character ( /status), testUserId is set
     // Input: PATCH request with space character as job ID, status: ACCEPTED, and authentication token
     // Expected status code: 400, 404, or 500
     // Expected behavior: validation error for missing/invalid jobId
     // Expected output: error response
-    test('should cover updateJobStatus missing jobId validation (lines 272-273)', async () => {
+    test('should handle updateJobStatus missing jobId validation', async () => {
         // Test via API endpoint - empty jobId will result in 404 or 400
         // Since Express routes won't match empty params, we'll test with a space or invalid ID
         const originalTestUserId = testUserId;
@@ -2260,7 +2265,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 500
     // Expected behavior: updatedJob is null, error thrown
     // Expected output: error response
-    test('should cover RETURN job PICKED_UP flow with null updatedJob (line 368)', async () => {
+    test('should handle RETURN job PICKED_UP flow with null updatedJob', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -2296,7 +2301,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 404
     // Expected behavior: job not found after update in RETURN PICKED_UP flow, error thrown
     // Expected output: job not found error response
-    test('should cover RETURN job PICKED_UP flow with job not found after update (line 384)', async () => {
+    test('should handle RETURN job PICKED_UP flow with job not found after update', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -2339,7 +2344,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 500
     // Expected behavior: invalid orderId error thrown
     // Expected output: error response
-    test('should cover RETURN job PICKED_UP flow with invalid orderId (lines 392-393)', async () => {
+    test('should handle RETURN job PICKED_UP flow with invalid orderId', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         
@@ -2381,7 +2386,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 200
     // Expected behavior: orderService error is caught and logged, request still succeeds
     // Expected output: success response with status: PICKED_UP
-    test('should cover RETURN job PICKED_UP flow error handling (line 410)', async () => {
+    test('should handle RETURN job PICKED_UP flow error handling', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -2437,7 +2442,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 500
     // Expected behavior: invalid orderId error thrown
     // Expected output: error response
-    test('should cover COMPLETED flow with invalid orderId (lines 450-451)', async () => {
+    test('should handle COMPLETED flow with invalid orderId', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         
@@ -2479,7 +2484,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 500
     // Expected behavior: invalid orderId error thrown at end of updateJobStatus
     // Expected output: error response
-    test('should cover invalid orderId at end of updateJobStatus (line 504)', async () => {
+    test('should handle invalid orderId at end of updateJobStatus', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const studentId = new mongoose.Types.ObjectId();
         
@@ -2510,13 +2515,19 @@ describe('JobService - Additional Coverage Tests', () => {
             .send({ status: JobStatus.PICKED_UP })
             .expect(500);
     });
+});
+
+describe('POST /api/jobs/:id/confirm-pickup - Additional error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: extractObjectId is mocked to return valid ObjectId when field is null, jobModel.findById returns a mock STORAGE job, jobModel.update returns null, orderService and EventEmitter succeed
     // Input: POST request with valid job ID and authentication token
     // Expected status code: 500
     // Expected behavior: updatedJob is null, error thrown at line 661
     // Expected output: error response
-    test('should cover confirmPickup with null updatedJob (line 661)', async () => {
+    test('should handle confirmPickup with null updatedJob', async () => {
         // Mock extractObjectId to return a valid ObjectId even when updatedJob is null
         // This allows us to bypass the earlier throw and reach line 661
         const mongooseUtil = require('../../src/utils/mongoose.util');
@@ -2568,13 +2579,19 @@ describe('JobService - Additional Coverage Tests', () => {
         // Restore original function
         mongooseUtil.extractObjectId = originalExtractObjectId;
     });
+});
+
+describe('POST /api/jobs/:id/confirm-delivery - Additional error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: extractObjectId is mocked to return valid ObjectId when field is null, jobModel.findById returns a mock RETURN job, jobModel.update returns null, userModel methods succeed, orderService and EventEmitter succeed
     // Input: POST request with valid job ID and authentication token
     // Expected status code: 500
     // Expected behavior: updatedJob is null, error thrown at line 812
     // Expected output: error response
-    test('should cover confirmDelivery with null updatedJob (line 812)', async () => {
+    test('should handle confirmDelivery with null updatedJob', async () => {
         // Mock extractObjectId to return a valid ObjectId even when updatedJob is null
         // This allows us to bypass the earlier throw and reach line 812
         const mongooseUtil = require('../../src/utils/mongoose.util');
@@ -2635,13 +2652,19 @@ describe('JobService - Additional Coverage Tests', () => {
             orderModel.update = originalUpdate;
         }
     });
+});
+
+describe('PATCH /api/jobs/:id/status - addCreditsToMover error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: jobModel.findById returns a mock STORAGE job with invalid moverId object, jobModel.update returns updated job, userModel.findByIdAndUpdate succeeds, orderService and notificationService succeed
     // Input: PATCH request with valid job ID, status: COMPLETED, and authentication token
     // Expected status code: 200
     // Expected behavior: invalid moverId is handled gracefully (extractObjectId returns null), request still succeeds
     // Expected output: success response with status: COMPLETED
-    test('should cover addCreditsToMover with invalid moverId (lines 43-44)', async () => {
+    test('should handle addCreditsToMover with invalid moverId', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -2693,7 +2716,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 200
     // Expected behavior: credit error is caught and logged, request still succeeds
     // Expected output: success response with status: COMPLETED
-    test('should cover addCreditsToMover catch block (line 62)', async () => {
+    test('should handle addCreditsToMover catch block', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -2741,11 +2764,10 @@ describe('JobService - Additional Coverage Tests', () => {
         expect(response.body.status).toBe(JobStatus.COMPLETED);
     });
 
-    // Branch Coverage: Lines 47-48 - addCreditsToMover with mover.credits being null/undefined
     // Input: Complete job where mover has no credits property (undefined)
     // Expected status code: 200
     // Expected behavior: credits ?? 0 branch executes, mover gets credits added starting from 0
-    test('should handle mover with undefined credits (line 48 - nullish coalescing)', async () => {
+    test('should handle mover with undefined credits', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
@@ -2801,13 +2823,19 @@ describe('JobService - Additional Coverage Tests', () => {
 
         orderModel.update = originalUpdate;
     });
+});
+
+describe('DELETE /api/order/cancel-order - cancelJobsForOrder error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: orderService is unmocked and uses real implementation, orderModel.findActiveOrder returns a mock order, orderModel.update succeeds, jobModel.findByOrderId returns mock jobs array, jobModel.update succeeds for both jobs, paymentService.refundPayment succeeds, EventEmitter succeeds
     // Input: DELETE request to /api/orders/cancel-order with valid authentication token
     // Expected status code: 200
     // Expected behavior: all jobs for the order are cancelled, order is cancelled, payment is refunded
     // Expected output: success: true
-    test('should cover cancelJobsForOrder method (lines 70-129) via order cancellation endpoint', async () => {
+    test('should handle cancelJobsForOrder method via order cancellation endpoint', async () => {
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
         const jobId1 = new mongoose.Types.ObjectId();
@@ -2902,7 +2930,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 200
     // Expected behavior: job update returns null (lines 100-104), error is logged but order cancellation still succeeds
     // Expected output: success: true
-    test('should cover cancelJobsForOrder with update returning null (lines 100-104)', async () => {
+    test('should handle cancelJobsForOrder with update returning null', async () => {
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
         const jobId = new mongoose.Types.ObjectId();
@@ -2972,7 +3000,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 200
     // Expected behavior: error in update loop (lines 118-123) is caught and logged, order cancellation still succeeds
     // Expected output: success: true
-    test('should cover cancelJobsForOrder with error in update loop (lines 118-123)', async () => {
+    test('should handle cancelJobsForOrder with error in update loop', async () => {
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
         const jobId1 = new mongoose.Types.ObjectId();
@@ -3060,7 +3088,7 @@ describe('JobService - Additional Coverage Tests', () => {
     // Expected status code: 200
     // Expected behavior: catch block (lines 127-129) is executed, error is logged, order cancellation still succeeds
     // Expected output: success: true
-    test('should cover cancelJobsForOrder catch block (lines 127-129)', async () => {
+    test('should handle cancelJobsForOrder catch block', async () => {
         const orderId = new mongoose.Types.ObjectId();
         const studentId = new mongoose.Types.ObjectId();
         
@@ -3111,14 +3139,19 @@ describe('JobService - Additional Coverage Tests', () => {
             testUserRole = originalTestUserRole;
         }
     });
+});
 
+describe('GET /api/jobs - Additional error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: jobModel.findAllJobs returns a mock jobs array
     // Input: GET request with valid authentication token
     // Expected status code: 200
     // Expected behavior: jobs are retrieved and mapped using mapper
     // Expected output: data.jobs array with mapped job items
-    test('should cover getAllJobs mapper call (line 196)', async () => {
+    test('should call mapper in getAllJobs', async () => {
         const mockJobs = [{
             _id: new mongoose.Types.ObjectId(),
             orderId: new mongoose.Types.ObjectId(),
@@ -3145,13 +3178,19 @@ describe('JobService - Additional Coverage Tests', () => {
         expect(Array.isArray(response.body.data.jobs)).toBe(true);
         expect(mockJobModel.findAllJobs).toHaveBeenCalled();
     });
+});
+
+describe('GET /api/jobs/available - Additional error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: jobModel.findAvailableJobs returns a mock jobs array
     // Input: GET request with valid authentication token
     // Expected status code: 200
     // Expected behavior: available jobs are retrieved and mapped using mapper
     // Expected output: data.jobs array with mapped job items
-    test('should cover getAllAvailableJobs mapper call (lines 207-209)', async () => {
+    test('should call mapper in getAllAvailableJobs', async () => {
         const mockJobs = [{
             _id: new mongoose.Types.ObjectId(),
             orderId: new mongoose.Types.ObjectId(),
@@ -3178,13 +3217,19 @@ describe('JobService - Additional Coverage Tests', () => {
         expect(Array.isArray(response.body.data.jobs)).toBe(true);
         expect(mockJobModel.findAvailableJobs).toHaveBeenCalled();
     });
+});
+
+describe('GET /api/jobs/mover - Additional error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: jobModel.findByMoverId returns a mock jobs array
     // Input: GET request with valid authentication token
     // Expected status code: 200
     // Expected behavior: mover jobs are retrieved and mapped using mapper
     // Expected output: data.jobs array with mapped job items
-    test('should cover getMoverJobs mapper call (line 224)', async () => {
+    test('should call mapper in getMoverJobs', async () => {
         const moverId = new mongoose.Types.ObjectId().toString();
         const mockJobs = [{
             _id: new mongoose.Types.ObjectId(),
@@ -3213,14 +3258,19 @@ describe('JobService - Additional Coverage Tests', () => {
         expect(Array.isArray(response.body.data.jobs)).toBe(true);
         expect(mockJobModel.findByMoverId).toHaveBeenCalled();
     });
+});
 
+describe('POST /api/jobs/:id/arrived - Additional error cases', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
 
     // Mocked behavior: jobModel.findById returns a mock STORAGE job, jobModel.update returns updated job, notificationService succeeds, EventEmitter.emitJobUpdated throws an error, testUserId matches job's moverId
     // Input: POST request with valid job ID and authentication token
     // Expected status code: 200
     // Expected behavior: EventEmitter error is caught and logged (lines 577-582), request still succeeds, all lines 560-584 executed
     // Expected output: success: true, data with id and status: AWAITING_STUDENT_CONFIRMATION
-    test('should cover requestPickupConfirmation with EventEmitter error (lines 560-584)', async () => {
+    test('should handle requestPickupConfirmation with EventEmitter error', async () => {
         const jobId = new mongoose.Types.ObjectId().toString();
         const moverId = new mongoose.Types.ObjectId();
         const moverIdStr = moverId.toString();
@@ -3290,9 +3340,7 @@ describe('JobService - Additional Coverage Tests', () => {
     });
 });
 
-// NotificationService Coverage Tests moved to tests/integration/notification.service.test.ts
-
-describe('Route Handler Catch Blocks Coverage', () => {
+describe('Route Handler Error Handling', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -3308,7 +3356,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 14) is executed
     // Expected output: error response
-    test('should cover route handler catch block for getAllJobs (line 14)', async () => {
+    test('should handle route handler catch block for getAllJobs', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.getAllJobs;
         
@@ -3334,7 +3382,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 21) is executed
     // Expected output: error response
-    test('should cover route handler catch block for getAllAvailableJobs (line 21)', async () => {
+    test('should handle route handler catch block for getAllAvailableJobs', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.getAllAvailableJobs;
         
@@ -3358,7 +3406,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 28) is executed
     // Expected output: error response
-    test('should cover route handler catch block for getMoverJobs (line 28)', async () => {
+    test('should handle route handler catch block for getMoverJobs', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.getMoverJobs;
         
@@ -3382,7 +3430,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 35) is executed
     // Expected output: error response
-    test('should cover route handler catch block for getStudentJobs (line 35)', async () => {
+    test('should handle route handler catch block for getStudentJobs', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.getStudentJobs;
         
@@ -3406,7 +3454,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 42) is executed
     // Expected output: error response
-    test('should cover route handler catch block for getJobById (line 42)', async () => {
+    test('should handle route handler catch block for getJobById', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.getJobById;
         
@@ -3431,7 +3479,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 52) is executed
     // Expected output: error response
-    test('should cover route handler catch block for createJob (line 52)', async () => {
+    test('should handle route handler catch block for createJob', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.createJob;
         
@@ -3467,7 +3515,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 63) is executed
     // Expected output: error response
-    test('should cover route handler catch block for updateJobStatus (line 63)', async () => {
+    test('should handle route handler catch block for updateJobStatus', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.updateJobStatus;
         
@@ -3493,7 +3541,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 73) is executed
     // Expected output: error response
-    test('should cover route handler catch block for send_arrival_confirmation (line 73)', async () => {
+    test('should handle route handler catch block for send_arrival_confirmation', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.send_arrival_confirmation;
         
@@ -3518,7 +3566,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 80) is executed
     // Expected output: error response
-    test('should cover route handler catch block for confirmPickup (line 80)', async () => {
+    test('should handle route handler catch block for confirmPickup', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.confirmPickup;
         
@@ -3543,7 +3591,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 87) is executed
     // Expected output: error response
-    test('should cover route handler catch block for delivered (line 87)', async () => {
+    test('should handle route handler catch block for delivered', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.delivered;
         
@@ -3568,7 +3616,7 @@ describe('Route Handler Catch Blocks Coverage', () => {
     // Expected status code: 500
     // Expected behavior: route handler catch block (line 94) is executed
     // Expected output: error response
-    test('should cover route handler catch block for confirmDelivery (line 94)', async () => {
+    test('should handle route handler catch block for confirmDelivery', async () => {
         const { JobController } = require('../../src/controllers/job.controller');
         const originalMethod = JobController.prototype.confirmDelivery;
         
@@ -3601,7 +3649,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.create catch block (lines 77-78) is executed
     // Expected output: error response
-    test('should cover jobModel.create catch block (lines 77-78)', async () => {
+    test('should handle jobModel.create catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3655,7 +3703,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.findById catch block (lines 87-88) is executed
     // Expected output: error response
-    test('should cover jobModel.findById catch block (lines 87-88)', async () => {
+    test('should handle jobModel.findById catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3696,7 +3744,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.findByOrderId catch block (lines 97-98) is executed
     // Expected output: error response
-    test('should cover jobModel.findByOrderId catch block (lines 97-98)', async () => {
+    test('should handle jobModel.findByOrderId catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3737,7 +3785,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.findAvailableJobs catch block (lines 108-109) is executed
     // Expected output: error response
-    test('should cover jobModel.findAvailableJobs catch block (lines 108-109)', async () => {
+    test('should handle jobModel.findAvailableJobs catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3780,7 +3828,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.findAllJobs catch block (lines 117-118) is executed
     // Expected output: error response
-    test('should cover jobModel.findAllJobs catch block (lines 117-118)', async () => {
+    test('should handle jobModel.findAllJobs catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3820,7 +3868,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.findByMoverId catch block (lines 126-127) is executed
     // Expected output: error response
-    test('should cover jobModel.findByMoverId catch block (lines 126-127)', async () => {
+    test('should handle jobModel.findByMoverId catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3861,7 +3909,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.findByStudentId catch block (lines 135-136) is executed
     // Expected output: error response
-    test('should cover jobModel.findByStudentId catch block (lines 135-136)', async () => {
+    test('should handle jobModel.findByStudentId catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3902,7 +3950,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.update catch block (lines 147-148) is executed
     // Expected output: error response
-    test('should cover jobModel.update catch block (lines 147-148)', async () => {
+    test('should handle jobModel.update catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3943,7 +3991,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: 500
     // Expected behavior: jobModel.tryAcceptJob catch block (lines 171-172) is executed
     // Expected output: error response
-    test('should cover jobModel.tryAcceptJob catch block (lines 171-172)', async () => {
+    test('should handle jobModel.tryAcceptJob catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();
@@ -3985,7 +4033,7 @@ describe('Job EventEmitter Meta Tests (Mocked)', () => {
     // Expected status code: N/A (direct model call)
     // Expected behavior: jobModel.delete catch block (lines 180-181) is executed
     // Expected output: error thrown
-    test('should cover jobModel.delete catch block (lines 180-181)', async () => {
+    test('should handle jobModel.delete catch block', async () => {
         // Temporarily unmock jobModel to test actual error handling
         jest.unmock('../../src/models/job.model');
         jest.resetModules();

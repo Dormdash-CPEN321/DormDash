@@ -797,7 +797,7 @@ describe('Stripe Service Line Coverage Tests', () => {
   // Expected status code: 500
   // Expected behavior: stripe service throws error when client_secret is missing (line 58)
   // Expected output: error message about missing client secret
-  test('should cover line 58 - payment intent without client_secret', async () => {
+  test('should handle payment intent without client_secret', async () => {
     // Mock Stripe SDK to return payment intent without client_secret
     mockStripeClient.paymentIntents.create.mockResolvedValue({
       id: 'pi_test_no_secret',
@@ -826,7 +826,7 @@ describe('Stripe Service Line Coverage Tests', () => {
   // Expected status code: 200
   // Expected behavior: refundPayment executes success path with logging (lines 161-163) and return (line 165)
   // Expected output: order cancelled successfully
-  test('should cover lines 161-165 - refund payment success path', async () => {
+  test('should handle refund payment success path', async () => {
     // Mock Stripe SDK to return successful refund
     mockStripeClient.refunds.create.mockResolvedValue({
       id: 're_test_refund_success',
@@ -889,7 +889,7 @@ describe('Stripe Service Line Coverage Tests', () => {
   // Expected status code: 200
   // Expected behavior: status maps correctly through mapStripeStatusToOur
   // Expected output: payment intent with correct mapped status
-  test('should cover line 188 - mapStripeStatusToOur requires_confirmation', async () => {
+  test('should map requires_confirmation status in mapStripeStatusToOur', async () => {
     // Mock Stripe SDK to return requires_confirmation status
     mockStripeClient.paymentIntents.create.mockResolvedValue({
       id: 'pi_test_requires_confirmation',
@@ -911,7 +911,12 @@ describe('Stripe Service Line Coverage Tests', () => {
     expect(response.body).toHaveProperty('status', 'requires_confirmation');
   });
 
-  test('should cover lines 189-190 - mapStripeStatusToOur succeeded', async () => {
+  // Cover lines 189-190: mapStripeStatusToOur - succeeded case
+  // Input: HTTP request to create payment intent, mocked Stripe SDK returns succeeded status
+  // Expected status code: 200
+  // Expected behavior: status maps to SUCCEEDED through mapStripeStatusToOur (lines 189-190)
+  // Expected output: payment intent with succeeded status
+  test('should map succeeded status in mapStripeStatusToOur', async () => {
     // Mock Stripe SDK to return succeeded status
     mockStripeClient.paymentIntents.create.mockResolvedValue({
       id: 'pi_test_succeeded',
@@ -933,7 +938,12 @@ describe('Stripe Service Line Coverage Tests', () => {
     expect(response.body).toHaveProperty('status', 'succeeded');
   });
 
-  test('should cover lines 191-192 - mapStripeStatusToOur canceled', async () => {
+  // Cover lines 191-192: mapStripeStatusToOur - canceled case
+  // Input: HTTP request to create payment intent, mocked Stripe SDK returns canceled status
+  // Expected status code: 200
+  // Expected behavior: status maps to CANCELED through mapStripeStatusToOur (lines 191-192)
+  // Expected output: payment intent with canceled status
+  test('should map canceled status in mapStripeStatusToOur', async () => {
     // Mock Stripe SDK to return canceled status
     mockStripeClient.paymentIntents.create.mockResolvedValue({
       id: 'pi_test_canceled',
@@ -955,7 +965,12 @@ describe('Stripe Service Line Coverage Tests', () => {
     expect(response.body).toHaveProperty('status', 'canceled');
   });
 
-  test('should cover lines 193-194 - mapStripeStatusToOur default case', async () => {
+  // Cover lines 193-194: mapStripeStatusToOur - default case
+  // Input: HTTP request to create payment intent, mocked Stripe SDK returns unknown status
+  // Expected status code: 200
+  // Expected behavior: status maps to FAILED (default case) through mapStripeStatusToOur (lines 193-194)
+  // Expected output: payment intent with failed status
+  test('should map unknown status to failed in mapStripeStatusToOur', async () => {
     // Mock Stripe SDK to return unknown status (triggers default case)
     mockStripeClient.paymentIntents.create.mockResolvedValue({
       id: 'pi_test_unknown',
@@ -982,7 +997,7 @@ describe('Stripe Service Line Coverage Tests', () => {
   // Expected status code: 200
   // Expected behavior: status maps correctly through mapStripeStatusToPaymentStatus
   // Expected output: payment result with correct mapped status
-  test('should cover line 205 - mapStripeStatusToPaymentStatus requires_payment_method to PENDING', async () => {
+  test('should map requires_payment_method status to PENDING in mapStripeStatusToPaymentStatus', async () => {
     // Mock Stripe SDK to return requires_payment_method status
     mockStripeClient.paymentIntents.confirm.mockResolvedValue({
       id: 'pi_test_requires_payment_method',
@@ -1003,7 +1018,12 @@ describe('Stripe Service Line Coverage Tests', () => {
     expect(response.body).toHaveProperty('status', PaymentStatus.PENDING);
   });
 
-  test('should cover line 206 - mapStripeStatusToPaymentStatus requires_confirmation to PENDING', async () => {
+  // Cover line 206: mapStripeStatusToPaymentStatus - requires_confirmation case
+  // Input: HTTP request to process payment, mocked Stripe SDK returns requires_confirmation status
+  // Expected status code: 200
+  // Expected behavior: status maps to PENDING through mapStripeStatusToPaymentStatus (line 206)
+  // Expected output: payment result with PENDING status
+  test('should map requires_confirmation status to PENDING in mapStripeStatusToPaymentStatus', async () => {
     // Mock Stripe SDK to return requires_confirmation status
     mockStripeClient.paymentIntents.confirm.mockResolvedValue({
       id: 'pi_test_requires_confirmation',
@@ -1024,7 +1044,12 @@ describe('Stripe Service Line Coverage Tests', () => {
     expect(response.body).toHaveProperty('status', PaymentStatus.PENDING);
   });
 
-  test('should cover line 208 - mapStripeStatusToPaymentStatus processing to PENDING', async () => {
+  // Cover line 208: mapStripeStatusToPaymentStatus - processing case
+  // Input: HTTP request to process payment, mocked Stripe SDK returns processing status
+  // Expected status code: 200
+  // Expected behavior: status maps to PENDING through mapStripeStatusToPaymentStatus (line 208)
+  // Expected output: payment result with PENDING status
+  test('should map processing status to PENDING in mapStripeStatusToPaymentStatus', async () => {
     // Mock Stripe SDK to return processing status
     mockStripeClient.paymentIntents.confirm.mockResolvedValue({
       id: 'pi_test_processing',
@@ -1045,7 +1070,12 @@ describe('Stripe Service Line Coverage Tests', () => {
     expect(response.body).toHaveProperty('status', PaymentStatus.PENDING);
   });
 
-  test('should cover lines 209-210 - mapStripeStatusToPaymentStatus canceled', async () => {
+  // Cover lines 209-210: mapStripeStatusToPaymentStatus - canceled case
+  // Input: HTTP request to process payment, mocked Stripe SDK returns canceled status
+  // Expected status code: 200
+  // Expected behavior: status maps to CANCELED through mapStripeStatusToPaymentStatus (lines 209-210)
+  // Expected output: payment result with CANCELED status
+  test('should map canceled status in mapStripeStatusToPaymentStatus', async () => {
     // Mock Stripe SDK to return canceled status
     mockStripeClient.paymentIntents.confirm.mockResolvedValue({
       id: 'pi_test_canceled_payment',
@@ -1066,7 +1096,12 @@ describe('Stripe Service Line Coverage Tests', () => {
     expect(response.body).toHaveProperty('status', PaymentStatus.CANCELED);
   });
 
-  test('should cover lines 211-212 - mapStripeStatusToPaymentStatus default case', async () => {
+  // Cover lines 211-212: mapStripeStatusToPaymentStatus - default case
+  // Input: HTTP request to process payment, mocked Stripe SDK returns unknown status
+  // Expected status code: 200
+  // Expected behavior: status maps to FAILED (default case) through mapStripeStatusToPaymentStatus (lines 211-212)
+  // Expected output: payment result with FAILED status
+  test('should map unknown status to FAILED in mapStripeStatusToPaymentStatus', async () => {
     // Mock Stripe SDK to return unknown status (triggers default case)
     mockStripeClient.paymentIntents.confirm.mockResolvedValue({
       id: 'pi_test_unknown_payment_status',
