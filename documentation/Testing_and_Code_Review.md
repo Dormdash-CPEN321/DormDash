@@ -4,7 +4,8 @@
 
 | **Change Date** | **Modified Sections** | **Rationale** |
 |-----------------| --------------------- | ------------- |
-| _Nov 12_        |         All          | Initial document creation. |
+| _Nov 12_        |         All           | Initial document creation. |
+| Nov 28.         |    E2E test logs, instructions. | Fixing test logs to match after we fixed the tests to pass, making instructions more clear to run the tests |
 
 ---
 
@@ -492,6 +493,8 @@ Notification. Service: The branches that are not covered are defensive checks to
     ```
   
 - **Use Case: View Recommended Route**
+
+**Note:** ensure you change emulator location to Vancouver before running this
 
   **Expected Behaviors:**
 
