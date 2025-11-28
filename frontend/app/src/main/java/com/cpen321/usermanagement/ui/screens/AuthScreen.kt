@@ -319,7 +319,6 @@ private fun GoogleLogo(
 ) {
     val spacing = LocalSpacing.current
 
-    // Add white circular background behind Google logo for better visibility
     Box(
         modifier = modifier
             .size(spacing.large)

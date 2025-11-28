@@ -34,9 +34,12 @@
   API_BASE_URL="http://10.0.2.2:3000/api/"
   IMAGE_BASE_URL="http://10.0.2.2:3000/"
   GOOGLE_CLIENT_ID="xxxxxxx.apps.googleusercontent.com"
+  MAPS_API_KEY="xxx"
   ```
 
   You will need to obtain a Google client ID for Google Sign-In, as described in [this google official guide](https://developer.android.com/identity/sign-in/credential-manager-siwg).
+
+  You will also need to obtain a Google Maps API key, see [this guide](https://developers.google.com/maps/documentation/javascript/get-api-key)
 
 - **Debug build**: Click the green play button in the toolbar, to compile the code, package a debug APK, and install it on the connected device or running emulator
 - **Release build**: Go to Build -> Generate Signed App Bundle or APK -> APK. Follow the on-screen instructions to create a key, and select the "release" build variant. You will then have to manually install the generated APK on your device or the running emulator.
@@ -46,9 +49,20 @@
 The app requires:
 
 - Internet access for backend communication
-- Camera access for profile pictures
-- Storage access for image handling
+- Notification permission if desired
+- Location access for mover optimal route calculations
 
 ## Backend Configuration
 
 Ensure the backend server is running and update the base URL in the app configuration if needed.
+
+## Testing
+
+- To run the E2E tests, create a `test.properties` file under under DormDash/frontend/app/src/androidTest/resources
+- Add the following to the file, and fill in 2 test accounts (1 for student and 1 for mover):
+  STUDENT_EMAIL=<the email for the student account>
+  STUDENT_PASSWORD=<the password for the student account>
+  MOVER_EMAIL=<the email for the mover account>
+  MOVER_PASSWORD=<the password for the mover account>
+- Optionally set up those accounts with google, but our tests do that anyways
+- Run tests
