@@ -13,7 +13,6 @@ import {
   CreateOrderRequestWithIdempotency,
   OrderStatus,
 } from '../types/order.types';
-import { IUser } from '../types/user.types';
 import { ObjectId } from 'mongoose';
 
 export class OrderController {
