@@ -55,7 +55,7 @@ class ViewRecommendedRouteTest : FindJobsTestBase() {
         composeTestRule.onNodeWithText("Set Availability").assertIsDisplayed()
 
         // Days to add standard 9-5 availability
-        val standardDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY")
+        val standardDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
 
         // Add 9:00-17:00 time slots for standard days
         standardDays.forEach { day ->
@@ -370,10 +370,20 @@ class ViewRecommendedRouteTest : FindJobsTestBase() {
             composeTestRule.onAllNodesWithText("Find Jobs").fetchSemanticsNodes().isNotEmpty()
         }
         composeTestRule.onNodeWithText("Find Jobs").performClick()
+        composeTestRule.waitForIdle()
+
         composeTestRule.onNodeWithText("Get Optimal Route", ignoreCase = true).performClick()
+        composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText("Find Smart Route", ignoreCase = true).performClick()
+        composeTestRule.waitForIdle()
+
         grantLocationPermission()
+        Thread.sleep(2000)
+        composeTestRule.waitForIdle()
+        Thread.sleep(2000)
+        composeTestRule.onAllNodesWithText("location required", substring = true, ignoreCase = true)
+            .fetchSemanticsNodes().isEmpty()
 
         // Step 6a1: Verify message that no jobs fit
         composeTestRule.onNode(

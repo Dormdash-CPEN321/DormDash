@@ -11,6 +11,8 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Until
 import com.cpen321.usermanagement.utils.BaseTestSetup
 import com.cpen321.usermanagement.utils.TestAccountHelper
 import dagger.hilt.android.testing.HiltAndroidTest
