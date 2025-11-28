@@ -10,6 +10,7 @@ import {
   JobResponse,
   JobStatus,
 } from '../types/job.type';
+import { IUser } from '../types/user.types';
 import logger from '../utils/logger.util';
 
 export class JobController {
@@ -61,7 +62,7 @@ export class JobController {
   ) {
     try {
       const result = await this.jobService.getMoverJobs(
-        req.user?._id.toString()!
+        (req.user as IUser)._id.toString()
       );
       res.status(200).json(result);
     } catch (error) {
@@ -76,7 +77,7 @@ export class JobController {
   ) {
     try {
       const result = await this.jobService.getStudentJobs(
-        req.user?._id.toString()!
+        (req.user as IUser)._id.toString()
       );
       res.status(200).json(result);
     } catch (error) {
@@ -136,7 +137,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      const moverId = req.user?._id.toString()!;
+      const moverId = (req.user as IUser)._id.toString();
       const result = await this.jobService.requestPickupConfirmation(
         req.params.id,
         moverId
@@ -158,7 +159,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      const studentId = req.user?._id.toString()!;
+      const studentId = (req.user as IUser)._id.toString();
       const result = await this.jobService.confirmPickup(
         req.params.id,
         studentId
@@ -178,7 +179,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      const moverId = req.user?._id.toString()!;
+      const moverId = (req.user as IUser)._id.toString();
       const result = await this.jobService.requestDeliveryConfirmation(
         req.params.id,
         moverId
@@ -200,7 +201,7 @@ export class JobController {
     next: NextFunction
   ) {
     try {
-      const studentId = req.user?._id.toString()!;
+      const studentId = (req.user as IUser)._id.toString();
       const result = await this.jobService.confirmDelivery(
         req.params.id,
         studentId
