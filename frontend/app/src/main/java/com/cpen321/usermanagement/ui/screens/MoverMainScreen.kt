@@ -1,8 +1,6 @@
 package com.cpen321.usermanagement.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material.icons.filled.Search
@@ -15,7 +13,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.cpen321.usermanagement.R
@@ -44,14 +41,12 @@ fun MoverMainScreen(
     val jobUiState by jobViewModel.uiState.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
 
-    // Load jobs when screen first composes
-    // JobViewModel handles socket events (job.created, job.updated) automatically
     LaunchedEffect(Unit) {
         jobViewModel.loadMoverJobs()
         jobViewModel.loadAvailableJobs()
     }
 
-    // Filter current jobs (ACCEPTED or in progress)
+    // Filter current jobs
     val currentJobs = remember(jobUiState.moverJobs) {
         jobUiState.moverJobs.filter { 
             it.status == JobStatus.ACCEPTED || it.status == JobStatus.PICKED_UP || it.status == JobStatus.AWAITING_STUDENT_CONFIRMATION

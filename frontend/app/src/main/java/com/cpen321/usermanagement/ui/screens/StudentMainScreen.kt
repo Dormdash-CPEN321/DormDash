@@ -1,7 +1,6 @@
 package com.cpen321.usermanagement.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -56,20 +55,12 @@ import com.cpen321.usermanagement.ui.viewmodels.JobViewModel
 import dagger.hilt.android.EntryPointAccessors
 import retrofit2.HttpException
 import java.io.IOException
-import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.collection.orderedScatterSetOf
 import androidx.compose.runtime.LaunchedEffect
-import android.util.Log
 import androidx.compose.material3.Icon
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import com.cpen321.usermanagement.di.SocketClientEntryPoint
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.cpen321.usermanagement.data.local.models.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -247,8 +247,6 @@ describe('GET /api/jobs/available', () => {
         expect(response.status).toBeGreaterThanOrEqual(500);
         expect(mockJobModel.findAvailableJobs).toHaveBeenCalled();
     });
-
-
 });
 
 describe('GET /api/jobs/mover', () => {

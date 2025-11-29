@@ -120,12 +120,38 @@
 
 ![Jest with all tests](images/jest-all-tests.png)
 
-Justification:
-dev.controller.ts: This is used for E2E testing the FindJob feature, so is exempt from coverage.                   
-loadTest.controller.ts: This is used for testing non-functional requirements, so is exempt from coverage.   
+**Justifications**:
+
+dev.controller.ts: This is used for E2E testing the FindJob feature, so is exempt from coverage.     
+
+loadTest.controller.ts: This is used for testing non-functional requirements, so is exempt from coverage. 
+
 database.ts: These lines are used as error handlers, for shutting down the server of the mongo db connection, so are not executable through endpoints.
-auth.middleware.ts:  The try-catch block inside the IIFE catches ALL errors that occur within the async function
-Notification. Service: The branches that are not covered are defensive checks to ensure that unexpected errors are handled correctly
+
+auth.middleware.ts: The uncovered lines are deep defensive branches (e.g., missing req.user) that cannot be triggered through realistic API calls without corrupting internal middleware state.
+
+payment.controller.ts: The remaining uncovered branch would only execute if lower-level services threw unexpected errors; in our design payment errors are normalized into a PaymentResult instead of bubbling as HTTP 500s.
+
+payment.service.ts (lines 58–59): These lines are part of a very narrow error-message path after stripeService.createPaymentIntent throws; the observable HTTP behaviour is already fully tested via the payment routes.
+
+routePlanner.service.ts (line 202): This is a rare fallback branch for abnormal route-planning responses from external APIs; hitting it would require highly contrived mocks that do not reflect real usage.
+
+stripe.service.ts (branches): The uncovered parts are logging and ultra-narrow branches; all meaningful success and failure scenarios are already exercised via the payment and order HTTP endpoints.
+
+index.ts: This is the process entry point that boots the HTTP server; Jest imports the Express app directly, so this code is not executed in test runs.
+
+socket.ts: The uncovered lines perform real-time socket server setup/teardown; our tests are HTTP-only and do not open actual WebSocket connections.
+
+dev.routes.ts and loadTest.routes.ts: These files expose developer/load-test-only endpoints and are not part of the public API exercised by the automated tests.
+
+eventEmitter.util.ts: The missing coverage corresponds to extra logging/error branches when event emission fails; higher-level tests already verify that job flows succeed when emitters throw.
+
+mongoose.util.ts: The uncovered branches are defensive helpers for impossible or validation-rejected ID shapes; exercising them directly would require bypassing the normal validation and routing layers.
+
+sanitizeInput.util.ts: The uncovered line is a trivial early-return/no-op case in a small helper; API behaviour does not depend on this specific branch.
+
+notification.service.ts: The branches that are not covered are defensive checks to ensure that unexpected errors are handled correctly and are difficult to hit via realistic API calls.
+
 ---
 
 ## 3. Back-end Test Specification: Tests of Non-Functional Requirements
