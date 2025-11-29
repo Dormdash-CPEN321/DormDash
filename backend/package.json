@@ -103,6 +103,7 @@
     "verbose": true,
     "maxWorkers": 1,
     "testTimeout": 30000,
+    "setupFilesAfterEnv": ["<rootDir>/jest.setup.ts"],
     "collectCoverage": false,
     "coverageDirectory": "coverage",
     "collectCoverageFrom": [
