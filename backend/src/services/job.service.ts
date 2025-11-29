@@ -119,24 +119,6 @@ export class JobService {
     }
   }
   async createJob(reqData: CreateJobRequest): Promise<CreateJobResponse> {
-    // Input validation: Redundant with route validation but double-checking here
-    // if (!reqData.orderId || !reqData.studentId) {
-    //   logger.error('createJob: Missing required IDs', {
-    //     orderId: reqData.orderId,
-    //     studentId: reqData.studentId,
-    //   });
-    //   throw new Error('orderId and studentId are required');
-    // }
-
-    // if (!reqData.volume || reqData.volume <= 0) { //redundant
-    //   logger.error('createJob: Invalid volume', { volume: reqData.volume });
-    //   throw new Error('volume must be greater than 0');
-    // }
-
-    // if (!reqData.price || reqData.price <= 0) { //redundant
-    //   logger.error('createJob: Invalid price', { price: reqData.price });
-    //   throw new Error('price must be greater than 0');
-    // }
 
     try {
       const orderId: string = reqData.orderId;
